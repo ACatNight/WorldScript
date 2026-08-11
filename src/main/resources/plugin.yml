@@ -1,0 +1,13 @@
+name: WorldScript
+version: ${version}
+main: com.worldscript.WorldScriptPlugin
+api-version: '1.21'
+description: RPG region scripting plugin for Paper 1.21.8.
+commands:
+  ws:
+    description: WorldScript administration command
+    usage: /ws <wand|create|delete|list|info|gui|reload>
+    permission: worldscript.admin
+permissions:
+  worldscript.admin:
+    default: op

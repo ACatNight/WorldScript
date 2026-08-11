@@ -1,0 +1,8 @@
+config-version: 1
+selection:
+  tool: GOLDEN_AXE
+messages:
+  enter: '&a进入区域：&f%region%'
+  leave: '&7离开区域：&f%region%'
+gui:
+  event-icon: PAPER

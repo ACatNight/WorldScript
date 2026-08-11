@@ -1,0 +1,5 @@
+interface:
+  display_name: "矿物品质贴图美工"
+  short_description: "设计、重绘并验收矿物品质贴图与 HUD 视觉层级"
+  default_prompt: "Use $minecraft-quality-texture-artist to review and redesign the quality-tier textures for this Minecraft mining HUD."
+
