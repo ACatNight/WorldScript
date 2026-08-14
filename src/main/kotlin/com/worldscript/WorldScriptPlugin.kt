@@ -33,7 +33,7 @@ class WorldScriptPlugin : JavaPlugin() {
         val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards)
         val gui = RegionGuiService(this, regionCore)
         val selection = SelectionService(this)
-        val command = WsCommand(this, regionCore, selection)
+        val command = WsCommand(this, regionCore, selection, playerVariables)
         command.guiOpener = gui::openList
         getCommand("ws")?.apply {
             setExecutor(command)

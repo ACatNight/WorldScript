@@ -1,0 +1,67 @@
+# WorldScript region progression template.
+# Copy each section into its own file under plugins/WorldScript/regions/.
+# Replace the external plugin commands with commands supported by that plugin.
+# On quest completion, the external plugin can run:
+# ws progress <player> village_outskirts complete
+# ws progress <player> village_ruins unlock
+
+# village_gate.yml
+id: village_gate
+display-name: "Village Gate"
+world-name: world
+world-id: world
+min: {x: 0, y: 60, z: 0}
+max: {x: 20, y: 90, z: 20}
+events:
+  enter:
+    enabled: true
+    first-entry-only: true
+    actions:
+      - type: message
+        value: "&aWelcome to the village gate."
+      - type: console_command
+        value: "your-quest-plugin start village_intro %player%"
+    rewards:
+      - type: unlock_region
+        value: village_outskirts
+        once: true
+
+# village_outskirts.yml
+id: village_outskirts
+display-name: "Village Outskirts"
+world-name: world
+world-id: world
+statuses: [locked]
+min: {x: 21, y: 60, z: 0}
+max: {x: 50, y: 90, z: 30}
+events:
+  enter:
+    enabled: true
+    conditions:
+      - type: player_region_status
+        key: village_gate
+        value: entered
+    actions:
+      - type: message
+        value: "&eComplete the external quest before continuing."
+      - type: console_command
+        value: "your-quest-plugin start outskirts_intro %player%"
+
+# village_ruins.yml
+id: village_ruins
+display-name: "Old Ruins"
+world-name: world
+world-id: world
+statuses: [locked]
+min: {x: 51, y: 60, z: 0}
+max: {x: 90, y: 100, z: 40}
+events:
+  enter:
+    enabled: true
+    conditions:
+      - type: player_region_status
+        key: village_outskirts
+        value: completed
+    actions:
+      - type: message
+        value: "&6The old ruins are now available to you."

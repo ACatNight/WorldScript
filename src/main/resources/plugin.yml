@@ -6,7 +6,7 @@ description: RPG region scripting plugin for Paper 1.21.8.
 commands:
   ws:
     description: WorldScript administration command
-    usage: /ws <wand|create|delete|list|info|gui|reload>
+    usage: /ws <wand|create|delete|list|info|gui|reload|validate|progress>
     permission: worldscript.admin
 permissions:
   worldscript.admin:

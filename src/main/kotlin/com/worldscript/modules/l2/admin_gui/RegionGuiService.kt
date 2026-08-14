@@ -49,6 +49,12 @@ class RegionGuiService(
         val inventory = Bukkit.createInventory(RegionGuiHolder("event", regionId, type), 54, color(lang.text("gui-event-${type.name.lowercase()}", type.name)))
         inventory.setItem(4, item(if (script.enabled) Material.LIME_DYE else Material.GRAY_DYE, lang.text(if (script.enabled) "gui-enabled" else "gui-disabled", "Enabled"), lang.text("gui-toggle", "Click to switch")))
         inventory.setItem(5, item(Material.CLOCK, lang.text("gui-cooldown", "Cooldown"), "${script.cooldownSeconds}s"))
+        inventory.setItem(6, item(Material.COMPASS, lang.text("gui-entry-mode", "Gameplay summary"), listOf(
+            "${lang.text("gui-first-entry", "First entry only")}: ${script.firstEntryOnly}",
+            "${lang.text("gui-repeat-entry", "Repeat entry only")}: ${script.repeatEntryOnly}",
+            "${lang.text("gui-condition-count", "Conditions")}: ${script.conditions.size}",
+            "${lang.text("gui-reward-count", "Rewards")}: ${script.rewards.size}",
+        ).joinToString("|")))
         inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-action", "Add action"), lang.text("gui-add-action-lore", "Click to choose action type")))
         script.actions.take(27).forEachIndexed { index, action ->
             inventory.setItem(18 + index, item(Material.PAPER, "${index + 1}. ${action.type.name}", action.value))
@@ -156,6 +162,6 @@ class RegionGuiService(
     fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) { pendingInputs.remove(event.player.uniqueId) }
 
     private fun RegionGuiHolder.copyForInput(kind: String) = RegionGuiHolder("anvil", regionId, eventType, actionIndex, actionType, kind)
-    private fun item(material: Material, name: String, lore: String): ItemStack = ItemStack(material).also { stack -> stack.itemMeta = stack.itemMeta?.also { meta: ItemMeta -> meta.setDisplayName(color(name)); meta.lore = listOf(color(lore)) } }
+    private fun item(material: Material, name: String, lore: String): ItemStack = ItemStack(material).also { stack -> stack.itemMeta = stack.itemMeta?.also { meta: ItemMeta -> meta.setDisplayName(color(name)); meta.lore = lore.split('|').map(::color) } }
     private fun color(value: String) = ChatColor.translateAlternateColorCodes('&', value)
 }
