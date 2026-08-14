@@ -5,6 +5,7 @@ WorldScript is a Paper 1.21.8 region scripting plugin built with Kotlin and Grad
 ## Current Scope
 
 - Parent and child regions with inherited variables, statuses, and event scripts
+- Explicit region roles (`hub`, `open_zone`, `point_of_interest`, `danger_zone`, `gate`) and external `content-id`
 - Enter, leave, and interaction events
 - Player variable persistence
 - Per-player region unlock, first-entry, completion, and one-time reward state
@@ -33,6 +34,6 @@ Copy `examples/region-progression-template.yml` into the server's `plugins/World
 
 An external quest plugin can write back the result with `/ws progress <player> <region> <unlock|complete>`. WorldScript only records the player-region state; it does not create or manage quests.
 
-If PlaceholderAPI is installed, HUD plugins can use `%worldscript_region_name%`, `%worldscript_parent_name%`, `%worldscript_child_name%`, `%worldscript_region_depth%`, `%worldscript_region_unlocked%`, `%worldscript_region_entered%`, `%worldscript_region_completed%`, and `%worldscript_region_world%`. These variables do not include level or reputation.
+If PlaceholderAPI is installed, HUD plugins can use `%worldscript_region_name%`, `%worldscript_parent_name%`, `%worldscript_child_name%`, `%worldscript_region_role%`, `%worldscript_region_content_id%`, `%worldscript_region_depth%`, `%worldscript_region_unlocked%`, `%worldscript_region_entered%`, `%worldscript_region_completed%`, and `%worldscript_region_world%`. These variables do not include level or reputation.
 
 The design agent audits region identity, open-world branching, unlock pacing, parent-child inheritance, player/global state scope, HUD semantics, and external quest boundaries before implementation decisions are made.

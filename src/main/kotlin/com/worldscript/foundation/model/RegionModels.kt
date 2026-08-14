@@ -32,6 +32,14 @@ enum class RegionStatus {
     QUEST_ACTIVE,
 }
 
+enum class RegionRole {
+    HUB,
+    OPEN_ZONE,
+    POINT_OF_INTEREST,
+    DANGER_ZONE,
+    GATE,
+}
+
 enum class ConditionType {
     PLAYER_LEVEL,
     PERMISSION,
@@ -96,6 +104,8 @@ data class RegionDefinition(
     val worldId: String,
     val worldName: String,
     val bounds: RegionBounds,
+    val role: RegionRole = RegionRole.OPEN_ZONE,
+    val contentId: String = "",
     val priority: Int = 0,
     val events: Map<RegionEventType, ScriptDefinition> = emptyMap(),
     val parentId: String? = null,

@@ -31,6 +31,8 @@ class WorldScriptPlaceholderExpansion(
         return when (params.lowercase()) {
             "region_id" -> currentId
             "region_name" -> effective?.displayName ?: ""
+            "region_role" -> effective?.role?.name?.lowercase() ?: ""
+            "region_content_id" -> effective?.contentId ?: ""
             "parent_id" -> parent?.id ?: ""
             "parent_name" -> parent?.displayName ?: ""
             "child_id" -> current?.takeIf { it.parentId != null }?.id ?: ""

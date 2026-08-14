@@ -6,6 +6,8 @@
 # starter_valley.yml
 id: starter_valley
 display-name: "Starter Valley"
+role: hub
+content-id: starter_hub
 world-name: world
 world-id: world
 min: {x: 0, y: 50, z: 0}
@@ -21,6 +23,8 @@ events:
 # forest.yml
 id: forest
 display-name: "Whispering Forest"
+role: open_zone
+content-id: forest_intro
 parent-id: starter_valley
 world-name: world
 world-id: world
@@ -40,6 +44,8 @@ events:
 # mine.yml
 id: mine
 display-name: "Abandoned Mine"
+role: point_of_interest
+content-id: mine_intro
 parent-id: starter_valley
 world-name: world
 world-id: world
@@ -59,6 +65,8 @@ events:
 # ruins.yml
 id: ruins
 display-name: "Sunken Ruins"
+role: point_of_interest
+content-id: ruins_intro
 parent-id: starter_valley
 world-name: world
 world-id: world
@@ -81,6 +89,8 @@ events:
 # ws progress <player> danger_canyon unlock
 id: danger_canyon
 display-name: "Danger Canyon"
+role: danger_zone
+content-id: danger_canyon_intro
 parent-id: starter_valley
 world-name: world
 world-id: world

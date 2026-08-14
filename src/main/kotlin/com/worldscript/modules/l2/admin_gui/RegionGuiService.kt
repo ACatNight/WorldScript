@@ -36,7 +36,7 @@ class RegionGuiService(
     private fun openRegion(player: Player, regionId: String) {
         val region = regions.find(regionId) ?: return openList(player)
         val inventory = Bukkit.createInventory(RegionGuiHolder("region", region.id), 27, color(region.displayName))
-        inventory.setItem(4, item(Material.BOOK, region.displayName, "${region.worldName} ${region.bounds}"))
+        inventory.setItem(4, item(Material.BOOK, region.displayName, "${region.worldName} ${region.bounds}|role: ${region.role.name.lowercase()}|content-id: ${region.contentId.ifBlank { "-" }}"))
         inventory.setItem(10, item(Material.LIME_DYE, lang.text("gui-event-enter", "Enter"), lang.text("gui-open-event", "Click to edit")))
         inventory.setItem(12, item(Material.RED_DYE, lang.text("gui-event-leave", "Leave"), lang.text("gui-open-event", "Click to edit")))
         inventory.setItem(14, item(Material.YELLOW_DYE, lang.text("gui-event-interact", "Interact"), lang.text("gui-open-event", "Click to edit")))

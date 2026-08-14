@@ -4,6 +4,8 @@ This repository is a Paper 1.21.8 Kotlin plugin. It is not a Germ project.
 
 Current region capabilities include rectangular regions, parent-child inheritance, enter/leave/interact events, player variables, per-player region unlock/entered/completed state, conditions, rewards, first-entry/repeat-entry controls, one-time rewards, configuration validation, and a narrow `/ws progress` bridge.
 
+Regions can declare a semantic `role` (`hub`, `open_zone`, `point_of_interest`, `danger_zone`, or `gate`) and an external `content-id`. Keep the role descriptive; do not use it as an automatic level or reputation gate.
+
 Quest definitions and quest persistence are intentionally outside this plugin. A dedicated quest plugin such as Chemdah owns task state and calls WorldScript when an external result should unlock or complete a player-region state.
 
 For nested enter and leave events, parent scripts run for the parent area. A child should set `override-parent: true` when it owns its own enter or leave content; otherwise the inherited parent script is not dispatched again for the child.

@@ -62,6 +62,8 @@ class ScriptActionServiceImpl(
                 .replace("%uuid%", player.uniqueId.toString())
                 .replace("%region%", regionId)
                 .replace("%world%", player.world.name)
+                .replace("%region_role%", regions.effective(regionId)?.role?.name?.lowercase() ?: "")
+                .replace("%content_id%", regions.effective(regionId)?.contentId ?: "")
                 .let { expanded ->
                     regions.effective(regionId)?.variables?.entries?.fold(expanded) { text, (key, variable) ->
                         text.replace("%var.$key%", variable)

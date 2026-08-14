@@ -10,6 +10,7 @@ import com.worldscript.foundation.model.ConditionType
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.model.RegionStatus
+import com.worldscript.foundation.model.RegionRole
 import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
 import com.worldscript.foundation.model.ScriptDefinition
@@ -54,6 +55,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         data.set("display-name", region.displayName)
         data.set("world-id", region.worldId)
         data.set("world-name", region.worldName)
+        data.set("role", region.role.name.lowercase())
+        data.set("content-id", region.contentId)
         data.set("priority", region.priority)
         data.set("parent-id", region.parentId)
         data.set("inherit-parent", region.inheritParent)
@@ -312,6 +315,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             worldId = section.getString("world-id", worldName) ?: worldName,
             worldName = worldName,
             bounds = RegionGeometry.from(readPosition(section, "min"), readPosition(section, "max")),
+            role = parseEnum<RegionRole>(section.getString("role")) ?: RegionRole.OPEN_ZONE,
+            contentId = section.getString("content-id", "") ?: "",
             priority = section.getInt("priority", 0),
             events = RegionEventType.entries.associateWith { type -> readScript(section, type) },
             parentId = section.getString("parent-id")?.takeUnless { it.isBlank() },

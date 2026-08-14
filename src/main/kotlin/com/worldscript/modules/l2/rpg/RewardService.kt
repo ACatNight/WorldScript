@@ -39,11 +39,11 @@ class RewardService(
             }
             RewardType.MONEY -> {
                 val amount = reward.value.toDoubleOrNull() ?: reward.amount
-                dispatch(plugin.config.getString("economy-command", "eco give %player% %amount%") ?: "eco give %player% %amount%", player, amount)
+                dispatch(plugin.config.getString("economy-command", "eco give %player% %amount%") ?: "eco give %player% %amount%", player, regionId, amount)
                 true
             }
             RewardType.COMMAND -> {
-                dispatch(reward.value, player, reward.amount)
+                dispatch(reward.value, player, regionId, reward.amount)
                 true
             }
             RewardType.UNLOCK_REGION -> {
@@ -71,13 +71,15 @@ class RewardService(
         }
     }
 
-    private fun dispatch(command: String, player: Player, amount: Double) {
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), placeholders(command.removePrefix("/"), player, "", amount))
+    private fun dispatch(command: String, player: Player, regionId: String, amount: Double) {
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), placeholders(command.removePrefix("/"), player, regionId, amount))
     }
 
     private fun placeholders(value: String, player: Player, regionId: String, amount: Double): String = value
         .replace("%player%", player.name)
         .replace("%uuid%", player.uniqueId.toString())
         .replace("%region%", regionId)
+        .replace("%region_role%", regions.effective(regionId)?.role?.name?.lowercase() ?: "")
+        .replace("%content_id%", regions.effective(regionId)?.contentId ?: "")
         .replace("%amount%", if (amount % 1.0 == 0.0) amount.toInt().toString() else amount.toString())
 }
