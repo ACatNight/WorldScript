@@ -40,10 +40,12 @@ class RegionEventServiceImpl(
         val previous = current[player.uniqueId] ?: emptySet()
         if (previous == next) return
         previous.filter { it !in next }.sortedByDescending { regions.depth(it) }.forEach { id ->
-            regions.effective(id)?.takeIf { it.events[RegionEventType.LEAVE]?.enabled != false }?.let { plugin.server.pluginManager.callEvent(RegionLeaveEvent(player, it.id)) }
+            regions.find(id)?.takeIf { canDispatchNestedEvent(it.id, RegionEventType.LEAVE) }
+                ?.let { region -> regions.effective(region.id)?.takeIf { it.events[RegionEventType.LEAVE]?.enabled != false }?.let { plugin.server.pluginManager.callEvent(RegionLeaveEvent(player, region.id)) } }
         }
         next.filter { it !in previous }.sortedBy { regions.depth(it) }.forEach { id ->
-            regions.effective(id)?.takeIf { it.events[RegionEventType.ENTER]?.enabled != false }?.let { plugin.server.pluginManager.callEvent(RegionEnterEvent(player, it.id)) }
+            regions.find(id)?.takeIf { canDispatchNestedEvent(it.id, RegionEventType.ENTER) }
+                ?.let { region -> regions.effective(region.id)?.takeIf { it.events[RegionEventType.ENTER]?.enabled != false }?.let { plugin.server.pluginManager.callEvent(RegionEnterEvent(player, region.id)) } }
         }
         if (next.isEmpty()) current.remove(player.uniqueId) else current[player.uniqueId] = next
     }
@@ -68,4 +70,9 @@ class RegionEventServiceImpl(
     fun onLeave(event: RegionLeaveEvent) { com.worldscript.foundation.Lang(plugin).send(event.player, "region-leave", "region" to event.regionId) }
 
     private fun Location.blockPosition() = com.worldscript.foundation.model.BlockPosition(blockX, blockY, blockZ)
+
+    private fun canDispatchNestedEvent(regionId: String, eventType: RegionEventType): Boolean {
+        val region = regions.find(regionId) ?: return false
+        return region.parentId == null || region.events[eventType]?.overrideParent == true
+    }
 }

@@ -1,67 +1,97 @@
-# WorldScript region progression template.
-# Copy each section into its own file under plugins/WorldScript/regions/.
-# Replace the external plugin commands with commands supported by that plugin.
-# On quest completion, the external plugin can run:
-# ws progress <player> village_outskirts complete
-# ws progress <player> village_ruins unlock
+# Open-world RPG region template.
+# Use the hub as a parent area and keep the branches independently visitable.
+# Replace external plugin commands with commands supported by that plugin.
+# No level or reputation gates are used in this starter template.
 
-# village_gate.yml
-id: village_gate
-display-name: "Village Gate"
+# starter_valley.yml
+id: starter_valley
+display-name: "Starter Valley"
 world-name: world
 world-id: world
-min: {x: 0, y: 60, z: 0}
-max: {x: 20, y: 90, z: 20}
+min: {x: 0, y: 50, z: 0}
+max: {x: 160, y: 110, z: 160}
 events:
   enter:
     enabled: true
     first-entry-only: true
     actions:
       - type: message
-        value: "&aWelcome to the village gate."
-      - type: console_command
-        value: "your-quest-plugin start village_intro %player%"
-    rewards:
-      - type: unlock_region
-        value: village_outskirts
-        once: true
+        value: "&aStarter Valley is open. Choose a direction to explore."
 
-# village_outskirts.yml
-id: village_outskirts
-display-name: "Village Outskirts"
+# forest.yml
+id: forest
+display-name: "Whispering Forest"
+parent-id: starter_valley
 world-name: world
 world-id: world
-statuses: [locked]
-min: {x: 21, y: 60, z: 0}
-max: {x: 50, y: 90, z: 30}
+min: {x: 10, y: 50, z: 10}
+max: {x: 70, y: 100, z: 70}
 events:
   enter:
     enabled: true
-    conditions:
-      - type: player_region_status
-        key: village_gate
-        value: entered
+    override-parent: true
+    first-entry-only: true
     actions:
       - type: message
-        value: "&eComplete the external quest before continuing."
+        value: "&2The forest is rich with herbs, tracks, and danger."
       - type: console_command
-        value: "your-quest-plugin start outskirts_intro %player%"
+        value: "your-quest-plugin start forest_intro %player%"
 
-# village_ruins.yml
-id: village_ruins
-display-name: "Old Ruins"
+# mine.yml
+id: mine
+display-name: "Abandoned Mine"
+parent-id: starter_valley
 world-name: world
 world-id: world
-statuses: [locked]
-min: {x: 51, y: 60, z: 0}
-max: {x: 90, y: 100, z: 40}
+min: {x: 80, y: 45, z: 10}
+max: {x: 140, y: 95, z: 70}
 events:
   enter:
     enabled: true
-    conditions:
-      - type: player_region_status
-        key: village_outskirts
-        value: completed
+    override-parent: true
+    first-entry-only: true
     actions:
       - type: message
-        value: "&6The old ruins are now available to you."
+        value: "&7The abandoned mine still holds ore and unanswered questions."
+      - type: console_command
+        value: "your-quest-plugin start mine_intro %player%"
+
+# ruins.yml
+id: ruins
+display-name: "Sunken Ruins"
+parent-id: starter_valley
+world-name: world
+world-id: world
+min: {x: 30, y: 50, z: 80}
+max: {x: 120, y: 100, z: 150}
+events:
+  enter:
+    enabled: true
+    override-parent: true
+    first-entry-only: true
+    actions:
+      - type: message
+        value: "&6The ruins reveal fragments of the world's older history."
+      - type: console_command
+        value: "your-quest-plugin start ruins_intro %player%"
+
+# danger_canyon.yml
+# This is the only hard-gated branch in the starter template.
+# An external plugin can open it for a player with:
+# ws progress <player> danger_canyon unlock
+id: danger_canyon
+display-name: "Danger Canyon"
+parent-id: starter_valley
+world-name: world
+world-id: world
+statuses: [locked]
+min: {x: 120, y: 45, z: 80}
+max: {x: 160, y: 110, z: 150}
+events:
+  enter:
+    enabled: true
+    override-parent: true
+    first-entry-only: true
+    actions:
+      - type: message
+        value: "&cThe canyon is finally open to you."

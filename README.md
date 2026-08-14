@@ -29,7 +29,7 @@ gradlew.bat clean build
 
 The plugin jar is written to `build/libs/WorldScript-<version>.jar`.
 
-Copy `examples/region-progression-template.yml` into the server's `plugins/WorldScript/regions/` directory as a starting point. Replace the region bounds and external plugin commands, then run `/ws validate` before reloading.
+Copy `examples/region-progression-template.yml` into the server's `plugins/WorldScript/regions/` directory as an open-world starter layout. Replace the region bounds and external plugin commands, then run `/ws validate` before reloading.
 
 An external quest plugin can write back the result with `/ws progress <player> <region> <unlock|complete>`. WorldScript only records the player-region state; it does not create or manage quests.
 
