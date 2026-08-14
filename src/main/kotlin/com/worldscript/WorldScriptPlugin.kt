@@ -11,6 +11,7 @@ import com.worldscript.modules.l2.admin_gui.RegionGuiService
 import com.worldscript.modules.l2.rpg.ConditionEvaluator
 import com.worldscript.modules.l2.rpg.RewardService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
+import com.worldscript.integration.placeholder.WorldScriptPlaceholderExpansion
 
 class WorldScriptPlugin : JavaPlugin() {
     lateinit var lang: com.worldscript.foundation.Lang
@@ -44,6 +45,10 @@ class WorldScriptPlugin : JavaPlugin() {
         server.pluginManager.registerEvents(actions, this)
         server.pluginManager.registerEvents(gui, this)
         server.pluginManager.registerEvents(RegionSelectionListener(this, selection, command), this)
+        if (server.pluginManager.isPluginEnabled("PlaceholderAPI")) {
+            WorldScriptPlaceholderExpansion(this, regionCore, playerVariables).register()
+            logger.info("Registered WorldScript PlaceholderAPI variables.")
+        }
         logger.info("WorldScript enabled with ${regionCore.all().size} regions.")
     }
 

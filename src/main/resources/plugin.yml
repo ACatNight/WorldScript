@@ -3,6 +3,7 @@ version: ${version}
 main: com.worldscript.WorldScriptPlugin
 api-version: '1.21'
 description: RPG region scripting plugin for Paper 1.21.8.
+softdepend: [PlaceholderAPI]
 commands:
   ws:
     description: WorldScript administration command

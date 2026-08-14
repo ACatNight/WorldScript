@@ -13,4 +13,4 @@ For HUD design, use deterministic semantics:
 - Child region: the active nested region when the player is inside one; empty outside a child.
 - Outside all regions: empty values or a configured fallback such as `Wilderness`.
 
-Candidate placeholder names are `%worldscript_region_name%`, `%worldscript_parent_name%`, `%worldscript_child_name%`, `%worldscript_region_depth%`, `%worldscript_region_unlocked%`, and `%worldscript_region_completed%`. Confirm the target HUD's placeholder protocol before implementing an adapter.
+When PlaceholderAPI is installed, the plugin exposes `%worldscript_region_name%`, `%worldscript_parent_name%`, `%worldscript_child_name%`, `%worldscript_region_depth%`, `%worldscript_region_unlocked%`, and `%worldscript_region_completed%`, plus entered and world values. Confirm the target HUD's placeholder protocol before configuring it.
