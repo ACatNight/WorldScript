@@ -38,9 +38,11 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     override fun all(): Collection<RegionDefinition> = regions.values.toList()
 
-    override fun regionsAt(location: Location): List<RegionDefinition> = regions.values
+    override fun regionsAt(location: Location): List<RegionDefinition> = regionsAt(location, ::isAccessible)
+
+    fun regionsAt(location: Location, accessible: (String) -> Boolean): List<RegionDefinition> = regions.values
         .filter { region -> region.worldName == location.world?.name && RegionGeometry.contains(region.bounds, location.toBlockPosition()) }
-        .filter { isAccessible(it.id) }
+        .filter { accessible(it.id) }
         .sortedWith(compareBy<RegionDefinition> { depth(it.id) }.thenBy { it.priority }.thenBy { it.id.lowercase() })
 
     override fun save(region: RegionDefinition) {
@@ -63,6 +65,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             data.set("$eventPath.enabled", script.enabled)
             data.set("$eventPath.override-parent", script.overrideParent)
             data.set("$eventPath.cooldown-seconds", script.cooldownSeconds)
+            data.set("$eventPath.first-entry-only", script.firstEntryOnly)
+            data.set("$eventPath.repeat-entry-only", script.repeatEntryOnly)
             data.set("$eventPath.actions", script.actions.map { mapOf("type" to it.type.name.lowercase(), "value" to it.value) })
             data.set("$eventPath.conditions", script.conditions.map { conditionMap(it) })
             data.set("$eventPath.rewards", script.rewards.map { rewardMap(it) })
@@ -155,6 +159,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         return RegionStatus.LOCKED !in statuses || RegionStatus.UNLOCKED in statuses
     }
 
+    fun isAccessible(id: String, playerUnlocked: Boolean): Boolean = playerUnlocked || isAccessible(id)
+
     fun depth(id: String): Int {
         var current = find(id)
         var depth = 0
@@ -239,6 +245,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             conditions = readConditions(section.getMapList("$path.conditions")),
             rewards = readRewards(section.getMapList("$path.rewards")),
             overrideParent = section.getBoolean("$path.override-parent", false),
+            firstEntryOnly = section.getBoolean("$path.first-entry-only", false),
+            repeatEntryOnly = section.getBoolean("$path.repeat-entry-only", false),
         )
     }
 
@@ -255,7 +263,12 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     private fun readRewards(raw: List<Map<*, *>>): List<RewardDefinition> = raw.mapNotNull { item ->
         val type = parseEnum<RewardType>(item["type"]?.toString()) ?: return@mapNotNull null
-        RewardDefinition(type, item["value"]?.toString() ?: "", item["amount"]?.toString()?.toDoubleOrNull() ?: 1.0)
+        RewardDefinition(
+            type,
+            item["value"]?.toString() ?: "",
+            item["amount"]?.toString()?.toDoubleOrNull() ?: 1.0,
+            item["once"]?.toString()?.toBooleanStrictOrNull() ?: false,
+        )
     }
 
     private fun conditionMap(condition: ConditionDefinition) = mapOf(
@@ -265,6 +278,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     private fun rewardMap(reward: RewardDefinition) = mapOf(
         "type" to reward.type.name.lowercase(), "value" to reward.value, "amount" to reward.amount,
+        "once" to reward.once,
     )
 
     private inline fun <reified T : Enum<T>> parseEnum(value: String?): T? = value?.trim()?.uppercase()?.let { runCatching { enumValueOf<T>(it) }.getOrNull() }

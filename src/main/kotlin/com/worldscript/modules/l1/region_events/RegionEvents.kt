@@ -3,6 +3,7 @@ package com.worldscript.modules.l1.region_events
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l1.region_core.RegionGeometry
+import com.worldscript.modules.l2.rpg.PlayerVariableService
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
@@ -26,6 +27,7 @@ class RegionInteractEvent(val player: Player, val regionId: String) : Event() {
 class RegionEventServiceImpl(
     private val plugin: org.bukkit.plugin.java.JavaPlugin,
     private val regions: RegionCoreServiceImpl,
+    private val state: PlayerVariableService,
 ) : org.bukkit.event.Listener {
     private val current = mutableMapOf<java.util.UUID, Set<String>>()
 
@@ -34,7 +36,7 @@ class RegionEventServiceImpl(
         val to = event.to ?: return
         if (event.from.blockX == to.blockX && event.from.blockY == to.blockY && event.from.blockZ == to.blockZ) return
         val player = event.player
-        val next = regions.regionsAt(to).map { it.id }.toSet()
+        val next = regions.regionsAt(to) { id -> regions.isAccessible(id, state.isRegionUnlocked(player, id)) }.map { it.id }.toSet()
         val previous = current[player.uniqueId] ?: emptySet()
         if (previous == next) return
         previous.filter { it !in next }.sortedByDescending { regions.depth(it) }.forEach { id ->
@@ -54,7 +56,7 @@ class RegionEventServiceImpl(
         val selectionTool = org.bukkit.Material.matchMaterial(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE") ?: org.bukkit.Material.GOLDEN_AXE
         if (event.item?.type == selectionTool) return
         val block = event.clickedBlock ?: return
-        val region = regions.regionsAt(block.location).lastOrNull() ?: return
+        val region = regions.regionsAt(block.location) { id -> regions.isAccessible(id, state.isRegionUnlocked(event.player, id)) }.lastOrNull() ?: return
         if (region.events[RegionEventType.INTERACT]?.enabled != false) {
             plugin.server.pluginManager.callEvent(RegionInteractEvent(event.player, region.id))
         }

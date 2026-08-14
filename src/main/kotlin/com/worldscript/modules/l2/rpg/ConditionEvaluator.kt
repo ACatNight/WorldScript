@@ -16,6 +16,18 @@ class ConditionEvaluator(
     fun allMet(player: Player, regionId: String, conditions: List<ConditionDefinition>): Boolean =
         conditions.all { evaluate(player, regionId, it) }
 
+    fun firstFailure(player: Player, regionId: String, conditions: List<ConditionDefinition>): ConditionDefinition? =
+        conditions.firstOrNull { !evaluate(player, regionId, it) }
+
+    fun describe(condition: ConditionDefinition): String = when (condition.type) {
+        ConditionType.PLAYER_LEVEL -> "player level ${condition.operator.name.lowercase()} ${condition.value}"
+        ConditionType.PERMISSION -> "permission ${condition.key}"
+        ConditionType.ITEM -> "item ${condition.key.ifBlank { condition.value }} x${condition.amount}"
+        ConditionType.VARIABLE -> "variable ${condition.key} ${condition.operator.name.lowercase()} ${condition.value}"
+        ConditionType.REGION_STATUS -> "region ${condition.key} status ${condition.value}"
+        ConditionType.PLAYER_REGION_STATUS -> "player region ${condition.key} status ${condition.value}"
+    }
+
     private fun evaluate(player: Player, regionId: String, condition: ConditionDefinition): Boolean = when (condition.type) {
         ConditionType.PLAYER_LEVEL -> compare(player.level.toString(), condition.value, condition.operator)
         ConditionType.PERMISSION -> comparePermission(player.hasPermission(condition.key), condition.operator)
@@ -35,6 +47,15 @@ class ConditionEvaluator(
             val targetRegion = condition.key.ifBlank { regionId }
             val status = runCatching { RegionStatus.valueOf(condition.value.uppercase()) }.getOrNull() ?: return false
             status in (regions.effective(targetRegion)?.statuses ?: emptySet())
+        }
+        ConditionType.PLAYER_REGION_STATUS -> {
+            val targetRegion = condition.key.ifBlank { regionId }
+            when (condition.value.uppercase()) {
+                "UNLOCKED" -> state.isRegionUnlocked(player, targetRegion)
+                "ENTERED" -> state.hasEnteredRegion(player, targetRegion)
+                "COMPLETED" -> state.isRegionCompleted(player, targetRegion)
+                else -> false
+            }
         }
     }
 

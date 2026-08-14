@@ -16,32 +16,58 @@ class RewardService(
     private val regions: RegionCoreServiceImpl,
     private val state: PlayerVariableService,
 ) {
-    fun grant(player: Player, regionId: String, rewards: List<RewardDefinition>) {
-        rewards.forEach { reward ->
+    fun grant(player: Player, regionId: String, rewards: List<RewardDefinition>, eventKey: String? = null) {
+        rewards.forEachIndexed { index, reward ->
+            val rewardKey = "${eventKey ?: regionId}:$index"
+            if (reward.once && state.isRewardClaimed(player, rewardKey)) return@forEachIndexed
             runCatching { grantOne(player, regionId, reward) }
+                .onSuccess { granted -> if (reward.once && granted) state.claimReward(player, rewardKey) }
                 .onFailure { plugin.logger.warning("Could not grant ${reward.type} in region $regionId: ${it.message}") }
         }
     }
 
-    private fun grantOne(player: Player, regionId: String, reward: RewardDefinition) {
-        when (reward.type) {
+    private fun grantOne(player: Player, regionId: String, reward: RewardDefinition): Boolean {
+        return when (reward.type) {
             RewardType.ITEM -> {
-                val material = Material.matchMaterial(reward.value) ?: return
+                val material = Material.matchMaterial(reward.value) ?: return false
                 player.inventory.addItem(ItemStack(material, reward.amount.toInt().coerceAtLeast(1)))
+                true
             }
-            RewardType.EXPERIENCE -> player.giveExp(reward.value.toDoubleOrNull()?.toInt() ?: reward.amount.toInt())
+            RewardType.EXPERIENCE -> {
+                player.giveExp(reward.value.toDoubleOrNull()?.toInt() ?: reward.amount.toInt())
+                true
+            }
             RewardType.MONEY -> {
                 val amount = reward.value.toDoubleOrNull() ?: reward.amount
                 dispatch(plugin.config.getString("economy-command", "eco give %player% %amount%") ?: "eco give %player% %amount%", player, amount)
+                true
             }
-            RewardType.COMMAND -> dispatch(reward.value, player, reward.amount)
-            RewardType.UNLOCK_REGION -> regions.setStatus(reward.value, RegionStatus.UNLOCKED, true)
-            RewardType.SET_VARIABLE -> reward.value.split('=', limit = 2).takeIf { it.size == 2 }?.let { state.setVariable(player, it[0].trim(), it[1]) }
-            RewardType.SET_REGION_STATUS -> reward.value.split(',', limit = 2).takeIf { it.size == 2 }?.let { parts ->
-                val status = runCatching { RegionStatus.valueOf(parts[1].trim().uppercase()) }.getOrNull() ?: return
+            RewardType.COMMAND -> {
+                dispatch(reward.value, player, reward.amount)
+                true
+            }
+            RewardType.UNLOCK_REGION -> {
+                state.unlockRegion(player, reward.value)
+                true
+            }
+            RewardType.SET_VARIABLE -> {
+                val parts = reward.value.split('=', limit = 2)
+                if (parts.size != 2) return false
+                state.setVariable(player, parts[0].trim(), parts[1])
+                true
+            }
+            RewardType.SET_REGION_STATUS -> {
+                val parts = reward.value.split(',', limit = 2)
+                if (parts.size != 2) return false
+                val status = runCatching { RegionStatus.valueOf(parts[1].trim().uppercase()) }.getOrNull() ?: return false
+                if (status == RegionStatus.COMPLETED) state.markRegionCompleted(player, parts[0].trim())
                 regions.setStatus(parts[0].trim(), status, true)
+                true
             }
-            RewardType.MESSAGE -> player.sendMessage(ChatColor.translateAlternateColorCodes('&', placeholders(reward.value, player, regionId, reward.amount)))
+            RewardType.MESSAGE -> {
+                player.sendMessage(ChatColor.translateAlternateColorCodes('&', placeholders(reward.value, player, regionId, reward.amount)))
+                true
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 package com.worldscript.modules.l2.script_actions
 
 import com.worldscript.foundation.api.ScriptActionService
+import com.worldscript.foundation.Lang
 import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
 import com.worldscript.foundation.model.RegionEventType
@@ -37,13 +38,20 @@ class ScriptActionServiceImpl(
     private fun executeEvent(player: Player, regionId: String, eventType: RegionEventType) {
         val script = regions.effective(regionId)?.events?.get(eventType) ?: return
         if (!script.enabled) return
-        if (!conditions.allMet(player, regionId, script.conditions)) return
+        val firstEntry = eventType == RegionEventType.ENTER && !state.hasEnteredRegion(player, regionId)
+        if (script.firstEntryOnly && !firstEntry) return
+        if (script.repeatEntryOnly && firstEntry) return
+        conditions.firstFailure(player, regionId, script.conditions)?.let { failed ->
+            Lang(plugin).send(player, "condition-failed", "region" to regionId, "reason" to conditions.describe(failed))
+            return
+        }
         val key = "${player.uniqueId}:$regionId:${eventType.name}"
         val now = System.currentTimeMillis()
         if (script.cooldownSeconds > 0 && now - (lastExecution[key] ?: 0) < script.cooldownSeconds * 1000) return
         lastExecution[key] = now
+        if (firstEntry) state.markRegionEntered(player, regionId)
         execute(player, regionId, script.actions)
-        rewards.grant(player, regionId, script.rewards)
+        rewards.grant(player, regionId, script.rewards, key)
     }
 
     override fun execute(player: Player, regionId: String, actions: List<ActionDefinition>) {
@@ -66,11 +74,11 @@ class ScriptActionServiceImpl(
                     ActionType.MESSAGE -> player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', value))
                     ActionType.TELEPORT -> teleport(player, value)
                     ActionType.SET_VARIABLE -> setPlayerVariable(player, value)
-                    ActionType.SET_REGION_STATUS -> setRegionStatus(value)
+                    ActionType.SET_REGION_STATUS -> setRegionStatus(player, value)
                     ActionType.GIVE_ITEM -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.ITEM, value)))
                     ActionType.GIVE_EXPERIENCE -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.EXPERIENCE, value)))
                     ActionType.GIVE_MONEY -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.MONEY, value)))
-                    ActionType.UNLOCK_REGION -> regions.setStatus(value, RegionStatus.UNLOCKED, true)
+                    ActionType.UNLOCK_REGION -> state.unlockRegion(player, value)
                 }
             }.onFailure { plugin.logger.warning("Failed to execute ${action.type} in region $regionId: ${it.message}") }
         }
@@ -81,10 +89,11 @@ class ScriptActionServiceImpl(
         if (parts.size == 2) state.setVariable(player, parts[0].trim(), parts[1])
     }
 
-    private fun setRegionStatus(value: String) {
+    private fun setRegionStatus(player: Player, value: String) {
         val parts = value.split(',', limit = 2)
         if (parts.size != 2) return
         val status = runCatching { RegionStatus.valueOf(parts[1].trim().uppercase()) }.getOrNull() ?: return
+        if (status == RegionStatus.COMPLETED) state.markRegionCompleted(player, parts[0].trim())
         regions.setStatus(parts[0].trim(), status, true)
     }
 

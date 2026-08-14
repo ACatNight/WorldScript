@@ -29,7 +29,7 @@ class WorldScriptPlugin : JavaPlugin() {
         playerVariables = PlayerVariableService(this)
         val rewards = RewardService(this, regionCore, playerVariables)
         val conditions = ConditionEvaluator(regionCore, playerVariables)
-        val events = RegionEventServiceImpl(this, regionCore)
+        val events = RegionEventServiceImpl(this, regionCore, playerVariables)
         val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards)
         val gui = RegionGuiService(this, regionCore)
         val selection = SelectionService(this)

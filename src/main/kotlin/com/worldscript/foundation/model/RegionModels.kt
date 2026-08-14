@@ -38,6 +38,7 @@ enum class ConditionType {
     ITEM,
     VARIABLE,
     REGION_STATUS,
+    PLAYER_REGION_STATUS,
 }
 
 enum class ComparisonOperator {
@@ -73,6 +74,7 @@ data class RewardDefinition(
     val type: RewardType,
     val value: String,
     val amount: Double = 1.0,
+    val once: Boolean = false,
 )
 
 data class ActionDefinition(val type: ActionType, val value: String)
@@ -84,6 +86,8 @@ data class ScriptDefinition(
     val conditions: List<ConditionDefinition> = emptyList(),
     val rewards: List<RewardDefinition> = emptyList(),
     val overrideParent: Boolean = false,
+    val firstEntryOnly: Boolean = false,
+    val repeatEntryOnly: Boolean = false,
 )
 
 data class RegionDefinition(
