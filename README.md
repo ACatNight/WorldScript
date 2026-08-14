@@ -12,6 +12,7 @@ WorldScript is a Paper 1.21.8 region scripting plugin built with Kotlin and Grad
 - Actions and rewards for commands, messages, teleportation, items, experience, money, variables, and region unlocks
 - Admin selection tool, commands, and GUI
 - `/ws validate` configuration validation
+- Project-local design agent: `AgentSkills/open-world-rpg-region-designer`
 
 Quest state and quest definitions are intentionally not implemented here. Quest behavior should be provided by the server's dedicated quest plugin, such as Chemdah, and invoked through that plugin's supported command or API.
 
@@ -31,3 +32,5 @@ The plugin jar is written to `build/libs/WorldScript-<version>.jar`.
 Copy `examples/region-progression-template.yml` into the server's `plugins/WorldScript/regions/` directory as a starting point. Replace the region bounds and external plugin commands, then run `/ws validate` before reloading.
 
 An external quest plugin can write back the result with `/ws progress <player> <region> <unlock|complete>`. WorldScript only records the player-region state; it does not create or manage quests.
+
+The design agent audits region identity, open-world branching, unlock pacing, parent-child inheritance, player/global state scope, HUD semantics, and external quest boundaries before implementation decisions are made.
