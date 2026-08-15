@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10-SNAPSHOT
+
+- Licensed the free WorldScript core under MIT.
+
 ## 0.1.9-SNAPSHOT
 
 - Interact scripts now run only for uncancelled main-hand right clicks on blocks.

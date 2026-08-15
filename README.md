@@ -2,6 +2,10 @@
 
 WorldScript is a Paper 1.21.8 region scripting plugin built with Kotlin and Gradle.
 
+## License
+
+The free core is available under the [MIT License](LICENSE). Future optional Pro editor products may be distributed separately under their own commercial terms.
+
 ## Current Scope
 
 - Parent and child regions with inherited variables, global statuses, and event scripts
