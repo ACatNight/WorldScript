@@ -7,11 +7,27 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 
 class Lang(private val plugin: JavaPlugin) {
-    private val file by lazy { YamlConfiguration.loadConfiguration(File(plugin.dataFolder, "lang/zh_CN.yml")) }
-    fun text(key: String, fallback: String = key): String = file.getString(key, fallback) ?: fallback
+    private val fallbackFile by lazy { YamlConfiguration.loadConfiguration(File(plugin.dataFolder, "lang/en_US.yml")) }
+    private var loadedLanguage: String? = null
+    private var languageFile: YamlConfiguration? = null
+
+    fun text(key: String, fallback: String = key): String =
+        selectedLanguageFile().getString(key) ?: fallbackFile.getString(key) ?: fallback
+
     fun send(sender: CommandSender, key: String, vararg replacements: Pair<String, Any?>) {
-        var text = file.getString(key, key) ?: key
+        var text = text(key)
         replacements.forEach { (name, value) -> text = text.replace("%$name%", value?.toString() ?: "") }
-        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', (file.getString("prefix", "") ?: "") + text))
+        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', this.text("prefix", "") + text))
+    }
+
+    private fun selectedLanguageFile(): YamlConfiguration {
+        val language = plugin.config.getString("language", "en_US")
+            ?.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) }
+            ?: "en_US"
+        if (language != loadedLanguage) {
+            loadedLanguage = language
+            languageFile = YamlConfiguration.loadConfiguration(File(plugin.dataFolder, "lang/$language.yml"))
+        }
+        return languageFile!!
     }
 }

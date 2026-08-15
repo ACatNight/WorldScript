@@ -25,6 +25,11 @@ class WorldScriptPlugin : JavaPlugin() {
 
     override fun onEnable() {
         saveDefaultConfig()
+        if (!config.isString("language")) {
+            config.set("language", "en_US")
+            saveConfig()
+        }
+        saveResource("lang/en_US.yml", false)
         saveResource("lang/zh_CN.yml", false)
         validateMaterialConfig()
         lang = com.worldscript.foundation.Lang(this)

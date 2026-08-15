@@ -49,3 +49,5 @@ If PlaceholderAPI is installed, HUD plugins can use `%worldscript_region_name%`,
 The design agent audits region identity, open-world branching, unlock pacing, parent-child inheritance, player/global state scope, HUD semantics, and external quest boundaries before implementation decisions are made.
 
 Chinese operator documentation is available in [docs/config-reference-zh_CN.md](docs/config-reference-zh_CN.md) and [docs/integration-zh_CN.md](docs/integration-zh_CN.md).
+
+The default language is `en_US`. Set `language: zh_CN` in `plugins/WorldScript/config.yml` and run `/ws reload` to use the bundled Chinese messages.

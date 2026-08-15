@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.12-SNAPSHOT
+
+- Added `en_US` as the default language configuration with fallback for missing language keys.
+- Kept `zh_CN` available through the new `language` setting in `config.yml`.
+
 ## 0.1.11-SNAPSHOT
 
 - Added a Chinese README covering the open-world region design, configuration boundaries, external quest integration, HUD placeholders, commands, and build workflow.
