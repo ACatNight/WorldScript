@@ -10,7 +10,7 @@ WorldScript is a Paper 1.21.8 region scripting plugin built with Kotlin and Grad
 - Player variable persistence
 - Per-player region unlock, first-entry, completion, and one-time reward state, stored separately from world state
 - Conditions for permissions, items, variables, and region statuses
-- Actions and rewards for commands, messages, teleportation, items, experience, money, variables, and region unlocks
+- Actions and rewards for commands, messages, teleportation, items, experience, money, variables, region unlocks, and completion
 - Admin selection tool, commands, and GUI
 - `/ws validate` configuration validation
 - Project-local design agent: `AgentSkills/open-world-rpg-region-designer`
@@ -34,6 +34,12 @@ Copy `examples/region-progression-template.yml` into the server's `plugins/World
 
 An external quest plugin can write back the result with `/ws progress <player> <region> <unlock|complete>`. WorldScript only records the player-region state; it does not create or manage quests.
 
+`/ws progress` supports players who have played on the server before, including offline players. Integrations can also use `WorldScriptPlugin.playerProgress` with a player UUID from the server thread.
+
+`INTERACT` scripts run only for an uncancelled main-hand right click on a block. This avoids accidental left-click and off-hand duplicate execution.
+
 If PlaceholderAPI is installed, HUD plugins can use `%worldscript_region_name%`, `%worldscript_parent_name%`, `%worldscript_child_name%`, `%worldscript_region_role%`, `%worldscript_region_content_id%`, `%worldscript_region_depth%`, `%worldscript_region_unlocked%`, `%worldscript_region_entered%`, `%worldscript_region_completed%`, and `%worldscript_region_world%`. These variables do not include level or reputation.
 
 The design agent audits region identity, open-world branching, unlock pacing, parent-child inheritance, player/global state scope, HUD semantics, and external quest boundaries before implementation decisions are made.
+
+Chinese operator documentation is available in [docs/config-reference-zh_CN.md](docs/config-reference-zh_CN.md) and [docs/integration-zh_CN.md](docs/integration-zh_CN.md).

@@ -6,8 +6,10 @@ import com.worldscript.modules.l1.region_core.RegionGeometry
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import org.bukkit.Location
 import org.bukkit.entity.Player
+import org.bukkit.event.block.Action
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
+import org.bukkit.inventory.EquipmentSlot
 
 class RegionEnterEvent(val player: Player, val regionId: String) : Event() {
     override fun getHandlers() = handlerList
@@ -53,8 +55,9 @@ class RegionEventServiceImpl(
     @org.bukkit.event.EventHandler
     fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) { current.remove(event.player.uniqueId) }
 
-    @org.bukkit.event.EventHandler
+    @org.bukkit.event.EventHandler(ignoreCancelled = true)
     fun onInteract(event: org.bukkit.event.player.PlayerInteractEvent) {
+        if (!RegionInteractionPolicy.shouldDispatch(event.hand == EquipmentSlot.HAND, event.action == Action.RIGHT_CLICK_BLOCK, event.isCancelled)) return
         val selectionTool = org.bukkit.Material.matchMaterial(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE") ?: org.bukkit.Material.GOLDEN_AXE
         if (event.item?.type == selectionTool) return
         val block = event.clickedBlock ?: return

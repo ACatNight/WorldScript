@@ -23,15 +23,17 @@ import java.io.File
 
 class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService {
     private val regions = linkedMapOf<String, RegionDefinition>()
+    private val loadIssues = mutableListOf<String>()
     private val regionDirectory = File(plugin.dataFolder, "regions")
 
     fun load() {
         regions.clear()
+        loadIssues.clear()
         if (!regionDirectory.exists()) regionDirectory.mkdirs()
         migrateLegacyConfig()
         regionDirectory.listFiles { file -> file.isFile && file.extension.equals("yml", true) }
             ?.sortedBy { it.name.lowercase() }
-            ?.forEach { file -> readRegion(YamlConfiguration.loadConfiguration(file), file.nameWithoutExtension)?.let { region -> regions[region.id.lowercase()] = region } }
+            ?.forEach { file -> readRegion(YamlConfiguration.loadConfiguration(file), file.nameWithoutExtension, "regions/${file.name}")?.let { region -> regions[region.id.lowercase()] = region } }
     }
 
     override fun find(id: String): RegionDefinition? = regions[id.trim().lowercase()]
@@ -166,7 +168,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     fun isAccessible(id: String, playerUnlocked: Boolean): Boolean = playerUnlocked || isAccessible(id)
 
     fun validate(): List<String> {
-        val issues = mutableListOf<String>()
+        val issues = loadIssues.toMutableList()
         all().forEach { region ->
             val prefix = "${region.id}"
             if (region.parentId != null && find(region.parentId) == null) {
@@ -306,30 +308,44 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         if (parseGlobalStatus(parts[1].trim()) == null) issues += "$path: global region status '${parts[1].trim()}' is invalid"
     }
 
-    private fun readRegion(section: ConfigurationSection, fallbackId: String): RegionDefinition? {
-        val id = section.getString("id", fallbackId)?.trim().takeUnless { it.isNullOrBlank() } ?: return null
-        val worldName = section.getString("world-name") ?: return null
+    private fun readRegion(section: ConfigurationSection, fallbackId: String, source: String): RegionDefinition? {
+        val id = section.getString("id", fallbackId)?.trim().takeUnless { it.isNullOrBlank() }
+            ?: return loadIssue(source, "id", "is required").let { null }
+        if (!isValidId(id)) loadIssue(source, "id", "'$id' is not a valid region id")
+        val worldName = section.getString("world-name")?.takeUnless { it.isBlank() }
+            ?: return loadIssue(source, "world-name", "is required").let { null }
+        val roleValue = section.getString("role")
+        val role = parseEnum<RegionRole>(roleValue)
+        if (!roleValue.isNullOrBlank() && role == null) loadIssue(source, "role", "unknown role '$roleValue'")
+        val statuses = section.getStringList("statuses").mapIndexedNotNull { index, value ->
+            parseGlobalStatus(value) ?: run {
+                loadIssue(source, "statuses[$index]", "unknown global status '$value'")
+                null
+            }
+        }.toSet()
         return RegionDefinition(
             id = id,
             displayName = section.getString("display-name", id) ?: id,
             worldId = section.getString("world-id", worldName) ?: worldName,
             worldName = worldName,
-            bounds = RegionGeometry.from(readPosition(section, "min"), readPosition(section, "max")),
-            role = parseEnum<RegionRole>(section.getString("role")) ?: RegionRole.OPEN_ZONE,
+            bounds = RegionGeometry.from(readPosition(section, "min", source), readPosition(section, "max", source)),
+            role = role ?: RegionRole.OPEN_ZONE,
             contentId = section.getString("content-id", "") ?: "",
             priority = section.getInt("priority", 0),
-            events = RegionEventType.entries.associateWith { type -> readScript(section, type) },
+            events = RegionEventType.entries.associateWith { type -> readScript(section, type, source) },
             parentId = section.getString("parent-id")?.takeUnless { it.isBlank() },
             inheritParent = section.getBoolean("inherit-parent", true),
             variables = section.getConfigurationSection("variables")?.getKeys(false)?.associateWith { key -> section.getString("variables.$key", "") ?: "" } ?: emptyMap(),
-            statuses = section.getStringList("statuses").mapNotNull(::parseGlobalStatus).toSet(),
+            statuses = statuses,
         )
     }
 
-    private fun readScript(section: ConfigurationSection, type: RegionEventType): ScriptDefinition {
+    private fun readScript(section: ConfigurationSection, type: RegionEventType, source: String): ScriptDefinition {
         val path = "events.${type.name.lowercase()}"
-        val actions = section.getMapList("$path.actions").mapNotNull { raw ->
-            val actionType = parseEnum<ActionType>(raw["type"]?.toString()) ?: return@mapNotNull null
+        val actions = section.getMapList("$path.actions").mapIndexedNotNull { index, raw ->
+            val rawType = raw["type"]?.toString()
+            val actionType = parseEnum<ActionType>(rawType)
+                ?: return@mapIndexedNotNull loadIssue(source, "$path.actions[$index].type", "unknown action type '${rawType ?: "missing"}'").let { null }
             val value = raw["value"]?.toString() ?: ""
             if (actionType == ActionType.SET_REGION_STATUS && legacyCompletionRegion(value) != null) {
                 ActionDefinition(ActionType.COMPLETE_REGION, legacyCompletionRegion(value)!!)
@@ -341,27 +357,34 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             enabled = section.getBoolean("$path.enabled", true),
             cooldownSeconds = section.getLong("$path.cooldown-seconds", 0).coerceAtLeast(0),
             actions = actions,
-            conditions = readConditions(section.getMapList("$path.conditions")),
-            rewards = readRewards(section.getMapList("$path.rewards")),
+            conditions = readConditions(section.getMapList("$path.conditions"), source, "$path.conditions"),
+            rewards = readRewards(section.getMapList("$path.rewards"), source, "$path.rewards"),
             overrideParent = section.getBoolean("$path.override-parent", false),
             firstEntryOnly = section.getBoolean("$path.first-entry-only", false),
             repeatEntryOnly = section.getBoolean("$path.repeat-entry-only", false),
         )
     }
 
-    private fun readConditions(raw: List<Map<*, *>>): List<ConditionDefinition> = raw.mapNotNull { item ->
-        val type = parseEnum<ConditionType>(item["type"]?.toString()) ?: return@mapNotNull null
+    private fun readConditions(raw: List<Map<*, *>>, source: String, path: String): List<ConditionDefinition> = raw.mapIndexedNotNull { index, item ->
+        val rawType = item["type"]?.toString()
+        val type = parseEnum<ConditionType>(rawType)
+            ?: return@mapIndexedNotNull loadIssue(source, "$path[$index].type", "unknown condition type '${rawType ?: "missing"}'").let { null }
+        val rawOperator = item["operator"]?.toString()
+        val operator = parseEnum<ComparisonOperator>(rawOperator)
+        if (!rawOperator.isNullOrBlank() && operator == null) loadIssue(source, "$path[$index].operator", "unknown operator '$rawOperator'")
         ConditionDefinition(
             type = type,
             key = item["key"]?.toString() ?: "",
             value = item["value"]?.toString() ?: "",
-            operator = parseEnum<ComparisonOperator>(item["operator"]?.toString()) ?: ComparisonOperator.EQUALS,
+            operator = operator ?: ComparisonOperator.EQUALS,
             amount = item["amount"]?.toString()?.toIntOrNull()?.coerceAtLeast(1) ?: 1,
         )
     }
 
-    private fun readRewards(raw: List<Map<*, *>>): List<RewardDefinition> = raw.mapNotNull { item ->
-        val type = parseEnum<RewardType>(item["type"]?.toString()) ?: return@mapNotNull null
+    private fun readRewards(raw: List<Map<*, *>>, source: String, path: String): List<RewardDefinition> = raw.mapIndexedNotNull { index, item ->
+        val rawType = item["type"]?.toString()
+        val type = parseEnum<RewardType>(rawType)
+            ?: return@mapIndexedNotNull loadIssue(source, "$path[$index].type", "unknown reward type '${rawType ?: "missing"}'").let { null }
         val value = item["value"]?.toString() ?: ""
         RewardDefinition(
             if (type == RewardType.SET_REGION_STATUS && legacyCompletionRegion(value) != null) RewardType.COMPLETE_REGION else type,
@@ -391,9 +414,16 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             ?.takeIf { parts.getOrNull(1)?.trim()?.equals("completed", true) == true }
     }
 
-    private fun readPosition(section: ConfigurationSection, key: String) = BlockPosition(
-        section.getInt("$key.x"), section.getInt("$key.y"), section.getInt("$key.z"),
-    )
+    private fun readPosition(section: ConfigurationSection, key: String, source: String): BlockPosition {
+        listOf("x", "y", "z").forEach { coordinate ->
+            if (!section.isInt("$key.$coordinate")) loadIssue(source, "$key.$coordinate", "must be an integer")
+        }
+        return BlockPosition(section.getInt("$key.x"), section.getInt("$key.y"), section.getInt("$key.z"))
+    }
+
+    private fun loadIssue(source: String, path: String, message: String) {
+        loadIssues += "$source.$path: $message"
+    }
 
     private fun writePosition(data: YamlConfiguration, key: String, position: BlockPosition) {
         data.set("$key.x", position.x)
@@ -408,7 +438,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         val legacy = plugin.config.getConfigurationSection("regions") ?: return
         legacy.getKeys(false).forEach { id ->
             val value = legacy.getConfigurationSection(id) ?: return@forEach
-            readRegion(value, id)?.let { save(it) }
+            readRegion(value, id, "config.yml.regions.$id")?.let { save(it) }
         }
         if (legacy.getKeys(false).isNotEmpty()) {
             plugin.config.set("regions", null)

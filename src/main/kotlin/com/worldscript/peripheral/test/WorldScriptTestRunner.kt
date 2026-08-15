@@ -3,6 +3,7 @@ package com.worldscript.peripheral.test
 import com.worldscript.foundation.model.BlockPosition
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.modules.l1.region_core.RegionGeometry
+import com.worldscript.modules.l1.region_events.RegionInteractionPolicy
 import com.worldscript.modules.l2.rpg.PlayerRegionProgress
 
 object WorldScriptTestRunner {
@@ -26,6 +27,12 @@ object WorldScriptTestRunner {
         check(progress.isCompleted("sunken_ruins")) { "completion state should be tracked separately" }
         check(GlobalRegionStatus.parse("unlocked") == GlobalRegionStatus.OPEN) { "legacy global status should migrate to open" }
         println("[TEST] PASS rpg.progress: player progress and global status are separate")
-        println("[TEST] SUMMARY region-core: passed=2 failed=0 total=2")
+
+        check(RegionInteractionPolicy.shouldDispatch(true, true, false)) { "main-hand right click should dispatch" }
+        check(!RegionInteractionPolicy.shouldDispatch(false, true, false)) { "off-hand click must not dispatch" }
+        check(!RegionInteractionPolicy.shouldDispatch(true, false, false)) { "left click must not dispatch" }
+        check(!RegionInteractionPolicy.shouldDispatch(true, true, true)) { "cancelled click must not dispatch" }
+        println("[TEST] PASS region-events.interact: only active main-hand right clicks dispatch")
+        println("[TEST] SUMMARY region-core: passed=3 failed=0 total=3")
     }
 }

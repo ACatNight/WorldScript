@@ -12,6 +12,7 @@ import com.worldscript.modules.l2.rpg.ConditionEvaluator
 import com.worldscript.modules.l2.rpg.RewardService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import com.worldscript.integration.placeholder.WorldScriptPlaceholderExpansion
+import com.worldscript.foundation.api.PlayerRegionProgressService
 
 class WorldScriptPlugin : JavaPlugin() {
     lateinit var lang: com.worldscript.foundation.Lang
@@ -19,6 +20,8 @@ class WorldScriptPlugin : JavaPlugin() {
     lateinit var regionCore: RegionCoreServiceImpl
         private set
     private lateinit var playerVariables: PlayerVariableService
+    lateinit var playerProgress: PlayerRegionProgressService
+        private set
 
     override fun onEnable() {
         saveDefaultConfig()
@@ -28,6 +31,7 @@ class WorldScriptPlugin : JavaPlugin() {
         regionCore = RegionCoreServiceImpl(this)
         regionCore.load()
         playerVariables = PlayerVariableService(this)
+        playerProgress = playerVariables
         val rewards = RewardService(this, regionCore, playerVariables)
         val conditions = ConditionEvaluator(regionCore, playerVariables)
         val events = RegionEventServiceImpl(this, regionCore, playerVariables)

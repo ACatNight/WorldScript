@@ -54,15 +54,15 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
 
     private fun progress(sender: CommandSender, args: Array<out String>) {
         if (args.size < 4) { lang.send(sender, "progress-usage"); return }
-        val player = Bukkit.getPlayerExact(args[1])
+        val player = Bukkit.getPlayerExact(args[1]) ?: Bukkit.getOfflinePlayer(args[1]).takeIf { it.hasPlayedBefore() }
         if (player == null) { lang.send(sender, "progress-player-offline", "player" to args[1]); return }
         if (regions.find(args[2]) == null) { reply(sender, "region-not-found", args[2]); return }
         when (args[3].lowercase()) {
-            "unlock" -> state.unlockRegion(player, args[2])
-            "complete" -> state.markRegionCompleted(player, args[2])
+            "unlock" -> state.unlockRegion(player.uniqueId, args[2])
+            "complete" -> state.markRegionCompleted(player.uniqueId, args[2])
             else -> { lang.send(sender, "progress-usage"); return }
         }
-        lang.send(sender, "progress-success", "player" to player.name, "region" to args[2], "status" to args[3].lowercase())
+        lang.send(sender, "progress-success", "player" to (player.name ?: args[1]), "region" to args[2], "status" to args[3].lowercase())
     }
 
     private fun reply(sender: CommandSender, key: String, vararg values: Any): Boolean { lang.send(sender, key, "region" to values.firstOrNull()); return true }

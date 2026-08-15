@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.worldscript"
-version = "0.1.8-SNAPSHOT"
+version = "0.1.9-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -30,6 +30,10 @@ tasks.register<JavaExec>("runWorldScriptTests") {
     dependsOn(tasks.compileKotlin)
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("com.worldscript.peripheral.test.WorldScriptTestRunner")
+}
+
+tasks.check {
+    dependsOn("runWorldScriptTests")
 }
 
 tasks.processResources {

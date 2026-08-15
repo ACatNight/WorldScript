@@ -1,5 +1,6 @@
 package com.worldscript.modules.l2.rpg
 
+import com.worldscript.foundation.api.PlayerRegionProgressService
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -44,7 +45,7 @@ private data class PlayerStateSnapshot(
     val claimedRewards: Set<String>,
 )
 
-class PlayerVariableService(private val plugin: JavaPlugin) : Listener {
+class PlayerVariableService(private val plugin: JavaPlugin) : Listener, PlayerRegionProgressService {
     private val playerDirectory = File(plugin.dataFolder, "players")
     private val states = mutableMapOf<UUID, PlayerState>()
     private val dirty = linkedSetOf<UUID>()
@@ -72,25 +73,37 @@ class PlayerVariableService(private val plugin: JavaPlugin) : Listener {
         markDirty(player.uniqueId)
     }
 
-    fun isRegionUnlocked(player: Player, regionId: String): Boolean = stateFor(player.uniqueId).progress.isUnlocked(regionId)
+    fun isRegionUnlocked(player: Player, regionId: String): Boolean = isRegionUnlocked(player.uniqueId, regionId)
 
-    fun unlockRegion(player: Player, regionId: String) {
-        stateFor(player.uniqueId).progress.unlock(regionId)
-        markDirty(player.uniqueId)
+    override fun isRegionUnlocked(playerId: UUID, regionId: String): Boolean = stateFor(playerId).progress.isUnlocked(regionId)
+
+    fun unlockRegion(player: Player, regionId: String) = unlockRegion(player.uniqueId, regionId)
+
+    override fun unlockRegion(playerId: UUID, regionId: String) {
+        stateFor(playerId).progress.unlock(regionId)
+        markDirty(playerId)
     }
 
-    fun hasEnteredRegion(player: Player, regionId: String): Boolean = stateFor(player.uniqueId).progress.hasEntered(regionId)
+    fun hasEnteredRegion(player: Player, regionId: String): Boolean = hasEnteredRegion(player.uniqueId, regionId)
 
-    fun markRegionEntered(player: Player, regionId: String) {
-        stateFor(player.uniqueId).progress.markEntered(regionId)
-        markDirty(player.uniqueId)
+    override fun hasEnteredRegion(playerId: UUID, regionId: String): Boolean = stateFor(playerId).progress.hasEntered(regionId)
+
+    fun markRegionEntered(player: Player, regionId: String) = markRegionEntered(player.uniqueId, regionId)
+
+    override fun markRegionEntered(playerId: UUID, regionId: String) {
+        stateFor(playerId).progress.markEntered(regionId)
+        markDirty(playerId)
     }
 
-    fun isRegionCompleted(player: Player, regionId: String): Boolean = stateFor(player.uniqueId).progress.isCompleted(regionId)
+    fun isRegionCompleted(player: Player, regionId: String): Boolean = isRegionCompleted(player.uniqueId, regionId)
 
-    fun markRegionCompleted(player: Player, regionId: String) {
-        stateFor(player.uniqueId).progress.markCompleted(regionId)
-        markDirty(player.uniqueId)
+    override fun isRegionCompleted(playerId: UUID, regionId: String): Boolean = stateFor(playerId).progress.isCompleted(regionId)
+
+    fun markRegionCompleted(player: Player, regionId: String) = markRegionCompleted(player.uniqueId, regionId)
+
+    override fun markRegionCompleted(playerId: UUID, regionId: String) {
+        stateFor(playerId).progress.markCompleted(regionId)
+        markDirty(playerId)
     }
 
     fun claimReward(player: Player, rewardKey: String): Boolean {
