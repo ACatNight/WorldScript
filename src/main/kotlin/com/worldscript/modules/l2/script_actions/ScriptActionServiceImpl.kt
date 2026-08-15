@@ -5,7 +5,7 @@ import com.worldscript.foundation.Lang
 import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
 import com.worldscript.foundation.model.RegionEventType
-import com.worldscript.foundation.model.RegionStatus
+import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
@@ -81,6 +81,7 @@ class ScriptActionServiceImpl(
                     ActionType.GIVE_EXPERIENCE -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.EXPERIENCE, value)))
                     ActionType.GIVE_MONEY -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.MONEY, value)))
                     ActionType.UNLOCK_REGION -> state.unlockRegion(player, value)
+                    ActionType.COMPLETE_REGION -> state.markRegionCompleted(player, value)
                 }
             }.onFailure { plugin.logger.warning("Failed to execute ${action.type} in region $regionId: ${it.message}") }
         }
@@ -94,8 +95,7 @@ class ScriptActionServiceImpl(
     private fun setRegionStatus(player: Player, value: String) {
         val parts = value.split(',', limit = 2)
         if (parts.size != 2) return
-        val status = runCatching { RegionStatus.valueOf(parts[1].trim().uppercase()) }.getOrNull() ?: return
-        if (status == RegionStatus.COMPLETED) state.markRegionCompleted(player, parts[0].trim())
+        val status = GlobalRegionStatus.parse(parts[1]) ?: return
         regions.setStatus(parts[0].trim(), status, true)
     }
 

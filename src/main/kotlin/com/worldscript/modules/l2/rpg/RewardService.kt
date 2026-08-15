@@ -1,6 +1,6 @@
 package com.worldscript.modules.l2.rpg
 
-import com.worldscript.foundation.model.RegionStatus
+import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
@@ -50,6 +50,10 @@ class RewardService(
                 state.unlockRegion(player, reward.value)
                 true
             }
+            RewardType.COMPLETE_REGION -> {
+                state.markRegionCompleted(player, reward.value)
+                true
+            }
             RewardType.SET_VARIABLE -> {
                 val parts = reward.value.split('=', limit = 2)
                 if (parts.size != 2) return false
@@ -59,8 +63,7 @@ class RewardService(
             RewardType.SET_REGION_STATUS -> {
                 val parts = reward.value.split(',', limit = 2)
                 if (parts.size != 2) return false
-                val status = runCatching { RegionStatus.valueOf(parts[1].trim().uppercase()) }.getOrNull() ?: return false
-                if (status == RegionStatus.COMPLETED) state.markRegionCompleted(player, parts[0].trim())
+                val status = GlobalRegionStatus.parse(parts[1]) ?: return false
                 regions.setStatus(parts[0].trim(), status, true)
                 true
             }

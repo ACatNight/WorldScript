@@ -21,15 +21,22 @@ enum class ActionType {
     GIVE_EXPERIENCE,
     GIVE_MONEY,
     UNLOCK_REGION,
+    COMPLETE_REGION,
 }
 
-enum class RegionStatus {
+/** World-level state shared by every player. */
+enum class GlobalRegionStatus {
     LOCKED,
-    UNLOCKED,
-    COMPLETED,
+    OPEN,
     DANGEROUS,
-    PEACEFUL,
-    QUEST_ACTIVE,
+    PEACEFUL;
+
+    companion object {
+        fun parse(value: String?): GlobalRegionStatus? = when (value?.trim()?.uppercase()) {
+            "UNLOCKED" -> OPEN // Compatibility with pre-0.1.8 region files.
+            else -> entries.firstOrNull { it.name == value?.trim()?.uppercase() }
+        }
+    }
 }
 
 enum class RegionRole {
@@ -41,7 +48,7 @@ enum class RegionRole {
 }
 
 enum class ConditionType {
-    PLAYER_LEVEL,
+    PLAYER_LEVEL, // Retained only to reject legacy configuration safely.
     PERMISSION,
     ITEM,
     VARIABLE,
@@ -73,6 +80,7 @@ enum class RewardType {
     MONEY,
     COMMAND,
     UNLOCK_REGION,
+    COMPLETE_REGION,
     SET_VARIABLE,
     SET_REGION_STATUS,
     MESSAGE,
@@ -111,5 +119,5 @@ data class RegionDefinition(
     val parentId: String? = null,
     val inheritParent: Boolean = true,
     val variables: Map<String, String> = emptyMap(),
-    val statuses: Set<RegionStatus> = emptySet(),
+    val statuses: Set<GlobalRegionStatus> = emptySet(),
 )

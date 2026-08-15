@@ -9,7 +9,7 @@ import com.worldscript.foundation.model.ConditionDefinition
 import com.worldscript.foundation.model.ConditionType
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
-import com.worldscript.foundation.model.RegionStatus
+import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionRole
 import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
@@ -109,13 +109,13 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         return true
     }
 
-    override fun setStatus(id: String, status: RegionStatus, enabled: Boolean): Boolean {
+    override fun setStatus(id: String, status: GlobalRegionStatus, enabled: Boolean): Boolean {
         val region = find(id) ?: return false
         val statuses = region.statuses.toMutableSet()
         if (enabled) {
             statuses.add(status)
-            if (status == RegionStatus.LOCKED) statuses.remove(RegionStatus.UNLOCKED)
-            if (status == RegionStatus.UNLOCKED) statuses.remove(RegionStatus.LOCKED)
+            if (status == GlobalRegionStatus.LOCKED) statuses.remove(GlobalRegionStatus.OPEN)
+            if (status == GlobalRegionStatus.OPEN) statuses.remove(GlobalRegionStatus.LOCKED)
         } else {
             statuses.remove(status)
         }
@@ -160,7 +160,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     fun isAccessible(id: String): Boolean {
         val statuses = effective(id)?.statuses ?: return false
-        return RegionStatus.LOCKED !in statuses || RegionStatus.UNLOCKED in statuses
+        return GlobalRegionStatus.LOCKED !in statuses || GlobalRegionStatus.OPEN in statuses
     }
 
     fun isAccessible(id: String, playerUnlocked: Boolean): Boolean = playerUnlocked || isAccessible(id)
@@ -250,13 +250,13 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     private fun validateCondition(issues: MutableList<String>, prefix: String, index: Int, condition: ConditionDefinition, regionId: String) {
         val path = "$prefix.conditions[$index]"
         when (condition.type) {
-            ConditionType.PLAYER_LEVEL -> if (condition.operator != ComparisonOperator.EXISTS && condition.value.toDoubleOrNull() == null) issues += "$path: player level value must be numeric"
+            ConditionType.PLAYER_LEVEL -> issues += "$path: player_level is not available in this version"
             ConditionType.PERMISSION -> if (condition.key.isBlank()) issues += "$path: permission key is empty"
             ConditionType.ITEM -> if (Material.matchMaterial(condition.key.ifBlank { condition.value }) == null) issues += "$path: item material is invalid"
             ConditionType.VARIABLE -> if (condition.key.isBlank()) issues += "$path: variable key is empty"
             ConditionType.REGION_STATUS -> {
                 if (condition.key.isNotBlank() && find(condition.key) == null) issues += "$path: target region '${condition.key}' does not exist"
-                if (parseEnum<RegionStatus>(condition.value) == null) issues += "$path: region status '${condition.value}' is invalid"
+                if (parseGlobalStatus(condition.value) == null) issues += "$path: global region status '${condition.value}' is invalid"
             }
             ConditionType.PLAYER_REGION_STATUS -> {
                 if (condition.key.isNotBlank() && find(condition.key) == null) issues += "$path: target region '${condition.key}' does not exist"
@@ -273,7 +273,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         when (reward.type) {
             RewardType.ITEM -> if (Material.matchMaterial(reward.value) == null) issues += "$path: item material '${reward.value}' is invalid"
             RewardType.COMMAND, RewardType.MESSAGE -> if (reward.value.isBlank()) issues += "$path: value is empty"
-            RewardType.UNLOCK_REGION -> if (find(reward.value) == null) issues += "$path: target region '${reward.value}' does not exist"
+            RewardType.UNLOCK_REGION, RewardType.COMPLETE_REGION -> if (find(reward.value) == null) issues += "$path: target region '${reward.value}' does not exist"
             RewardType.SET_VARIABLE -> if (reward.value.split('=', limit = 2).size != 2) issues += "$path: value must use key=value"
             RewardType.SET_REGION_STATUS -> validateRegionStatusValue(issues, path, reward.value)
             RewardType.EXPERIENCE, RewardType.MONEY -> if (reward.amount < 0) issues += "$path: amount cannot be negative"
@@ -289,7 +289,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             }
             ActionType.SET_VARIABLE -> if (action.value.split('=', limit = 2).size != 2) issues += "$path: value must use key=value"
             ActionType.SET_REGION_STATUS -> validateRegionStatusValue(issues, path, action.value)
-            ActionType.UNLOCK_REGION -> if (find(action.value) == null) issues += "$path: target region '${action.value}' does not exist"
+            ActionType.UNLOCK_REGION, ActionType.COMPLETE_REGION -> if (find(action.value) == null) issues += "$path: target region '${action.value}' does not exist"
             ActionType.GIVE_ITEM -> if (Material.matchMaterial(action.value) == null) issues += "$path: item material '${action.value}' is invalid"
             ActionType.GIVE_EXPERIENCE, ActionType.GIVE_MONEY -> if (action.value.toDoubleOrNull() == null) issues += "$path: value must be numeric"
             ActionType.PLAYER_COMMAND, ActionType.CONSOLE_COMMAND, ActionType.MESSAGE -> if (action.value.isBlank()) issues += "$path: value is empty"
@@ -303,7 +303,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             return
         }
         if (find(parts[0].trim()) == null) issues += "$path: target region '${parts[0].trim()}' does not exist"
-        if (parseEnum<RegionStatus>(parts[1].trim()) == null) issues += "$path: region status '${parts[1].trim()}' is invalid"
+        if (parseGlobalStatus(parts[1].trim()) == null) issues += "$path: global region status '${parts[1].trim()}' is invalid"
     }
 
     private fun readRegion(section: ConfigurationSection, fallbackId: String): RegionDefinition? {
@@ -322,7 +322,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             parentId = section.getString("parent-id")?.takeUnless { it.isBlank() },
             inheritParent = section.getBoolean("inherit-parent", true),
             variables = section.getConfigurationSection("variables")?.getKeys(false)?.associateWith { key -> section.getString("variables.$key", "") ?: "" } ?: emptyMap(),
-            statuses = section.getStringList("statuses").mapNotNull { parseEnum<RegionStatus>(it) }.toSet(),
+            statuses = section.getStringList("statuses").mapNotNull(::parseGlobalStatus).toSet(),
         )
     }
 
@@ -330,7 +330,12 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         val path = "events.${type.name.lowercase()}"
         val actions = section.getMapList("$path.actions").mapNotNull { raw ->
             val actionType = parseEnum<ActionType>(raw["type"]?.toString()) ?: return@mapNotNull null
-            ActionDefinition(actionType, raw["value"]?.toString() ?: "")
+            val value = raw["value"]?.toString() ?: ""
+            if (actionType == ActionType.SET_REGION_STATUS && legacyCompletionRegion(value) != null) {
+                ActionDefinition(ActionType.COMPLETE_REGION, legacyCompletionRegion(value)!!)
+            } else {
+                ActionDefinition(actionType, value)
+            }
         }
         return ScriptDefinition(
             enabled = section.getBoolean("$path.enabled", true),
@@ -357,9 +362,10 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     private fun readRewards(raw: List<Map<*, *>>): List<RewardDefinition> = raw.mapNotNull { item ->
         val type = parseEnum<RewardType>(item["type"]?.toString()) ?: return@mapNotNull null
+        val value = item["value"]?.toString() ?: ""
         RewardDefinition(
-            type,
-            item["value"]?.toString() ?: "",
+            if (type == RewardType.SET_REGION_STATUS && legacyCompletionRegion(value) != null) RewardType.COMPLETE_REGION else type,
+            legacyCompletionRegion(value) ?: value,
             item["amount"]?.toString()?.toDoubleOrNull() ?: 1.0,
             item["once"]?.toString()?.toBooleanStrictOrNull() ?: false,
         )
@@ -376,6 +382,14 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     )
 
     private inline fun <reified T : Enum<T>> parseEnum(value: String?): T? = value?.trim()?.uppercase()?.let { runCatching { enumValueOf<T>(it) }.getOrNull() }
+
+    private fun parseGlobalStatus(value: String?): GlobalRegionStatus? = GlobalRegionStatus.parse(value)
+
+    private fun legacyCompletionRegion(value: String): String? {
+        val parts = value.split(',', limit = 2)
+        return parts.getOrNull(0)?.trim()?.takeIf { it.isNotBlank() }
+            ?.takeIf { parts.getOrNull(1)?.trim()?.equals("completed", true) == true }
+    }
 
     private fun readPosition(section: ConfigurationSection, key: String) = BlockPosition(
         section.getInt("$key.x"), section.getInt("$key.y"), section.getInt("$key.z"),

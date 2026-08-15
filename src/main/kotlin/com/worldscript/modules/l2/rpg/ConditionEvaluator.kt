@@ -3,7 +3,7 @@ package com.worldscript.modules.l2.rpg
 import com.worldscript.foundation.model.ComparisonOperator
 import com.worldscript.foundation.model.ConditionDefinition
 import com.worldscript.foundation.model.ConditionType
-import com.worldscript.foundation.model.RegionStatus
+import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -20,7 +20,7 @@ class ConditionEvaluator(
         conditions.firstOrNull { !evaluate(player, regionId, it) }
 
     fun describe(condition: ConditionDefinition): String = when (condition.type) {
-        ConditionType.PLAYER_LEVEL -> "player level ${condition.operator.name.lowercase()} ${condition.value}"
+        ConditionType.PLAYER_LEVEL -> "player level conditions are disabled"
         ConditionType.PERMISSION -> "permission ${condition.key}"
         ConditionType.ITEM -> "item ${condition.key.ifBlank { condition.value }} x${condition.amount}"
         ConditionType.VARIABLE -> "variable ${condition.key} ${condition.operator.name.lowercase()} ${condition.value}"
@@ -29,7 +29,7 @@ class ConditionEvaluator(
     }
 
     private fun evaluate(player: Player, regionId: String, condition: ConditionDefinition): Boolean = when (condition.type) {
-        ConditionType.PLAYER_LEVEL -> compare(player.level.toString(), condition.value, condition.operator)
+        ConditionType.PLAYER_LEVEL -> false
         ConditionType.PERMISSION -> comparePermission(player.hasPermission(condition.key), condition.operator)
         ConditionType.ITEM -> {
             val material = Material.matchMaterial(condition.key.ifBlank { condition.value }) ?: return false
@@ -45,7 +45,7 @@ class ConditionEvaluator(
         }
         ConditionType.REGION_STATUS -> {
             val targetRegion = condition.key.ifBlank { regionId }
-            val status = runCatching { RegionStatus.valueOf(condition.value.uppercase()) }.getOrNull() ?: return false
+            val status = GlobalRegionStatus.parse(condition.value) ?: return false
             status in (regions.effective(targetRegion)?.statuses ?: emptySet())
         }
         ConditionType.PLAYER_REGION_STATUS -> {
