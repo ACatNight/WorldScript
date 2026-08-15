@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.13-SNAPSHOT
+
+- Clarified that WorldScript is currently fully free and released under the MIT License.
+
 ## 0.1.12-SNAPSHOT
 
 - Added `en_US` as the default language configuration with fallback for missing language keys.

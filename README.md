@@ -6,7 +6,7 @@ WorldScript is a Paper 1.21.8 region scripting plugin built with Kotlin and Grad
 
 ## License
 
-The free core is available under the [MIT License](LICENSE). Future optional Pro editor products may be distributed separately under their own commercial terms.
+WorldScript is currently fully free and available under the [MIT License](LICENSE).
 
 ## Current Scope
 

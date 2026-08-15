@@ -159,4 +159,4 @@ gradlew.bat clean build
 
 ## 许可证
 
-WorldScript 免费核心使用 [MIT License](LICENSE)。未来的可视化 Pro 编辑器可以独立发布，并使用单独的商业授权条款。
+WorldScript 当前完全免费，并使用 [MIT License](LICENSE) 开源发布。
