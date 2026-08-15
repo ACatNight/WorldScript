@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.11-SNAPSHOT
+
+- Added a Chinese README covering the open-world region design, configuration boundaries, external quest integration, HUD placeholders, commands, and build workflow.
+
 ## 0.1.10-SNAPSHOT
 
 - Licensed the free WorldScript core under MIT.
