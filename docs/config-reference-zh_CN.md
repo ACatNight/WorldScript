@@ -72,7 +72,18 @@ conditions:
 
 ## 动作与奖励
 
-动作 `type`：`message`、`player_command`、`console_command`、`teleport`、`set_variable`、`set_region_status`、`give_item`、`give_experience`、`give_money`、`unlock_region`、`complete_region`。
+动作 `type`：`kether`、`message`、`player_command`、`console_command`、`teleport`、`set_variable`、`set_region_status`、`give_item`、`give_experience`、`give_money`、`unlock_region`、`complete_region`。
+
+`kether` 用于复杂逻辑，脚本值可以使用 YAML 多行字符串。WorldScript 会自动提供 `player`、`uuid`、`region` 和 `world` 变量；简单消息、命令和状态更新优先使用原生动作，便于维护。
+
+```yaml
+actions:
+  - type: kether
+    value: |-
+      tell "发现了新的线索"
+      wait 20 tick
+      tell "继续向遗迹深处探索"
+```
 
 奖励 `type`：`item`、`experience`、`money`、`command`、`message`、`set_variable`、`set_region_status`、`unlock_region`、`complete_region`。奖励可使用 `once: true`，确保每个玩家只领取一次。
 

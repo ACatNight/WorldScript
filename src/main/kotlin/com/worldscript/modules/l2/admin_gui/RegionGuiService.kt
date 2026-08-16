@@ -338,6 +338,7 @@ class RegionGuiService(
     private fun actionDescription(type: ActionType): String = lang.text("gui-type-${type.name.lowercase().replace('_', '-')}-desc", type.name)
 
     private fun actionMaterial(type: ActionType): Material = when (type) {
+        ActionType.KETHER -> Material.ENCHANTED_BOOK
         ActionType.MESSAGE -> Material.PAPER
         ActionType.PLAYER_COMMAND -> Material.COMMAND_BLOCK
         ActionType.CONSOLE_COMMAND -> Material.CHAIN_COMMAND_BLOCK

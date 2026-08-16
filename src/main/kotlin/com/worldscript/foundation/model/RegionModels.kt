@@ -13,6 +13,7 @@ enum class RegionEventType {
 }
 
 enum class ActionType {
+    KETHER,
     PLAYER_COMMAND,
     CONSOLE_COMMAND,
     MESSAGE,

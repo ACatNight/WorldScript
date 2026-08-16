@@ -1,12 +1,15 @@
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "1.9.24"
+    id("io.izzel.taboolib") version "2.0.38"
 }
 
 group = "com.worldscript"
-version = "0.1.24-SNAPSHOT"
+version = "0.1.27-SNAPSHOT"
 
 repositories {
+    mavenLocal()
     mavenCentral()
+    gradlePluginPortal()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
 }
@@ -14,6 +17,28 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.6")
+    taboo("io.izzel.taboolib:platform-bukkit-impl:6.3.0")
+    taboo("io.izzel.taboolib:minecraft-kether:6.3.0")
+    implementation("io.izzel.taboolib:platform-bukkit-impl:6.3.0")
+    implementation("io.izzel.taboolib:minecraft-kether:6.3.0")
+}
+
+taboolib {
+    env {
+        install(
+            "platform-bukkit",
+            "platform-bukkit-impl",
+            "minecraft-kether",
+            "minecraft-chat",
+            "minecraft-i18n",
+            "bukkit-nms",
+            "bukkit-nms-stable",
+            "basic-configuration",
+        )
+    }
+    version {
+        taboolib = "6.3.0"
+    }
 }
 
 kotlin {

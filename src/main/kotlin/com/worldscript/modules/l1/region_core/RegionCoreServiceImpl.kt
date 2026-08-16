@@ -304,6 +304,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     private fun validateAction(issues: MutableList<String>, prefix: String, index: Int, action: ActionDefinition) {
         val path = "$prefix.actions[$index]"
         when (action.type) {
+            ActionType.KETHER -> if (action.value.isBlank()) issues += "$path: script is empty"
             ActionType.TELEPORT -> {
                 val parts = action.value.split(',').map(String::trim)
                 if (parts.size < 4 || parts[1].toDoubleOrNull() == null || parts[2].toDoubleOrNull() == null || parts[3].toDoubleOrNull() == null) issues += "$path: teleport must use world,x,y,z"

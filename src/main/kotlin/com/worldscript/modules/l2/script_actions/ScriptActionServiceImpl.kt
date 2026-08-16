@@ -22,6 +22,9 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.plugin.java.JavaPlugin
+import taboolib.module.kether.KetherShell
+import taboolib.module.kether.ScriptOptions
+import taboolib.platform.type.BukkitPlayer
 
 class ScriptActionServiceImpl(
     private val plugin: JavaPlugin,
@@ -73,6 +76,7 @@ class ScriptActionServiceImpl(
                 }
             runCatching {
                 when (action.type) {
+                    ActionType.KETHER -> executeKether(player, regionId, value)
                     ActionType.PLAYER_COMMAND -> player.performCommand(value.removePrefix("/"))
                     ActionType.CONSOLE_COMMAND -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), value.removePrefix("/"))
                     ActionType.MESSAGE -> player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', value))
@@ -86,6 +90,25 @@ class ScriptActionServiceImpl(
                     ActionType.COMPLETE_REGION -> state.markRegionCompleted(player, value)
                 }
             }.onFailure { plugin.logger.warning("Failed to execute ${action.type} in region $regionId: ${it.message}") }
+        }
+    }
+
+    private fun executeKether(player: Player, regionId: String, script: String) {
+        KetherShell.eval(
+            script,
+            ScriptOptions.builder()
+                .sender(BukkitPlayer(player))
+                .vars(
+                    "player" to player.name,
+                    "uuid" to player.uniqueId.toString(),
+                    "region" to regionId,
+                    "world" to player.world.name,
+                )
+                .detailError(true)
+                .build(),
+        ).exceptionally { error ->
+            plugin.logger.warning("Failed to execute Kether in region $regionId: ${error.message}")
+            null
         }
     }
 

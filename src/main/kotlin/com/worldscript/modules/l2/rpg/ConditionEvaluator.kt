@@ -32,8 +32,9 @@ class ConditionEvaluator(
         ConditionType.PLAYER_LEVEL -> false
         ConditionType.PERMISSION -> comparePermission(player.hasPermission(condition.key), condition.operator)
         ConditionType.ITEM -> {
-            val material = Material.matchMaterial(condition.key.ifBlank { condition.value }) ?: return false
-            player.inventory.containsAtLeast(ItemStack(material), condition.amount)
+            Material.matchMaterial(condition.key.ifBlank { condition.value })?.let { material ->
+                player.inventory.containsAtLeast(ItemStack(material), condition.amount)
+            } ?: false
         }
         ConditionType.VARIABLE -> {
             val current = if (condition.key.startsWith("region.", true)) {
@@ -45,8 +46,9 @@ class ConditionEvaluator(
         }
         ConditionType.REGION_STATUS -> {
             val targetRegion = condition.key.ifBlank { regionId }
-            val status = GlobalRegionStatus.parse(condition.value) ?: return false
-            status in (regions.effective(targetRegion)?.statuses ?: emptySet())
+            GlobalRegionStatus.parse(condition.value)?.let { status ->
+                status in (regions.effective(targetRegion)?.statuses ?: emptySet())
+            } ?: false
         }
         ConditionType.PLAYER_REGION_STATUS -> {
             val targetRegion = condition.key.ifBlank { regionId }

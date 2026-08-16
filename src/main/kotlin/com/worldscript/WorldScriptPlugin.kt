@@ -35,7 +35,7 @@ class WorldScriptPlugin : JavaPlugin() {
         }
         saveResource("lang/en_US.yml", false)
         saveResource("lang/zh_CN.yml", false)
-        taboolib = TabooLibBridge(this, server.pluginManager)
+        taboolib = TabooLibBridge(this)
         taboolib.report()
         validateMaterialConfig()
         lang = com.worldscript.foundation.Lang(this)

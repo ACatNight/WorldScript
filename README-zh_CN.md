@@ -9,7 +9,7 @@ WorldScript 是一个面向 Paper 1.21.8 的区域脚本插件，用于配置地
 - 玩家解锁、首次进入、完成和一次性奖励状态
 - 条件、动作、奖励和 PlaceholderAPI HUD 变量
 - 选区工具、管理命令、GUI 和 `/ws validate` 配置检查
-- 可选识别 TabooLib，为后续 Kether 脚本桥接预留接口
+- 内置 TabooLib 6.3.0 与 Kether，可在区域事件中执行高级脚本
 
 ## 安装
 
@@ -64,4 +64,4 @@ gradlew.bat clean build
 
 WorldScript 当前完全免费，并使用 [MIT License](LICENSE) 开源发布。
 
-TabooLib 为可选依赖。安装后 WorldScript 会识别其运行环境，后续可启用 Kether 脚本桥接；未安装 TabooLib 时区域核心仍可独立运行。
+TabooLib 与 Kether 已随 WorldScript 打包，不需要服务器另外安装 TabooLib。简单逻辑建议使用原生动作，复杂逻辑再使用 `type: kether`。
