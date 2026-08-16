@@ -24,6 +24,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.plugin.java.JavaPlugin
@@ -101,7 +102,10 @@ class RegionGuiService(
         val inventory = Bukkit.createInventory(RegionGuiHolder("particle", regionId), 27, color(lang.text("gui-particle-title", "Region particles")))
         fillBackground(inventory)
         inventory.setItem(4, item(material(if (particle?.enabled == true) "LIME_DYE" else "GRAY_DYE", "INK_SACK"), lang.text(if (particle?.enabled == true) "gui-particle-enabled" else "gui-particle-disabled", "Disabled"), lang.text("gui-toggle", "Click to toggle")))
-        inventory.setItem(10, item(material("END_ROD", "BLAZE_ROD"), lang.text("gui-particle-type", "Particle type"), particle?.type ?: "END_ROD"))
+        inventory.setItem(10, item(material("END_ROD", "BLAZE_ROD"), lang.text("gui-particle-type", "Particle type"), listOf(
+            particle?.type ?: "END_ROD",
+            lang.text("gui-particle-type-hint", "Left click: previous|Right click: next"),
+        ).joinToString("|")))
         inventory.setItem(12, item(material("GLOWSTONE_DUST"), lang.text("gui-particle-count", "Particle count"), (particle?.count ?: 2).toString()))
         inventory.setItem(14, item(material("CLOCK"), lang.text("gui-particle-interval", "Interval"), "${particle?.intervalTicks ?: 20} ticks"))
         inventory.setItem(16, item(material("FEATHER"), lang.text("gui-particle-spread", "Spread"), particle?.let { "${it.spreadX},${it.spreadY},${it.spreadZ}" } ?: "1.5,0.8,1.5"))
@@ -222,7 +226,14 @@ class RegionGuiService(
                         regions.updateParticle(rid, current.copy(enabled = !current.enabled))
                         openParticle(player, rid)
                     }
-                    10 -> openTextInput(player, RegionGuiHolder("chat", rid, inputKind = "particle-type"))
+                    10 -> {
+                        val current = regions.find(rid)?.particle ?: regions.effective(rid)?.particle ?: RegionParticleDefinition()
+                        val currentIndex = PARTICLE_TYPES.indexOf(current.type).takeIf { it >= 0 } ?: 0
+                        val offset = if (event.click == ClickType.LEFT) -1 else 1
+                        val next = PARTICLE_TYPES[(currentIndex + offset + PARTICLE_TYPES.size) % PARTICLE_TYPES.size]
+                        regions.updateParticle(rid, current.copy(type = next, enabled = true))
+                        openParticle(player, rid)
+                    }
                     12 -> openTextInput(player, RegionGuiHolder("chat", rid, inputKind = "particle-count"))
                     14 -> openTextInput(player, RegionGuiHolder("chat", rid, inputKind = "particle-interval"))
                     16 -> openTextInput(player, RegionGuiHolder("chat", rid, inputKind = "particle-spread"))
@@ -460,6 +471,10 @@ class RegionGuiService(
     private companion object {
         val REGION_SLOTS = (10..43).toList()
         val ACTION_TYPE_SLOTS = listOf(10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34)
+        val PARTICLE_TYPES = listOf(
+            "END_ROD", "FLAME", "HEART", "CLOUD", "CRIT", "ENCHANT",
+            "FIREWORK", "PORTAL", "TOTEM", "WITCH", "HAPPY_VILLAGER", "LAVA",
+        )
         val BORDER_SLOTS = listOf(0, 1, 2, 3, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 50, 51, 52, 53)
     }
 }
