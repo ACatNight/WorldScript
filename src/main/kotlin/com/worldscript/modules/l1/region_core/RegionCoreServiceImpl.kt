@@ -13,6 +13,7 @@ import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionRole
 import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
+import com.worldscript.foundation.model.RegionBounds
 import com.worldscript.foundation.model.ScriptDefinition
 import org.bukkit.Location
 import org.bukkit.Material
@@ -201,17 +202,20 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     fun create(id: String, displayName: String, first: Location, second: Location): Boolean {
         val cleanId = id.trim()
-        if (!isValidId(cleanId) || regions.containsKey(cleanId.lowercase()) || first.world == null || second.world == null) return false
-        if (first.world!!.uid != second.world!!.uid) return false
+        val firstWorld = first.world ?: return false
+        val secondWorld = second.world ?: return false
+        if (!isValidId(cleanId) || regions.containsKey(cleanId.lowercase())) return false
+        if (firstWorld.uid != secondWorld.uid) return false
+        val bounds = RegionGeometry.from(first.toBlockPosition(), second.toBlockPosition())
         val region = RegionDefinition(
             id = cleanId,
             displayName = displayName.ifBlank { cleanId },
-            worldId = first.world!!.uid.toString(),
-            worldName = first.world!!.name,
-            bounds = RegionGeometry.from(first.toBlockPosition(), second.toBlockPosition()),
+            worldId = firstWorld.uid.toString(),
+            worldName = firstWorld.name,
+            bounds = bounds,
             parentId = regions.values
                 .asSequence()
-                .filter { it.worldName == first.world!!.name && contains(it.bounds, RegionGeometry.from(first.toBlockPosition(), second.toBlockPosition())) }
+                .filter { it.worldName == firstWorld.name && contains(it.bounds, bounds) }
                 .minByOrNull { volume(it.bounds) }
                 ?.id,
             events = RegionEventType.entries.associateWith { type ->
@@ -223,7 +227,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         return true
     }
 
-    private fun contains(outer: com.worldscript.foundation.model.RegionBounds, inner: com.worldscript.foundation.model.RegionBounds): Boolean =
+    private fun contains(outer: RegionBounds, inner: RegionBounds): Boolean =
         RegionGeometry.contains(outer, inner.min) && RegionGeometry.contains(outer, inner.max)
 
     private fun volume(bounds: com.worldscript.foundation.model.RegionBounds): Long =

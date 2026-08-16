@@ -1,26 +1,28 @@
 package com.worldscript.modules.l1.region_events
 
-import com.worldscript.command.WsCommand
+import com.worldscript.foundation.Lang
 import com.worldscript.modules.l1.region_core.SelectionService
+import org.bukkit.Material
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.plugin.java.JavaPlugin
 
 class RegionSelectionListener(
-    private val plugin: org.bukkit.plugin.java.JavaPlugin,
+    private val plugin: JavaPlugin,
     private val selection: SelectionService,
-    private val command: WsCommand,
 ) : Listener {
     @EventHandler
     fun onInteract(event: PlayerInteractEvent) {
         val item = event.item ?: return
-        val configured = org.bukkit.Material.matchMaterial(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE") ?: org.bukkit.Material.GOLDEN_AXE
+        val configured = Material.matchMaterial(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE") ?: Material.GOLDEN_AXE
         if (item.type != configured || event.clickedBlock == null || !event.player.hasPermission("worldscript.admin")) return
         val index = when (event.action) { Action.LEFT_CLICK_BLOCK -> 1; Action.RIGHT_CLICK_BLOCK -> 2; else -> return }
         event.isCancelled = true
-        selection.set(event.player, index, event.clickedBlock!!.location)
-        com.worldscript.foundation.Lang(plugin).send(event.player, "selection-set", "position" to index, "x" to event.clickedBlock!!.x, "y" to event.clickedBlock!!.y, "z" to event.clickedBlock!!.z)
+        val block = event.clickedBlock ?: return
+        selection.set(event.player, index, block.location)
+        Lang(plugin).send(event.player, "selection-set", "position" to index, "x" to block.x, "y" to block.y, "z" to block.z)
     }
 
     @EventHandler

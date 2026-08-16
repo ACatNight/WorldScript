@@ -13,6 +13,7 @@ import com.worldscript.modules.l2.rpg.RewardService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import com.worldscript.integration.placeholder.WorldScriptPlaceholderExpansion
 import com.worldscript.foundation.api.PlayerRegionProgressService
+import org.bukkit.Material
 
 class WorldScriptPlugin : JavaPlugin() {
     lateinit var lang: com.worldscript.foundation.Lang
@@ -53,7 +54,7 @@ class WorldScriptPlugin : JavaPlugin() {
         server.pluginManager.registerEvents(playerVariables, this)
         server.pluginManager.registerEvents(actions, this)
         server.pluginManager.registerEvents(gui, this)
-        server.pluginManager.registerEvents(RegionSelectionListener(this, selection, command), this)
+        server.pluginManager.registerEvents(RegionSelectionListener(this, selection), this)
         if (server.pluginManager.isPluginEnabled("PlaceholderAPI")) {
             WorldScriptPlaceholderExpansion(this, regionCore, playerVariables).register()
             logger.info("Registered WorldScript PlaceholderAPI variables.")
@@ -68,12 +69,12 @@ class WorldScriptPlugin : JavaPlugin() {
 
     private fun validateMaterialConfig() {
         val tool = config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE"
-        if (org.bukkit.Material.matchMaterial(tool) == null) {
+        if (Material.matchMaterial(tool) == null) {
             logger.warning("Invalid selection.tool '$tool'; using GOLDEN_AXE.")
             config.set("selection.tool", "GOLDEN_AXE")
         }
         val icon = config.getString("gui.event-icon", "PAPER") ?: "PAPER"
-        if (org.bukkit.Material.matchMaterial(icon) == null) {
+        if (Material.matchMaterial(icon) == null) {
             logger.warning("Invalid gui.event-icon '$icon'; using PAPER.")
             config.set("gui.event-icon", "PAPER")
         }
