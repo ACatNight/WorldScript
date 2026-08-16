@@ -102,7 +102,7 @@ actions:
       tell "继续向遗迹深处探索"
 ```
 
-标题示例：颜色代码写在文本中，不要写成 `title color "..."`：
+标题示例：颜色代码写在文本中，不要写成 `title color "..."`。`by` 也可以写成 `with`：
 
 ```yaml
 value: 'title "&b遗迹核心" subtitle "&f测试脚本" by 20 100 20'

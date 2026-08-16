@@ -96,6 +96,7 @@ class ScriptActionServiceImpl(
     }
 
     private fun executeKether(player: Player, regionId: String, script: String) {
+        if (executeTitleCompat(player, script)) return
         val normalizedScript = script.replace('&', '\u00a7')
         val region = regions.effective(regionId)
         val scriptVars = linkedMapOf<String, Any?>(
@@ -122,6 +123,25 @@ class ScriptActionServiceImpl(
             null
         }
     }
+
+    /** Keeps the common title form stable across TabooLib parser variants. */
+    private fun executeTitleCompat(player: Player, script: String): Boolean {
+        val match = Regex(
+            "^\\s*title\\s+\"([^\"]*)\"(?:\\s+subtitle\\s+\"([^\"]*)\")?(?:\\s+(?:by|with)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+))?\\s*$",
+            RegexOption.IGNORE_CASE,
+        ).matchEntire(script) ?: return false
+        val groups = match.groupValues
+        player.sendTitle(
+            color(groups[1]),
+            color(groups.getOrNull(2).orEmpty()),
+            groups.getOrNull(3)?.toIntOrNull() ?: 0,
+            groups.getOrNull(4)?.toIntOrNull() ?: 20,
+            groups.getOrNull(5)?.toIntOrNull() ?: 0,
+        )
+        return true
+    }
+
+    private fun color(value: String): String = org.bukkit.ChatColor.translateAlternateColorCodes('&', value)
 
     private fun setPlayerVariable(player: Player, value: String) {
         val parts = value.split('=', limit = 2)
