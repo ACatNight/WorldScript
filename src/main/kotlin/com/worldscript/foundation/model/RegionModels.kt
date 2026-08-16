@@ -8,6 +8,8 @@ enum class RegionEventType {
     ENTER,
     LEAVE,
     INTERACT,
+    LEFT_CLICK,
+    RIGHT_CLICK,
 }
 
 enum class ActionType {

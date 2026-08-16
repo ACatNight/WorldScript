@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.worldscript"
-version = "0.1.18-SNAPSHOT"
+version = "0.1.19-SNAPSHOT"
 
 repositories {
     mavenCentral()

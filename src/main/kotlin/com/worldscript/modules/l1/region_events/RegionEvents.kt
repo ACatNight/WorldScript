@@ -24,6 +24,11 @@ class RegionInteractEvent(val player: Player, val regionId: String) : Event() {
     companion object { private val handlerList = HandlerList(); @JvmStatic fun getHandlerList() = handlerList }
 }
 
+class RegionBlockClickEvent(val player: Player, val regionId: String, val type: RegionEventType) : Event() {
+    override fun getHandlers() = handlerList
+    companion object { private val handlerList = HandlerList(); @JvmStatic fun getHandlerList() = handlerList }
+}
+
 class RegionEventServiceImpl(
     private val plugin: org.bukkit.plugin.java.JavaPlugin,
     private val regions: RegionCoreServiceImpl,
@@ -68,13 +73,25 @@ class RegionEventServiceImpl(
 
     @org.bukkit.event.EventHandler(ignoreCancelled = true)
     fun onInteract(event: org.bukkit.event.player.PlayerInteractEvent) {
-        if (!RegionInteractionPolicy.shouldDispatch(event.hand == EquipmentSlot.HAND, event.action == Action.RIGHT_CLICK_BLOCK, event.isCancelled)) return
+        if (!RegionInteractionPolicy.shouldDispatch(event.hand == EquipmentSlot.HAND, event.isCancelled)) return
         val selectionTool = org.bukkit.Material.matchMaterial(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE") ?: org.bukkit.Material.GOLDEN_AXE
         if (event.item?.type == selectionTool) return
         val block = event.clickedBlock ?: return
         val region = regions.regionsAt(block.location) { id -> regions.isAccessible(id, state.isRegionUnlocked(event.player, id)) }.lastOrNull() ?: return
-        if (region.events[RegionEventType.INTERACT]?.enabled != false) {
-            plugin.server.pluginManager.callEvent(RegionInteractEvent(event.player, region.id))
+        when (event.action) {
+            Action.LEFT_CLICK_BLOCK -> dispatchBlockClick(event.player, region.id, RegionEventType.LEFT_CLICK)
+            Action.RIGHT_CLICK_BLOCK -> {
+                val rightClick = regions.effective(region.id)?.events?.get(RegionEventType.RIGHT_CLICK)
+                if (rightClick?.enabled == true) dispatchBlockClick(event.player, region.id, RegionEventType.RIGHT_CLICK)
+                else if (region.events[RegionEventType.INTERACT]?.enabled != false) plugin.server.pluginManager.callEvent(RegionInteractEvent(event.player, region.id))
+            }
+            else -> Unit
+        }
+    }
+
+    private fun dispatchBlockClick(player: Player, regionId: String, type: RegionEventType) {
+        if (regions.effective(regionId)?.events?.get(type)?.enabled == true) {
+            plugin.server.pluginManager.callEvent(RegionBlockClickEvent(player, regionId, type))
         }
     }
 

@@ -357,7 +357,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             }
         }
         return ScriptDefinition(
-            enabled = section.getBoolean("$path.enabled", true),
+            // New click events stay disabled until explicitly configured; legacy events retain their enabled-by-default behavior.
+            enabled = if (type == RegionEventType.LEFT_CLICK || type == RegionEventType.RIGHT_CLICK) section.getBoolean("$path.enabled", false) else section.getBoolean("$path.enabled", true),
             cooldownSeconds = section.getLong("$path.cooldown-seconds", 0).coerceAtLeast(0),
             actions = actions,
             conditions = readConditions(section.getMapList("$path.conditions"), source, "$path.conditions"),

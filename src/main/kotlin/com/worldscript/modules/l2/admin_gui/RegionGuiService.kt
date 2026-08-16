@@ -65,11 +65,13 @@ class RegionGuiService(
             "${lang.text("gui-region-inherit", "Enabled")}: ${region.inheritParent}",
         ).joinToString("|")))
 
+        inventory.setItem(26, item(Material.WOODEN_SWORD, lang.text("gui-event-left-click", "Left-click block"), lang.text("gui-event-card-hint", "Open event settings")))
         inventory.setItem(28, item(Material.LIME_DYE, lang.text("gui-event-enter", "Enter event"), lang.text("gui-event-card-hint", "Open event settings")))
         inventory.setItem(30, item(Material.RED_DYE, lang.text("gui-event-leave", "Leave event"), lang.text("gui-event-card-hint", "Open event settings")))
-        inventory.setItem(32, item(Material.YELLOW_DYE, lang.text("gui-event-interact", "Interact event"), lang.text("gui-event-card-hint", "Open event settings")))
-        inventory.setItem(34, item(Material.PAPER, lang.text("gui-card-variables", "Variables"), "${region.variables.size}"))
-        inventory.setItem(36, item(Material.BOOK, lang.text("gui-card-content", "External content"), region.contentId.ifBlank { "-" }))
+        inventory.setItem(32, item(Material.YELLOW_DYE, lang.text("gui-event-interact", "Legacy interact"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(34, item(Material.STONE_BUTTON, lang.text("gui-event-right-click", "Right-click block"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(38, item(Material.PAPER, lang.text("gui-card-variables", "Variables"), "${region.variables.size}"))
+        inventory.setItem(40, item(Material.BOOK, lang.text("gui-card-content", "External content"), region.contentId.ifBlank { "-" }))
         inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
@@ -135,9 +137,11 @@ class RegionGuiService(
                 event.rawSlot in REGION_SLOTS -> event.currentItem?.itemMeta?.displayName?.let { ChatColor.stripColor(it) }?.let { if (regions.find(it) != null) openRegion(player, it) }
             }
             "region" -> when (event.rawSlot) {
+                26 -> openEvent(player, regionId ?: return, RegionEventType.LEFT_CLICK)
                 28 -> openEvent(player, regionId ?: return, RegionEventType.ENTER)
                 30 -> openEvent(player, regionId ?: return, RegionEventType.LEAVE)
                 32 -> openEvent(player, regionId ?: return, RegionEventType.INTERACT)
+                34 -> openEvent(player, regionId ?: return, RegionEventType.RIGHT_CLICK)
                 49 -> openList(player)
             }
             "event" -> {

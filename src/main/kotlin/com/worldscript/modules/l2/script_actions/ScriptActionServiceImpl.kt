@@ -10,6 +10,7 @@ import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l1.region_events.RegionEnterEvent
+import com.worldscript.modules.l1.region_events.RegionBlockClickEvent
 import com.worldscript.modules.l1.region_events.RegionInteractEvent
 import com.worldscript.modules.l1.region_events.RegionLeaveEvent
 import com.worldscript.modules.l2.rpg.ConditionEvaluator
@@ -34,6 +35,7 @@ class ScriptActionServiceImpl(
     @EventHandler fun onEnter(event: RegionEnterEvent) = executeEvent(event.player, event.regionId, RegionEventType.ENTER)
     @EventHandler fun onLeave(event: RegionLeaveEvent) = executeEvent(event.player, event.regionId, RegionEventType.LEAVE)
     @EventHandler fun onInteract(event: RegionInteractEvent) = executeEvent(event.player, event.regionId, RegionEventType.INTERACT)
+    @EventHandler fun onBlockClick(event: RegionBlockClickEvent) = executeEvent(event.player, event.regionId, event.type)
 
     private fun executeEvent(player: Player, regionId: String, eventType: RegionEventType) {
         val script = regions.effective(regionId)?.events?.get(eventType) ?: return
