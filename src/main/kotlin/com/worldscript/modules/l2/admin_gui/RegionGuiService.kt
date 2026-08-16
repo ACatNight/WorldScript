@@ -75,17 +75,21 @@ class RegionGuiService(
     }
 
     private fun openEvent(player: Player, regionId: String, type: RegionEventType) {
-        val script = regions.find(regionId)?.events?.get(type) ?: ScriptDefinition()
+        val region = regions.find(regionId) ?: return openList(player)
+        val rawScript = region.events[type]
+        val script = regions.effective(regionId)?.events?.get(type) ?: rawScript ?: ScriptDefinition()
+        val inherited = rawScript == null && region.parentId != null
         val inventory = Bukkit.createInventory(RegionGuiHolder("event", regionId, type), 54, color(lang.text("gui-event-${type.name.lowercase()}", type.name)))
         inventory.setItem(4, item(if (script.enabled) Material.LIME_DYE else Material.GRAY_DYE, lang.text(if (script.enabled) "gui-enabled" else "gui-disabled", "Enabled"), lang.text("gui-toggle", "Click to toggle")))
         inventory.setItem(5, item(Material.CLOCK, lang.text("gui-cooldown", "Cooldown"), "${script.cooldownSeconds}s"))
         inventory.setItem(6, item(Material.COMPASS, lang.text("gui-trigger", "Trigger"), eventModeText(script)))
-        inventory.setItem(8, item(Material.CHAIN, lang.text("gui-inherit-event", "Inheritance"), "${lang.text("gui-inherit-from-parent", "Inherit parent event")}: ${!script.overrideParent}"))
+        inventory.setItem(8, item(Material.CHAIN, lang.text("gui-inherit-event", "Inheritance"), if (inherited) lang.text("gui-inherited-readonly", "Inherited from parent|Edit this event to override") else "${lang.text("gui-inherit-from-parent", "Inherit parent event")}: ${!script.overrideParent}"))
         inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-action", "Add action"), lang.text("gui-add-action-lore", "Choose an action type")))
         inventory.setItem(12, item(Material.PAPER, lang.text("gui-condition-count", "Conditions"), script.conditions.size.toString()))
         inventory.setItem(14, item(Material.CHEST, lang.text("gui-reward-count", "Rewards"), script.rewards.size.toString()))
         script.actions.take(27).forEachIndexed { index, action ->
-            inventory.setItem(18 + index, item(Material.PAPER, "${index + 1}. ${action.type.name}", action.value))
+            val inheritedAction = rawScript?.actions?.getOrNull(index) == null && inherited
+            inventory.setItem(18 + index, item(Material.PAPER, "${index + 1}. ${actionLabel(action.type)}", if (inheritedAction) "${action.value}|${lang.text("gui-inherited-readonly", "Inherited from parent|Edit this event to override")}" else action.value))
         }
         inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
@@ -126,7 +130,10 @@ class RegionGuiService(
         event.isCancelled = true
         val regionId = holder.regionId
         when (holder.page) {
-            "list" -> event.currentItem?.itemMeta?.displayName?.let { ChatColor.stripColor(it) }?.let { if (regions.find(it) != null) openRegion(player, it) }
+            "list" -> when {
+                event.rawSlot == 49 -> player.closeInventory()
+                event.rawSlot in REGION_SLOTS -> event.currentItem?.itemMeta?.displayName?.let { ChatColor.stripColor(it) }?.let { if (regions.find(it) != null) openRegion(player, it) }
+            }
             "region" -> when (event.rawSlot) {
                 28 -> openEvent(player, regionId ?: return, RegionEventType.ENTER)
                 30 -> openEvent(player, regionId ?: return, RegionEventType.LEAVE)
@@ -140,7 +147,14 @@ class RegionGuiService(
                     event.rawSlot == 4 -> { regions.toggleEvent(rid, type); openEvent(player, rid, type) }
                     event.rawSlot == 5 -> openTextInput(player, RegionGuiHolder("chat", rid, type, inputKind = "cooldown"))
                     event.rawSlot == 10 -> openActionTypes(player, rid, type)
-                    event.rawSlot in 18..44 -> openActionEditor(player, rid, type, event.rawSlot - 18)
+                    event.rawSlot in 18..44 && event.currentItem != null -> {
+                        val index = event.rawSlot - 18
+                        if (regions.find(rid)?.events?.get(type)?.actions?.getOrNull(index) == null && regions.effective(rid)?.events?.get(type)?.actions?.getOrNull(index) != null) {
+                            lang.send(player, "gui-inherited-readonly-message")
+                        } else {
+                            openActionEditor(player, rid, type, index)
+                        }
+                    }
                     event.rawSlot == 49 -> openRegion(player, rid)
                 }
             }
@@ -157,7 +171,11 @@ class RegionGuiService(
                 when (event.rawSlot) {
                     10 -> openActionTypes(player, rid, type, holder.actionIndex)
                     12 -> openTextInput(player, holder.copyForInput("action"))
-                    14 -> { regions.removeAction(rid, type, holder.actionIndex); openEvent(player, rid, type) }
+                    14 -> {
+                        lang.send(player, "gui-delete-confirm")
+                        pendingInputs[player.uniqueId] = RegionGuiHolder("confirm-delete", rid, type, holder.actionIndex)
+                        player.closeInventory()
+                    }
                     22 -> openEvent(player, rid, type)
                 }
             }
@@ -172,11 +190,31 @@ class RegionGuiService(
     }
 
     private fun finishInput(player: Player, value: String, holder: RegionGuiHolder) {
+        if (holder.page == "confirm-delete") {
+            if (value.equals("confirm", true) || value.equals("yes", true) || value.equals("y", true) || value == "确认") {
+                val regionId = holder.regionId ?: return
+                val type = holder.eventType ?: return
+                regions.removeAction(regionId, type, holder.actionIndex)
+                openEvent(player, regionId, type)
+            } else {
+                lang.send(player, "gui-delete-cancelled")
+                holder.regionId?.let { regionId -> holder.eventType?.let { openEvent(player, regionId, it) } }
+            }
+            return
+        }
         if (value.isBlank()) { lang.send(player, "gui-input-empty"); return }
         val regionId = holder.regionId ?: return
         val type = holder.eventType ?: return
         when (holder.inputKind) {
-            "cooldown" -> value.toLongOrNull()?.coerceAtLeast(0)?.let { seconds -> regions.updateEvent(regionId, type) { it.copy(cooldownSeconds = seconds) } }
+            "cooldown" -> {
+                val seconds = value.toLongOrNull()?.takeIf { it >= 0 }
+                if (seconds == null) {
+                    lang.send(player, "gui-cooldown-invalid")
+                    openEvent(player, regionId, type)
+                    return
+                }
+                regions.updateEvent(regionId, type) { it.copy(cooldownSeconds = seconds) }
+            }
             "action" -> {
                 val action = ActionDefinition(holder.actionType ?: ActionType.MESSAGE, value)
                 if (holder.actionIndex >= 0) regions.updateAction(regionId, type, holder.actionIndex, action) else regions.addAction(regionId, type, action)
