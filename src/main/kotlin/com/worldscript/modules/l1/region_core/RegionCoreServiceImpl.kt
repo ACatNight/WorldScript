@@ -68,7 +68,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         data.set("state.statuses", region.statuses.map { it.name.lowercase() })
         data.set("variables", region.variables)
         region.particle?.let { particle ->
-            data.set("particle.enabled", true)
+            data.set("particle.enabled", particle.enabled)
             data.set("particle.type", particle.type)
             data.set("particle.count", particle.count)
             data.set("particle.interval-ticks", particle.intervalTicks)
@@ -134,6 +134,14 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             statuses.remove(status)
         }
         val updated = region.copy(statuses = statuses)
+        regions[region.id.lowercase()] = updated
+        save(updated)
+        return true
+    }
+
+    override fun updateParticle(id: String, particle: RegionParticleDefinition?): Boolean {
+        val region = find(id) ?: return false
+        val updated = region.copy(particle = particle)
         regions[region.id.lowercase()] = updated
         save(updated)
         return true
@@ -376,13 +384,15 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     }
 
     private fun readParticle(section: ConfigurationSection, source: String): RegionParticleDefinition? {
-        if (!section.getBoolean("particle.enabled", false)) return null
+        if (!section.isConfigurationSection("particle")) return null
+        val enabled = section.getBoolean("particle.enabled", true)
         val type = section.getString("particle.type", "END_ROD") ?: "END_ROD"
-        if (runCatching { org.bukkit.Particle.valueOf(type.uppercase()) }.isFailure) {
+        if (enabled && runCatching { org.bukkit.Particle.valueOf(type.uppercase()) }.isFailure) {
             loadIssue(source, "particle.type", "unknown particle '$type'")
             return null
         }
         return RegionParticleDefinition(
+            enabled = enabled,
             type = type.uppercase(),
             count = section.getInt("particle.count", 2).coerceIn(1, 64),
             intervalTicks = section.getLong("particle.interval-ticks", 20).coerceAtLeast(1),

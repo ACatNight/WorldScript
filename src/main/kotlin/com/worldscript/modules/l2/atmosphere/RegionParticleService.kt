@@ -26,6 +26,7 @@ class RegionParticleService(
             regions.isAccessible(id, state.isRegionUnlocked(player, id))
         }.lastOrNull() ?: return
         val definition = regions.effective(region.id)?.particle ?: return
+        if (!definition.enabled) return
         if (tick % definition.intervalTicks != 0L) return
         val particle = runCatching { Particle.valueOf(definition.type) }.getOrNull() ?: return
         player.spawnParticle(

@@ -10,6 +10,7 @@ import com.worldscript.foundation.model.ConditionType
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
+import com.worldscript.foundation.model.RegionParticleDefinition
 import com.worldscript.foundation.model.RegionRole
 import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
@@ -18,6 +19,7 @@ import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.Material
+import org.bukkit.Particle
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -82,7 +84,29 @@ class RegionGuiService(
         inventory.setItem(34, item(material("STONE_BUTTON"), lang.text("gui-event-right-click", "Right-click block"), lang.text("gui-event-card-hint", "Open event settings")))
         inventory.setItem(38, item(material("PAPER"), lang.text("gui-card-variables", "Variables"), "${region.variables.size}"))
         inventory.setItem(40, item(material("BOOK"), lang.text("gui-card-content", "External content"), region.contentId.ifBlank { "-" }))
+        val particle = region.particle ?: effective.particle
+        inventory.setItem(42, item(material("END_ROD", "BLAZE_ROD"), lang.text("gui-card-particle", "Region particles"), listOf(
+            lang.text(if (particle?.enabled == true) "gui-particle-enabled" else "gui-particle-disabled", "Disabled"),
+            "${lang.text("gui-particle-type", "Type")}: ${particle?.type ?: "-"}",
+            "${lang.text("gui-particle-count", "Count")}: ${particle?.count ?: "-"}",
+        ).joinToString("|")))
         inventory.setItem(49, item(material("BARRIER"), lang.text("gui-back", "Back"), ""))
+        player.openInventory(inventory)
+    }
+
+    private fun openParticle(player: Player, regionId: String) {
+        val region = regions.find(regionId) ?: return openList(player)
+        val particle = region.particle ?: regions.effective(regionId)?.particle
+        val local = region.particle
+        val inventory = Bukkit.createInventory(RegionGuiHolder("particle", regionId), 27, color(lang.text("gui-particle-title", "Region particles")))
+        fillBackground(inventory)
+        inventory.setItem(4, item(material(if (particle?.enabled == true) "LIME_DYE" else "GRAY_DYE", "INK_SACK"), lang.text(if (particle?.enabled == true) "gui-particle-enabled" else "gui-particle-disabled", "Disabled"), lang.text("gui-toggle", "Click to toggle")))
+        inventory.setItem(10, item(material("END_ROD", "BLAZE_ROD"), lang.text("gui-particle-type", "Particle type"), particle?.type ?: "END_ROD"))
+        inventory.setItem(12, item(material("GLOWSTONE_DUST"), lang.text("gui-particle-count", "Particle count"), (particle?.count ?: 2).toString()))
+        inventory.setItem(14, item(material("CLOCK"), lang.text("gui-particle-interval", "Interval"), "${particle?.intervalTicks ?: 20} ticks"))
+        inventory.setItem(16, item(material("FEATHER"), lang.text("gui-particle-spread", "Spread"), particle?.let { "${it.spreadX},${it.spreadY},${it.spreadZ}" } ?: "1.5,0.8,1.5"))
+        if (local == null) inventory.setItem(20, item(material("CHAIN", "LEASH"), lang.text("gui-inherit-event", "Inheritance"), lang.text("gui-particle-inherited", "Using parent settings; editing creates a local override.")))
+        inventory.setItem(22, item(material("BARRIER"), lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
@@ -162,6 +186,10 @@ class RegionGuiService(
         else when (holder.inputKind) {
             "condition" -> lang.send(player, "gui-condition-prompt")
             "reward" -> lang.send(player, "gui-reward-prompt")
+            "particle-type" -> lang.send(player, "gui-particle-prompt-type")
+            "particle-count" -> lang.send(player, "gui-particle-prompt-count")
+            "particle-interval" -> lang.send(player, "gui-particle-prompt-interval")
+            "particle-spread" -> lang.send(player, "gui-particle-prompt-spread")
             else -> lang.send(player, "gui-action-prompt", "type" to (holder.actionType?.name ?: "MESSAGE"))
         }
     }
@@ -183,7 +211,23 @@ class RegionGuiService(
                 30 -> openEvent(player, regionId ?: return, RegionEventType.LEAVE)
                 32 -> openEvent(player, regionId ?: return, RegionEventType.INTERACT)
                 34 -> openEvent(player, regionId ?: return, RegionEventType.RIGHT_CLICK)
+                42 -> openParticle(player, regionId ?: return)
                 49 -> openList(player)
+            }
+            "particle" -> {
+                val rid = regionId ?: return
+                when (event.rawSlot) {
+                    4 -> {
+                        val current = regions.find(rid)?.particle ?: regions.effective(rid)?.particle ?: RegionParticleDefinition()
+                        regions.updateParticle(rid, current.copy(enabled = !current.enabled))
+                        openParticle(player, rid)
+                    }
+                    10 -> openTextInput(player, RegionGuiHolder("chat", rid, inputKind = "particle-type"))
+                    12 -> openTextInput(player, RegionGuiHolder("chat", rid, inputKind = "particle-count"))
+                    14 -> openTextInput(player, RegionGuiHolder("chat", rid, inputKind = "particle-interval"))
+                    16 -> openTextInput(player, RegionGuiHolder("chat", rid, inputKind = "particle-spread"))
+                    22 -> openRegion(player, rid)
+                }
             }
             "event" -> {
                 val type = holder.eventType ?: return
@@ -267,9 +311,9 @@ class RegionGuiService(
         }
         if (value.isBlank()) { lang.send(player, "gui-input-empty"); return }
         val regionId = holder.regionId ?: return
-        val type = holder.eventType ?: return
         when (holder.inputKind) {
             "cooldown" -> {
+                val type = holder.eventType ?: return
                 val seconds = value.toLongOrNull()?.takeIf { it >= 0 }
                 if (seconds == null) {
                     lang.send(player, "gui-cooldown-invalid")
@@ -279,19 +323,51 @@ class RegionGuiService(
                 regions.updateEvent(regionId, type) { it.copy(cooldownSeconds = seconds) }
             }
             "action" -> {
+                val type = holder.eventType ?: return
                 val action = ActionDefinition(holder.actionType ?: ActionType.MESSAGE, value)
                 if (holder.actionIndex >= 0) regions.updateAction(regionId, type, holder.actionIndex, action) else regions.addAction(regionId, type, action)
             }
             "condition" -> {
+                val type = holder.eventType ?: return
                 val condition = parseCondition(value) ?: run { lang.send(player, "gui-condition-invalid"); return }
                 regions.updateEvent(regionId, type) { it.copy(conditions = it.conditions + condition) }
             }
             "reward" -> {
+                val type = holder.eventType ?: return
                 val reward = parseReward(value) ?: run { lang.send(player, "gui-reward-invalid"); return }
                 regions.updateEvent(regionId, type) { it.copy(rewards = it.rewards + reward) }
             }
+            "particle-type" -> {
+                val type = runCatching { Particle.valueOf(value.uppercase()) }.getOrNull()
+                if (type == null) return particleInputInvalid(player, regionId)
+                updateParticle(regionId) { it.copy(type = type.name) }
+            }
+            "particle-count" -> {
+                val count = value.toIntOrNull()?.takeIf { it in 1..64 } ?: return particleInputInvalid(player, regionId)
+                updateParticle(regionId) { it.copy(count = count) }
+            }
+            "particle-interval" -> {
+                val interval = value.toLongOrNull()?.takeIf { it >= 1 } ?: return particleInputInvalid(player, regionId)
+                updateParticle(regionId) { it.copy(intervalTicks = interval) }
+            }
+            "particle-spread" -> {
+                val values = value.split(',').map { it.trim().toDoubleOrNull() }
+                if (values.size != 3 || values.any { it == null || it < 0.0 || it > 16.0 }) return particleInputInvalid(player, regionId)
+                updateParticle(regionId) { it.copy(spreadX = values[0]!!, spreadY = values[1]!!, spreadZ = values[2]!!) }
+            }
         }
-        openEvent(player, regionId, type)
+        if (holder.inputKind?.startsWith("particle-") == true) openParticle(player, regionId)
+        else openEvent(player, regionId, holder.eventType ?: return)
+    }
+
+    private fun updateParticle(regionId: String, update: (RegionParticleDefinition) -> RegionParticleDefinition) {
+        val current = regions.find(regionId)?.particle ?: regions.effective(regionId)?.particle ?: RegionParticleDefinition()
+        regions.updateParticle(regionId, update(current))
+    }
+
+    private fun particleInputInvalid(player: Player, regionId: String) {
+        lang.send(player, "gui-particle-invalid")
+        openParticle(player, regionId)
     }
 
     private fun parseCondition(value: String): ConditionDefinition? {
