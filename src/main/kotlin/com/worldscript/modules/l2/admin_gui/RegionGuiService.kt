@@ -29,6 +29,7 @@ class RegionGuiService(
 
     fun openList(player: Player) {
         val inventory = Bukkit.createInventory(RegionGuiHolder("list"), 54, color(lang.text("gui-atlas-title", "WorldScript Atlas")))
+        fillBackground(inventory)
         inventory.setItem(4, item(Material.MAP, lang.text("gui-atlas-title", "WorldScript Atlas"), lang.text("gui-atlas-hint", "Select a region to edit")))
         regions.all().take(REGION_SLOTS.size).forEachIndexed { index, region ->
             inventory.setItem(REGION_SLOTS[index], regionItem(region))
@@ -42,6 +43,7 @@ class RegionGuiService(
         val effective = regions.effective(region.id) ?: region
         val parent = region.parentId?.let(regions::find)
         val inventory = Bukkit.createInventory(RegionGuiHolder("region", region.id), 54, color(region.displayName))
+        fillBackground(inventory)
 
         inventory.setItem(4, item(Material.MAP, region.displayName, listOf(
             "${lang.text("gui-region-id", "ID")}: ${region.id}",
@@ -280,10 +282,16 @@ class RegionGuiService(
 
     private fun color(value: String) = ChatColor.translateAlternateColorCodes('&', value)
 
+    private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
+        val pane = item(Material.GRAY_STAINED_GLASS_PANE, " ", "")
+        BORDER_SLOTS.forEach { slot -> inventory.setItem(slot, pane) }
+    }
+
     private fun RegionGuiHolder.copyForInput(kind: String) = RegionGuiHolder("anvil", regionId, eventType, actionIndex, actionType, kind)
 
     private companion object {
         val REGION_SLOTS = (10..43).toList()
         val ACTION_TYPE_SLOTS = listOf(10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34)
+        val BORDER_SLOTS = listOf(0, 1, 2, 3, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 50, 51, 52, 53)
     }
 }
