@@ -23,7 +23,8 @@ WorldScript is currently fully free and available under the [MIT License](LICENS
 3. Add region files to `plugins/WorldScript/regions/`.
 4. Run `/ws validate`, then `/ws reload`.
 
-The open-world starter file is [examples/region-progression-template.yml](examples/region-progression-template.yml).
+The open-world starter file uses the recommended Schema 2 format: [examples/region-progression-template.yml](examples/region-progression-template.yml). Existing flat region files remain supported.
+The complete five-region sample is available in [examples/regions](examples/regions).
 
 ## Commands
 

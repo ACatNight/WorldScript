@@ -1,0 +1,26 @@
+schema: 2
+id: ruins
+identity:
+  name: Sunken Ruins
+  role: point_of_interest
+  content-id: ruins_intro
+  parent: starter_valley
+location:
+  world: world
+  world-id: world
+  priority: 0
+  min: {x: 30, y: 50, z: 80}
+  max: {x: 120, y: 100, z: 150}
+state:
+  inherit: true
+  statuses: []
+events:
+  enter:
+    enabled: true
+    inherit: false
+    mode: first
+    actions:
+      - type: message
+        value: "&6The ruins reveal fragments of the world's older history."
+      - type: console_command
+        value: "your-quest-plugin start ruins_intro %player%"

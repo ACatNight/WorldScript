@@ -1,0 +1,26 @@
+schema: 2
+id: forest
+identity:
+  name: Whispering Forest
+  role: open_zone
+  content-id: forest_intro
+  parent: starter_valley
+location:
+  world: world
+  world-id: world
+  priority: 0
+  min: {x: 10, y: 50, z: 10}
+  max: {x: 70, y: 100, z: 70}
+state:
+  inherit: true
+  statuses: []
+events:
+  enter:
+    enabled: true
+    inherit: false
+    mode: first
+    actions:
+      - type: message
+        value: "&2The forest is rich with herbs, tracks, and danger."
+      - type: console_command
+        value: "your-quest-plugin start forest_intro %player%"

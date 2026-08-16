@@ -14,9 +14,11 @@ WorldScript 是一个面向 Paper 1.21.8 的区域脚本插件，用于配置地
 
 1. 将 `build/libs/WorldScript-<版本>.jar` 放入服务器的 `plugins/` 目录。
 2. 启动一次服务器，让插件生成 `plugins/WorldScript/regions/`。
-3. 将 `examples/region-progression-template.yml` 复制到 `regions/` 作为开放世界示例。
+3. 将 `examples/region-progression-template.yml` 复制到 `regions/` 作为 Schema 2 开放世界示例。
 4. 按服务器实际地图修改世界名、区域边界和外部插件命令。
 5. 先执行 `/ws validate`，确认无错误后再执行 `/ws reload`。
+
+完整的五区域开放世界示例位于 [examples/regions](examples/regions)。
 
 默认语言为英文。若要切换中文消息，在 `plugins/WorldScript/config.yml` 中设置：
 

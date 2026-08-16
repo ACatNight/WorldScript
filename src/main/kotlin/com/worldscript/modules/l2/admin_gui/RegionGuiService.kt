@@ -3,7 +3,10 @@ package com.worldscript.modules.l2.admin_gui
 import com.worldscript.foundation.Lang
 import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
+import com.worldscript.foundation.model.GlobalRegionStatus
+import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
+import com.worldscript.foundation.model.RegionRole
 import com.worldscript.foundation.model.ScriptDefinition
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import org.bukkit.Bukkit
@@ -13,7 +16,6 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
-import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.plugin.java.JavaPlugin
@@ -26,36 +28,62 @@ class RegionGuiService(
     private val pendingInputs = mutableMapOf<java.util.UUID, RegionGuiHolder>()
 
     fun openList(player: Player) {
-        val inventory = Bukkit.createInventory(RegionGuiHolder("list"), 54, color(lang.text("gui-list-title", "WorldScript Regions")))
-        regions.all().take(54).forEachIndexed { index, region ->
-            inventory.setItem(index, item(Material.CHEST, region.id, lang.text("gui-region-entry", "Click to edit")))
+        val inventory = Bukkit.createInventory(RegionGuiHolder("list"), 54, color(lang.text("gui-atlas-title", "WorldScript Atlas")))
+        inventory.setItem(4, item(Material.MAP, lang.text("gui-atlas-title", "WorldScript Atlas"), lang.text("gui-atlas-hint", "Select a region to edit")))
+        regions.all().take(REGION_SLOTS.size).forEachIndexed { index, region ->
+            inventory.setItem(REGION_SLOTS[index], regionItem(region))
         }
+        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-close", "Close"), ""))
         player.openInventory(inventory)
     }
 
     private fun openRegion(player: Player, regionId: String) {
         val region = regions.find(regionId) ?: return openList(player)
-        val inventory = Bukkit.createInventory(RegionGuiHolder("region", region.id), 27, color(region.displayName))
-        inventory.setItem(4, item(Material.BOOK, region.displayName, "${region.worldName} ${region.bounds}|role: ${region.role.name.lowercase()}|content-id: ${region.contentId.ifBlank { "-" }}"))
-        inventory.setItem(10, item(Material.LIME_DYE, lang.text("gui-event-enter", "Enter"), lang.text("gui-open-event", "Click to edit")))
-        inventory.setItem(12, item(Material.RED_DYE, lang.text("gui-event-leave", "Leave"), lang.text("gui-open-event", "Click to edit")))
-        inventory.setItem(14, item(Material.YELLOW_DYE, lang.text("gui-event-interact", "Interact"), lang.text("gui-open-event", "Click to edit")))
-        inventory.setItem(22, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        val effective = regions.effective(region.id) ?: region
+        val parent = region.parentId?.let(regions::find)
+        val inventory = Bukkit.createInventory(RegionGuiHolder("region", region.id), 54, color(region.displayName))
+
+        inventory.setItem(4, item(Material.MAP, region.displayName, listOf(
+            "${lang.text("gui-region-id", "ID")}: ${region.id}",
+            "${lang.text("gui-region-role", "Role")}: ${region.role.name.lowercase()}",
+            "${lang.text("gui-region-content", "Content")}: ${region.contentId.ifBlank { "-" }}",
+        ).joinToString("|")))
+        inventory.setItem(10, item(Material.NAME_TAG, lang.text("gui-card-identity", "Identity"), listOf(
+            "${lang.text("gui-region-name", "Name")}: ${region.displayName}",
+            "${lang.text("gui-region-role", "Role")}: ${region.role.name.lowercase()}",
+        ).joinToString("|")))
+        inventory.setItem(12, item(Material.COMPASS, lang.text("gui-card-location", "Location"), listOf(
+            "${lang.text("gui-region-world", "World")}: ${region.worldName}",
+            region.bounds.toString(),
+        ).joinToString("|")))
+        inventory.setItem(14, item(Material.REDSTONE, lang.text("gui-card-state", "World state"), listOf(
+            "${lang.text("gui-region-status", "Status")}: ${statusText(effective.statuses)}",
+            "${lang.text("gui-region-priority", "Priority")}: ${region.priority}",
+        ).joinToString("|")))
+        inventory.setItem(16, item(Material.CHAIN, lang.text("gui-card-inheritance", "Inheritance"), listOf(
+            "${lang.text("gui-region-parent", "Parent")}: ${parent?.displayName ?: lang.text("gui-none", "None")}",
+            "${lang.text("gui-region-inherit", "Enabled")}: ${region.inheritParent}",
+        ).joinToString("|")))
+
+        inventory.setItem(28, item(Material.LIME_DYE, lang.text("gui-event-enter", "Enter event"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(30, item(Material.RED_DYE, lang.text("gui-event-leave", "Leave event"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(32, item(Material.YELLOW_DYE, lang.text("gui-event-interact", "Interact event"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(34, item(Material.PAPER, lang.text("gui-card-variables", "Variables"), "${region.variables.size}"))
+        inventory.setItem(36, item(Material.BOOK, lang.text("gui-card-content", "External content"), region.contentId.ifBlank { "-" }))
+        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
     private fun openEvent(player: Player, regionId: String, type: RegionEventType) {
         val script = regions.find(regionId)?.events?.get(type) ?: ScriptDefinition()
         val inventory = Bukkit.createInventory(RegionGuiHolder("event", regionId, type), 54, color(lang.text("gui-event-${type.name.lowercase()}", type.name)))
-        inventory.setItem(4, item(if (script.enabled) Material.LIME_DYE else Material.GRAY_DYE, lang.text(if (script.enabled) "gui-enabled" else "gui-disabled", "Enabled"), lang.text("gui-toggle", "Click to switch")))
+        inventory.setItem(4, item(if (script.enabled) Material.LIME_DYE else Material.GRAY_DYE, lang.text(if (script.enabled) "gui-enabled" else "gui-disabled", "Enabled"), lang.text("gui-toggle", "Click to toggle")))
         inventory.setItem(5, item(Material.CLOCK, lang.text("gui-cooldown", "Cooldown"), "${script.cooldownSeconds}s"))
-        inventory.setItem(6, item(Material.COMPASS, lang.text("gui-entry-mode", "Gameplay summary"), listOf(
-            "${lang.text("gui-first-entry", "First entry only")}: ${script.firstEntryOnly}",
-            "${lang.text("gui-repeat-entry", "Repeat entry only")}: ${script.repeatEntryOnly}",
-            "${lang.text("gui-condition-count", "Conditions")}: ${script.conditions.size}",
-            "${lang.text("gui-reward-count", "Rewards")}: ${script.rewards.size}",
-        ).joinToString("|")))
-        inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-action", "Add action"), lang.text("gui-add-action-lore", "Click to choose action type")))
+        inventory.setItem(6, item(Material.COMPASS, lang.text("gui-trigger", "Trigger"), eventModeText(script)))
+        inventory.setItem(8, item(Material.CHAIN, lang.text("gui-inherit-event", "Inheritance"), "${lang.text("gui-inherit-from-parent", "Inherit parent event")}: ${!script.overrideParent}"))
+        inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-action", "Add action"), lang.text("gui-add-action-lore", "Choose an action type")))
+        inventory.setItem(12, item(Material.PAPER, lang.text("gui-condition-count", "Conditions"), script.conditions.size.toString()))
+        inventory.setItem(14, item(Material.CHEST, lang.text("gui-reward-count", "Rewards"), script.rewards.size.toString()))
         script.actions.take(27).forEachIndexed { index, action ->
             inventory.setItem(18 + index, item(Material.PAPER, "${index + 1}. ${action.type.name}", action.value))
         }
@@ -64,18 +92,19 @@ class RegionGuiService(
     }
 
     private fun openActionTypes(player: Player, regionId: String, eventType: RegionEventType, actionIndex: Int = -1) {
-        val inventory = Bukkit.createInventory(RegionGuiHolder("types", regionId, eventType, actionIndex), 27, color(lang.text("gui-action-types", "Choose action type")))
-        inventory.setItem(10, item(Material.PAPER, "MESSAGE", lang.text("gui-type-message", "Text message")))
-        inventory.setItem(12, item(Material.COMMAND_BLOCK, "PLAYER_COMMAND", lang.text("gui-type-player-command", "Player command")))
-        inventory.setItem(14, item(Material.CHAIN_COMMAND_BLOCK, "CONSOLE_COMMAND", lang.text("gui-type-console-command", "Console command")))
-        inventory.setItem(16, item(Material.ENDER_PEARL, "TELEPORT", lang.text("gui-type-teleport", "world,x,y,z")))
-        inventory.setItem(22, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        val inventory = Bukkit.createInventory(RegionGuiHolder("types", regionId, eventType, actionIndex), 54, color(lang.text("gui-action-types", "Choose action type")))
+        inventory.setItem(4, item(Material.WRITABLE_BOOK, lang.text("gui-action-types", "Choose action type"), lang.text("gui-action-types-hint", "Choose what this event should do")))
+        ActionType.entries.forEachIndexed { index, type ->
+            inventory.setItem(ACTION_TYPE_SLOTS[index], item(actionMaterial(type), actionLabel(type), actionDescription(type)))
+        }
+        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
     private fun openActionEditor(player: Player, regionId: String, eventType: RegionEventType, index: Int) {
         val action = regions.find(regionId)?.events?.get(eventType)?.actions?.getOrNull(index) ?: return openEvent(player, regionId, eventType)
         val inventory = Bukkit.createInventory(RegionGuiHolder("action", regionId, eventType, index, action.type), 27, color("${index + 1}. ${action.type.name}"))
+        inventory.setItem(4, item(actionMaterial(action.type), actionLabel(action.type), action.value))
         inventory.setItem(10, item(Material.NAME_TAG, lang.text("gui-change-type", "Change type"), ""))
         inventory.setItem(12, item(Material.WRITABLE_BOOK, lang.text("gui-edit-value", "Edit value"), action.value))
         inventory.setItem(14, item(Material.LAVA_BUCKET, lang.text("gui-delete-action", "Delete action"), ""))
@@ -86,11 +115,8 @@ class RegionGuiService(
     private fun openTextInput(player: Player, holder: RegionGuiHolder) {
         pendingInputs[player.uniqueId] = holder
         player.closeInventory()
-        if (holder.inputKind == "cooldown") {
-            lang.send(player, "gui-cooldown-prompt")
-        } else {
-            lang.send(player, "gui-action-prompt", "type" to (holder.actionType?.name ?: "MESSAGE"))
-        }
+        if (holder.inputKind == "cooldown") lang.send(player, "gui-cooldown-prompt")
+        else lang.send(player, "gui-action-prompt", "type" to (holder.actionType?.name ?: "MESSAGE"))
     }
 
     @EventHandler
@@ -100,12 +126,12 @@ class RegionGuiService(
         event.isCancelled = true
         val regionId = holder.regionId
         when (holder.page) {
-            "list" -> event.currentItem?.itemMeta?.displayName?.let { ChatColor.stripColor(it) }?.let { openRegion(player, it) }
+            "list" -> event.currentItem?.itemMeta?.displayName?.let { ChatColor.stripColor(it) }?.let { if (regions.find(it) != null) openRegion(player, it) }
             "region" -> when (event.rawSlot) {
-                10 -> openEvent(player, regionId ?: return, RegionEventType.ENTER)
-                12 -> openEvent(player, regionId ?: return, RegionEventType.LEAVE)
-                14 -> openEvent(player, regionId ?: return, RegionEventType.INTERACT)
-                22 -> openList(player)
+                28 -> openEvent(player, regionId ?: return, RegionEventType.ENTER)
+                30 -> openEvent(player, regionId ?: return, RegionEventType.LEAVE)
+                32 -> openEvent(player, regionId ?: return, RegionEventType.INTERACT)
+                49 -> openList(player)
             }
             "event" -> {
                 val type = holder.eventType ?: return
@@ -120,9 +146,10 @@ class RegionGuiService(
             }
             "types" -> {
                 val type = holder.eventType ?: return
-                val actionType = when (event.rawSlot) { 10 -> ActionType.MESSAGE; 12 -> ActionType.PLAYER_COMMAND; 14 -> ActionType.CONSOLE_COMMAND; 16 -> ActionType.TELEPORT; else -> null }
+                val index = ACTION_TYPE_SLOTS.indexOf(event.rawSlot)
+                val actionType = ActionType.entries.getOrNull(index)
                 if (actionType != null) openTextInput(player, RegionGuiHolder("chat", regionId, type, holder.actionIndex, actionType, "action"))
-                if (event.rawSlot == 22) openEvent(player, regionId ?: return, type)
+                if (event.rawSlot == 49) openEvent(player, regionId ?: return, type)
             }
             "action" -> {
                 val type = holder.eventType ?: return
@@ -161,7 +188,60 @@ class RegionGuiService(
     @EventHandler
     fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) { pendingInputs.remove(event.player.uniqueId) }
 
-    private fun RegionGuiHolder.copyForInput(kind: String) = RegionGuiHolder("anvil", regionId, eventType, actionIndex, actionType, kind)
-    private fun item(material: Material, name: String, lore: String): ItemStack = ItemStack(material).also { stack -> stack.itemMeta = stack.itemMeta?.also { meta: ItemMeta -> meta.setDisplayName(color(name)); meta.lore = lore.split('|').map(::color) } }
+    private fun regionItem(region: RegionDefinition): ItemStack = item(roleMaterial(region.role), region.id, listOf(
+        region.displayName,
+        "${lang.text("gui-region-role", "Role")}: ${region.role.name.lowercase()}",
+        "${lang.text("gui-region-status", "Status")}: ${statusText(regions.effective(region.id)?.statuses ?: region.statuses)}",
+    ).joinToString("|"))
+
+    private fun statusText(statuses: Set<GlobalRegionStatus>): String =
+        if (statuses.isEmpty()) lang.text("gui-status-open", "open") else statuses.joinToString(",") { it.name.lowercase() }
+
+    private fun eventModeText(script: ScriptDefinition): String = when {
+        script.firstEntryOnly -> lang.text("gui-mode-first", "First entry")
+        script.repeatEntryOnly -> lang.text("gui-mode-repeat", "Repeat entry")
+        else -> lang.text("gui-mode-always", "Always")
+    }
+
+    private fun actionLabel(type: ActionType): String = lang.text("gui-type-${type.name.lowercase().replace('_', '-')}", type.name.lowercase().replace('_', ' '))
+
+    private fun actionDescription(type: ActionType): String = lang.text("gui-type-${type.name.lowercase().replace('_', '-')}-desc", type.name)
+
+    private fun actionMaterial(type: ActionType): Material = when (type) {
+        ActionType.MESSAGE -> Material.PAPER
+        ActionType.PLAYER_COMMAND -> Material.COMMAND_BLOCK
+        ActionType.CONSOLE_COMMAND -> Material.CHAIN_COMMAND_BLOCK
+        ActionType.TELEPORT -> Material.ENDER_PEARL
+        ActionType.SET_VARIABLE -> Material.WRITABLE_BOOK
+        ActionType.SET_REGION_STATUS -> Material.REDSTONE
+        ActionType.GIVE_ITEM -> Material.CHEST
+        ActionType.GIVE_EXPERIENCE -> Material.EXPERIENCE_BOTTLE
+        ActionType.GIVE_MONEY -> Material.GOLD_INGOT
+        ActionType.UNLOCK_REGION -> Material.TRIPWIRE_HOOK
+        ActionType.COMPLETE_REGION -> Material.NETHER_STAR
+    }
+
+    private fun roleMaterial(role: RegionRole): Material = when (role) {
+        RegionRole.HUB -> Material.COMPASS
+        RegionRole.OPEN_ZONE -> Material.GRASS_BLOCK
+        RegionRole.POINT_OF_INTEREST -> Material.MAP
+        RegionRole.DANGER_ZONE -> Material.REDSTONE
+        RegionRole.GATE -> Material.IRON_BARS
+    }
+
+    private fun item(material: Material, name: String, lore: String): ItemStack = ItemStack(material).also { stack ->
+        stack.itemMeta = stack.itemMeta?.also { meta: ItemMeta ->
+            meta.setDisplayName(color(name))
+            meta.lore = lore.split('|').map(::color)
+        }
+    }
+
     private fun color(value: String) = ChatColor.translateAlternateColorCodes('&', value)
+
+    private fun RegionGuiHolder.copyForInput(kind: String) = RegionGuiHolder("anvil", regionId, eventType, actionIndex, actionType, kind)
+
+    private companion object {
+        val REGION_SLOTS = (10..43).toList()
+        val ACTION_TYPE_SLOTS = listOf(10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34)
+    }
 }

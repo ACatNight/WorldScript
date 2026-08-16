@@ -53,26 +53,26 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         if (!isValidId(region.id)) return
         if (!regionDirectory.exists()) regionDirectory.mkdirs()
         val data = YamlConfiguration()
+        data.set("schema", 2)
         data.set("id", region.id)
-        data.set("display-name", region.displayName)
-        data.set("world-id", region.worldId)
-        data.set("world-name", region.worldName)
-        data.set("role", region.role.name.lowercase())
-        data.set("content-id", region.contentId)
-        data.set("priority", region.priority)
-        data.set("parent-id", region.parentId)
-        data.set("inherit-parent", region.inheritParent)
+        data.set("identity.name", region.displayName)
+        data.set("identity.role", region.role.name.lowercase())
+        data.set("identity.content-id", region.contentId)
+        data.set("identity.parent", region.parentId)
+        data.set("location.world", region.worldName)
+        data.set("location.world-id", region.worldId)
+        data.set("location.priority", region.priority)
+        data.set("state.inherit", region.inheritParent)
+        data.set("state.statuses", region.statuses.map { it.name.lowercase() })
         data.set("variables", region.variables)
-        data.set("statuses", region.statuses.map { it.name.lowercase() })
-        writePosition(data, "min", region.bounds.min)
-        writePosition(data, "max", region.bounds.max)
+        writePosition(data, "location.min", region.bounds.min)
+        writePosition(data, "location.max", region.bounds.max)
         region.events.forEach { (type, script) ->
             val eventPath = "events.${type.name.lowercase()}"
             data.set("$eventPath.enabled", script.enabled)
-            data.set("$eventPath.override-parent", script.overrideParent)
+            data.set("$eventPath.inherit", !script.overrideParent)
             data.set("$eventPath.cooldown-seconds", script.cooldownSeconds)
-            data.set("$eventPath.first-entry-only", script.firstEntryOnly)
-            data.set("$eventPath.repeat-entry-only", script.repeatEntryOnly)
+            data.set("$eventPath.mode", eventMode(script))
             data.set("$eventPath.actions", script.actions.map { mapOf("type" to it.type.name.lowercase(), "value" to it.value) })
             data.set("$eventPath.conditions", script.conditions.map { conditionMap(it) })
             data.set("$eventPath.rewards", script.rewards.map { rewardMap(it) })
@@ -312,29 +312,31 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         val id = section.getString("id", fallbackId)?.trim().takeUnless { it.isNullOrBlank() }
             ?: return loadIssue(source, "id", "is required").let { null }
         if (!isValidId(id)) loadIssue(source, "id", "'$id' is not a valid region id")
-        val worldName = section.getString("world-name")?.takeUnless { it.isBlank() }
-            ?: return loadIssue(source, "world-name", "is required").let { null }
-        val roleValue = section.getString("role")
+        val worldName = (section.getString("location.world") ?: section.getString("world-name"))?.takeUnless { it.isBlank() }
+            ?: return loadIssue(source, "location.world", "is required").let { null }
+        val roleValue = section.getString("identity.role") ?: section.getString("role")
         val role = parseEnum<RegionRole>(roleValue)
         if (!roleValue.isNullOrBlank() && role == null) loadIssue(source, "role", "unknown role '$roleValue'")
-        val statuses = section.getStringList("statuses").mapIndexedNotNull { index, value ->
+        val statusPath = if (section.contains("state.statuses")) "state.statuses" else "statuses"
+        val statuses = section.getStringList(statusPath).mapIndexedNotNull { index, value ->
             parseGlobalStatus(value) ?: run {
-                loadIssue(source, "statuses[$index]", "unknown global status '$value'")
+                loadIssue(source, "$statusPath[$index]", "unknown global status '$value'")
                 null
             }
         }.toSet()
+        val parentId = (section.getString("identity.parent") ?: section.getString("parent-id"))?.takeUnless { it.isBlank() }
         return RegionDefinition(
             id = id,
-            displayName = section.getString("display-name", id) ?: id,
-            worldId = section.getString("world-id", worldName) ?: worldName,
+            displayName = section.getString("identity.name") ?: section.getString("display-name", id) ?: id,
+            worldId = section.getString("location.world-id") ?: section.getString("world-id", worldName) ?: worldName,
             worldName = worldName,
-            bounds = RegionGeometry.from(readPosition(section, "min", source), readPosition(section, "max", source)),
+            bounds = RegionGeometry.from(readPosition(section, "location.min", "min", source), readPosition(section, "location.max", "max", source)),
             role = role ?: RegionRole.OPEN_ZONE,
-            contentId = section.getString("content-id", "") ?: "",
-            priority = section.getInt("priority", 0),
+            contentId = section.getString("identity.content-id") ?: section.getString("content-id", "") ?: "",
+            priority = if (section.contains("location.priority")) section.getInt("location.priority") else section.getInt("priority", 0),
             events = RegionEventType.entries.associateWith { type -> readScript(section, type, source) },
-            parentId = section.getString("parent-id")?.takeUnless { it.isBlank() },
-            inheritParent = section.getBoolean("inherit-parent", true),
+            parentId = parentId,
+            inheritParent = if (section.contains("state.inherit")) section.getBoolean("state.inherit") else section.getBoolean("inherit-parent", true),
             variables = section.getConfigurationSection("variables")?.getKeys(false)?.associateWith { key -> section.getString("variables.$key", "") ?: "" } ?: emptyMap(),
             statuses = statuses,
         )
@@ -342,6 +344,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     private fun readScript(section: ConfigurationSection, type: RegionEventType, source: String): ScriptDefinition {
         val path = "events.${type.name.lowercase()}"
+        val mode = section.getString("$path.mode")?.trim()?.lowercase()
         val actions = section.getMapList("$path.actions").mapIndexedNotNull { index, raw ->
             val rawType = raw["type"]?.toString()
             val actionType = parseEnum<ActionType>(rawType)
@@ -359,9 +362,9 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             actions = actions,
             conditions = readConditions(section.getMapList("$path.conditions"), source, "$path.conditions"),
             rewards = readRewards(section.getMapList("$path.rewards"), source, "$path.rewards"),
-            overrideParent = section.getBoolean("$path.override-parent", false),
-            firstEntryOnly = section.getBoolean("$path.first-entry-only", false),
-            repeatEntryOnly = section.getBoolean("$path.repeat-entry-only", false),
+            overrideParent = if (section.contains("$path.inherit")) !section.getBoolean("$path.inherit") else section.getBoolean("$path.override-parent", false),
+            firstEntryOnly = when (mode) { "first" -> true; "repeat", "always" -> false; else -> section.getBoolean("$path.first-entry-only", false) },
+            repeatEntryOnly = when (mode) { "repeat" -> true; "first", "always" -> false; else -> section.getBoolean("$path.repeat-entry-only", false) },
         )
     }
 
@@ -404,6 +407,12 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         "once" to reward.once,
     )
 
+    private fun eventMode(script: ScriptDefinition): String = when {
+        script.firstEntryOnly -> "first"
+        script.repeatEntryOnly -> "repeat"
+        else -> "always"
+    }
+
     private inline fun <reified T : Enum<T>> parseEnum(value: String?): T? = value?.trim()?.uppercase()?.let { runCatching { enumValueOf<T>(it) }.getOrNull() }
 
     private fun parseGlobalStatus(value: String?): GlobalRegionStatus? = GlobalRegionStatus.parse(value)
@@ -414,7 +423,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             ?.takeIf { parts.getOrNull(1)?.trim()?.equals("completed", true) == true }
     }
 
-    private fun readPosition(section: ConfigurationSection, key: String, source: String): BlockPosition {
+    private fun readPosition(section: ConfigurationSection, primaryKey: String, legacyKey: String, source: String): BlockPosition {
+        val key = if (section.contains(primaryKey)) primaryKey else legacyKey
         listOf("x", "y", "z").forEach { coordinate ->
             if (!section.isInt("$key.$coordinate")) loadIssue(source, "$key.$coordinate", "must be an integer")
         }

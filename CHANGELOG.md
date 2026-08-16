@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.16-SNAPSHOT
+
+- Added the recommended Schema 2 region format with grouped identity, location, state, variables, and events sections.
+- Kept existing flat region files compatible and upgraded GUI-saved regions to Schema 2.
+- Redesigned the admin GUI as an atlas with region, state, inheritance, event, and action cards.
+
 ## 0.1.15-SNAPSHOT
 
 - Removed internal development artifacts and obsolete module placeholder documents.

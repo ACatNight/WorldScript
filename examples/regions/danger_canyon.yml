@@ -1,0 +1,24 @@
+schema: 2
+id: danger_canyon
+identity:
+  name: Danger Canyon
+  role: danger_zone
+  content-id: danger_canyon_intro
+  parent: starter_valley
+location:
+  world: world
+  world-id: world
+  priority: 0
+  min: {x: 120, y: 45, z: 80}
+  max: {x: 160, y: 110, z: 150}
+state:
+  inherit: true
+  statuses: [locked]
+events:
+  enter:
+    enabled: true
+    inherit: false
+    mode: first
+    actions:
+      - type: message
+        value: "&cThe canyon is finally open to you."

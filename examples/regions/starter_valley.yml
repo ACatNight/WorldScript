@@ -1,5 +1,3 @@
-# WorldScript Schema 2 starter region.
-# Copy this file into plugins/WorldScript/regions/ and rename it as needed.
 schema: 2
 id: starter_valley
 identity:
@@ -16,8 +14,6 @@ location:
 state:
   inherit: true
   statuses: []
-variables:
-  short_name: Valley
 events:
   enter:
     enabled: true
