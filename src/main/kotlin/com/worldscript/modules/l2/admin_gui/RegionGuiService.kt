@@ -33,6 +33,8 @@ class RegionGuiService(
     private val lang = Lang(plugin)
     private val pendingInputs = mutableMapOf<java.util.UUID, RegionGuiHolder>()
 
+    fun reset() = pendingInputs.clear()
+
     fun openList(player: Player) {
         val inventory = Bukkit.createInventory(RegionGuiHolder("list"), 54, color(lang.text("gui-atlas-title", "WorldScript Atlas")))
         fillBackground(inventory)

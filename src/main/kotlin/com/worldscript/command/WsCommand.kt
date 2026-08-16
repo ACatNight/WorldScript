@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack
 class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val state: PlayerVariableService) : CommandExecutor, TabCompleter {
     private val lang = Lang(plugin)
     var guiOpener: ((Player) -> Unit)? = null
+    var reloadHandler: (() -> Unit)? = null
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (!sender.hasPermission("worldscript.admin")) return reply(sender, "no-permission")
@@ -24,7 +25,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK)); reply(it, "wand-given") } ?: reply(sender, "only-player")
             "gui" -> (sender as? Player)?.let { guiOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
             "list" -> { if (regions.all().isEmpty()) reply(sender, "region-list-empty") else regions.all().forEach { lang.send(sender, "region-list-item", "region" to it.id) } }
-            "reload" -> { plugin.reloadConfig(); regions.load(); reply(sender, "reload-success") }
+            "reload" -> { plugin.reloadConfig(); regions.load(); reloadHandler?.invoke(); reply(sender, "reload-success") }
             "validate" -> validate(sender)
             "progress" -> progress(sender, args)
             "help" -> sendUsage(sender)

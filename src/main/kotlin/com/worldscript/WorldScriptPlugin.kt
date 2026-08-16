@@ -52,6 +52,11 @@ class WorldScriptPlugin : JavaPlugin() {
         val selection = SelectionService(this)
         val command = WsCommand(this, regionCore, selection, playerVariables)
         command.guiOpener = gui::openList
+        command.reloadHandler = {
+            events.reset()
+            actions.reset()
+            gui.reset()
+        }
         getCommand("ws")?.apply {
             setExecutor(command)
             tabCompleter = command
@@ -76,7 +81,7 @@ class WorldScriptPlugin : JavaPlugin() {
     private fun validateMaterialConfig() {
         val tool = config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE"
         if (MaterialResolver.find(tool, "GOLD_AXE") == null) {
-            logger.warning("Invalid selection.tool '$tool'; using GOLDEN_AXE.")
+            logger.warning("Invalid selection.tool '$tool'; using GOLD_AXE.")
             config.set("selection.tool", "GOLD_AXE")
         }
         val icon = config.getString("gui.event-icon", "PAPER") ?: "PAPER"

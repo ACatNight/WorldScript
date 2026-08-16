@@ -48,6 +48,8 @@ class RegionEventServiceImpl(
 ) : Listener {
     private val current = mutableMapOf<UUID, Set<String>>()
 
+    fun reset() = current.clear()
+
     @EventHandler
     fun onMove(event: PlayerMoveEvent) {
         val to = event.to ?: return

@@ -35,6 +35,8 @@ class ScriptActionServiceImpl(
 ) : ScriptActionService, Listener {
     private val lastExecution = mutableMapOf<String, Long>()
 
+    fun reset() = lastExecution.clear()
+
     @EventHandler fun onEnter(event: RegionEnterEvent) = executeEvent(event.player, event.regionId, RegionEventType.ENTER)
     @EventHandler fun onLeave(event: RegionLeaveEvent) = executeEvent(event.player, event.regionId, RegionEventType.LEAVE)
     @EventHandler fun onInteract(event: RegionInteractEvent) = executeEvent(event.player, event.regionId, RegionEventType.INTERACT)
