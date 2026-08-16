@@ -15,6 +15,7 @@ WorldScript is currently fully free and available under the [MIT License](LICENS
 - Per-player unlock, first-entry, completion, and one-time reward state
 - Conditions, actions, rewards, and PlaceholderAPI variables
 - Selection tool, admin commands, GUI, and configuration validation
+- Optional TabooLib detection for the Kether integration bridge
 
 ## Install
 
@@ -57,6 +58,7 @@ With PlaceholderAPI: `%worldscript_region_name%`, `%worldscript_parent_name%`, `
 - Paper 1.21.8
 - Java 21
 - PlaceholderAPI is optional
+- TabooLib is optional; the Kether bridge will use it in a later stage
 
 The default language is `en_US`. Set `language: zh_CN` in `plugins/WorldScript/config.yml` and run `/ws reload` to use Chinese messages.
 

@@ -12,6 +12,7 @@ import com.worldscript.modules.l2.rpg.ConditionEvaluator
 import com.worldscript.modules.l2.rpg.RewardService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import com.worldscript.integration.placeholder.WorldScriptPlaceholderExpansion
+import com.worldscript.integration.taboolib.TabooLibBridge
 import com.worldscript.foundation.api.PlayerRegionProgressService
 import org.bukkit.Material
 
@@ -23,6 +24,8 @@ class WorldScriptPlugin : JavaPlugin() {
     private lateinit var playerVariables: PlayerVariableService
     lateinit var playerProgress: PlayerRegionProgressService
         private set
+    lateinit var taboolib: TabooLibBridge
+        private set
 
     override fun onEnable() {
         saveDefaultConfig()
@@ -32,6 +35,8 @@ class WorldScriptPlugin : JavaPlugin() {
         }
         saveResource("lang/en_US.yml", false)
         saveResource("lang/zh_CN.yml", false)
+        taboolib = TabooLibBridge(this, server.pluginManager)
+        taboolib.report()
         validateMaterialConfig()
         lang = com.worldscript.foundation.Lang(this)
         regionCore = RegionCoreServiceImpl(this)
