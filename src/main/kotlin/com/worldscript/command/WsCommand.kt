@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack
 class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val state: PlayerVariableService) : CommandExecutor, TabCompleter {
     private val lang = Lang(plugin)
     var guiOpener: ((Player) -> Unit)? = null
+    var chatEditor: RegionChatEditor? = null
     var reloadHandler: (() -> Unit)? = null
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
@@ -24,6 +25,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         when (args.firstOrNull()?.lowercase()) {
             "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK)); reply(it, "wand-given") } ?: reply(sender, "only-player")
             "gui" -> (sender as? Player)?.let { guiOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
+            "edit" -> edit(sender, args)
             "list" -> { if (regions.all().isEmpty()) reply(sender, "region-list-empty") else regions.all().forEach { lang.send(sender, "region-list-item", "region" to it.id) } }
             "reload" -> { plugin.reloadConfig(); regions.load(); reloadHandler?.invoke(); reply(sender, "reload-success") }
             "validate" -> validate(sender)
@@ -47,6 +49,13 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             reply(player, "region-created", args[1])
             regions.find(args[1])?.parentId?.let { parent -> lang.send(player, "region-parent-assigned", "region" to args[1], "parent" to parent) }
         } else reply(player, "region-exists", args[1])
+    }
+
+    private fun edit(sender: CommandSender, args: Array<out String>) {
+        val player = sender as? Player ?: run { reply(sender, "only-player"); return }
+        val region = args.getOrNull(1) ?: run { sendUsage(sender); return }
+        if (region.equals("close", true)) return
+        chatEditor?.open(player, region, args.getOrNull(2) ?: "main")
     }
 
     private fun validate(sender: CommandSender) {
@@ -82,6 +91,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "usage-list",
             "usage-info",
             "usage-gui",
+            "usage-edit",
             "usage-reload",
             "usage-validate",
             "usage-progress",
@@ -91,7 +101,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
 
     private fun reply(sender: CommandSender, key: String, vararg values: Any): Boolean { lang.send(sender, key, "region" to values.firstOrNull()); return true }
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> = when {
-        args.size == 1 -> listOf("wand", "create", "delete", "list", "info", "gui", "reload", "validate", "progress", "help")
+        args.size == 1 -> listOf("wand", "create", "delete", "list", "info", "gui", "edit", "reload", "validate", "progress", "help")
         args.size == 3 && args[0].equals("progress", true) -> regions.all().map { it.id }
         args.size == 4 && args[0].equals("progress", true) -> listOf("unlock", "complete")
         args.size == 2 -> regions.all().map { it.id }

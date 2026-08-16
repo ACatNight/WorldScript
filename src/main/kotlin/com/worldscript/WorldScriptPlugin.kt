@@ -2,6 +2,7 @@ package com.worldscript
 
 import org.bukkit.plugin.java.JavaPlugin
 import com.worldscript.command.WsCommand
+import com.worldscript.command.RegionChatEditor
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l1.region_events.RegionEventServiceImpl
 import com.worldscript.modules.l1.region_core.SelectionService
@@ -56,6 +57,7 @@ class WorldScriptPlugin : JavaPlugin() {
         val selection = SelectionService(this)
         val command = WsCommand(this, regionCore, selection, playerVariables)
         command.guiOpener = gui::openList
+        command.chatEditor = RegionChatEditor(regionCore)
         command.reloadHandler = {
             events.reset()
             actions.reset()
