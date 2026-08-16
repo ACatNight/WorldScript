@@ -57,8 +57,8 @@ language: zh_CN
 
 ```yaml
 id: ancient_ruins
-name: 被遗忘的古代遗迹
-world: world
+display-name: 被遗忘的古代遗迹
+world-name: world
 min: {x: 120, y: 50, z: -80}
 max: {x: 240, y: 120, z: 40}
 parent-id: whispering_forest
@@ -73,7 +73,7 @@ events:
     first-entry-only: true
     actions:
       - type: message
-        message: '&e你发现了被遗忘的古代遗迹。'
+        value: '&e你发现了被遗忘的古代遗迹。'
 ```
 
 区域角色用于表达设计意图：`hub`、`open_zone`、`point_of_interest`、`danger_zone` 和 `gate`。`content-id` 只是外部内容的关联标识，不会让 WorldScript 自动创建任务。

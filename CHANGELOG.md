@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.14-SNAPSHOT
+
+- Region transitions now handle cross-world movement and players joining inside a region.
+- Corrected the Chinese README region configuration example to use the actual field names.
+
 ## 0.1.13-SNAPSHOT
 
 - Clarified that WorldScript is currently fully free and released under the MIT License.

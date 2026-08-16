@@ -2,9 +2,7 @@ package com.worldscript.modules.l1.region_events
 
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
-import com.worldscript.modules.l1.region_core.RegionGeometry
 import com.worldscript.modules.l2.rpg.PlayerVariableService
-import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.event.block.Action
 import org.bukkit.event.Event
@@ -36,11 +34,24 @@ class RegionEventServiceImpl(
     @org.bukkit.event.EventHandler
     fun onMove(event: org.bukkit.event.player.PlayerMoveEvent) {
         val to = event.to ?: return
-        if (event.from.blockX == to.blockX && event.from.blockY == to.blockY && event.from.blockZ == to.blockZ) return
-        val player = event.player
-        val next = regions.regionsAt(to) { id -> regions.isAccessible(id, state.isRegionUnlocked(player, id)) }.map { it.id }.toSet()
+        val sameWorld = event.from.world?.uid == to.world?.uid
+        if (sameWorld && event.from.blockX == to.blockX && event.from.blockY == to.blockY && event.from.blockZ == to.blockZ) return
+        updateRegions(event.player, to)
+    }
+
+    @org.bukkit.event.EventHandler
+    fun onJoin(event: org.bukkit.event.player.PlayerJoinEvent) {
+        // A player can join inside a region without producing a movement event.
+        plugin.server.scheduler.runTask(plugin, Runnable { updateRegions(event.player, event.player.location) })
+    }
+
+    private fun updateRegions(player: Player, location: org.bukkit.Location) {
+        val next = regions.regionsAt(location) { id -> regions.isAccessible(id, state.isRegionUnlocked(player, id)) }.map { it.id }.toSet()
         val previous = current[player.uniqueId] ?: emptySet()
-        if (previous == next) return
+        if (previous == next) {
+            if (next.isEmpty()) current.remove(player.uniqueId) else current[player.uniqueId] = next
+            return
+        }
         previous.filter { it !in next }.sortedByDescending { regions.depth(it) }.forEach { id ->
             regions.find(id)?.takeIf { canDispatchNestedEvent(it.id, RegionEventType.LEAVE) }
                 ?.let { region -> regions.effective(region.id)?.takeIf { it.events[RegionEventType.LEAVE]?.enabled != false }?.let { plugin.server.pluginManager.callEvent(RegionLeaveEvent(player, region.id)) } }
@@ -71,8 +82,6 @@ class RegionEventServiceImpl(
     fun onEnter(event: RegionEnterEvent) { com.worldscript.foundation.Lang(plugin).send(event.player, "region-enter", "region" to event.regionId) }
     @org.bukkit.event.EventHandler
     fun onLeave(event: RegionLeaveEvent) { com.worldscript.foundation.Lang(plugin).send(event.player, "region-leave", "region" to event.regionId) }
-
-    private fun Location.blockPosition() = com.worldscript.foundation.model.BlockPosition(blockX, blockY, blockZ)
 
     private fun canDispatchNestedEvent(regionId: String, eventType: RegionEventType): Boolean {
         val region = regions.find(regionId) ?: return false
