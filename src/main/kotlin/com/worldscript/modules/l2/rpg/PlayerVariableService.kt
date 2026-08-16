@@ -67,6 +67,8 @@ class PlayerVariableService(private val plugin: JavaPlugin) : Listener, PlayerRe
 
     fun variable(player: Player, key: String): String? = stateFor(player.uniqueId).variables[key]
 
+    fun variables(player: Player): Map<String, String> = stateFor(player.uniqueId).variables.toMap()
+
     fun setVariable(player: Player, key: String, value: String) {
         if (key.isBlank()) return
         stateFor(player.uniqueId).variables[key.trim()] = value

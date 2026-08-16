@@ -94,16 +94,20 @@ class ScriptActionServiceImpl(
     }
 
     private fun executeKether(player: Player, regionId: String, script: String) {
+        val region = regions.effective(regionId)
+        val scriptVars = linkedMapOf<String, Any?>(
+            "player" to player.name,
+            "uuid" to player.uniqueId.toString(),
+            "region" to regionId,
+            "world" to player.world.name,
+        )
+        state.variables(player).forEach { (key, value) -> scriptVars["ws_var_$key"] = value }
+        region?.variables?.forEach { (key, value) -> scriptVars["ws_region_var_$key"] = value }
         KetherShell.eval(
             script,
             ScriptOptions.builder()
                 .sender(BukkitPlayer(player))
-                .vars(
-                    "player" to player.name,
-                    "uuid" to player.uniqueId.toString(),
-                    "region" to regionId,
-                    "world" to player.world.name,
-                )
+                .vars(*scriptVars.map { (key, value) -> key to value }.toTypedArray())
                 .detailError(true)
                 .build(),
         ).exceptionally { error ->

@@ -16,6 +16,7 @@ WorldScript is currently fully free and available under the [MIT License](LICENS
 - Conditions, actions, rewards, and PlaceholderAPI variables
 - Selection tool, admin commands, GUI, and configuration validation
 - Embedded TabooLib 6.3.0 runtime with Kether script actions
+- Kether context variables for player and region data
 
 ## Install
 

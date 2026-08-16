@@ -10,6 +10,7 @@ WorldScript 是一个面向 Paper 1.21.8 的区域脚本插件，用于配置地
 - 条件、动作、奖励和 PlaceholderAPI HUD 变量
 - 选区工具、管理命令、GUI 和 `/ws validate` 配置检查
 - 内置 TabooLib 6.3.0 与 Kether，可在区域事件中执行高级脚本
+- Kether 可读取玩家变量与区域变量
 
 ## 安装
 
