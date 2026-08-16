@@ -1,0 +1,40 @@
+# WorldScript action presets. Region files may use preset + values directly.
+# The preset name is intentionally stable; display text can be localized later.
+actions:
+  text-display:
+    name: "区域标题"
+    type: text-display
+    defaults:
+      title: "&b区域标题"
+      subtitle: "&f区域副标题"
+      fade-in: "20"
+      stay: "100"
+      fade-out: "20"
+  message:
+    name: "聊天消息"
+    type: message
+    defaults:
+      text: "&7区域消息"
+  sound:
+    name: "播放音效"
+    type: sound
+    defaults:
+      sound: "BLOCK_PORTAL_TRIGGER"
+      volume: "1.0"
+      pitch: "1.0"
+  set-variable:
+    name: "设置玩家变量"
+    type: set-variable
+    defaults:
+      key: "discovered"
+      value: "true"
+  unlock-region:
+    name: "解锁区域"
+    type: unlock-region
+    defaults:
+      region: "target_region"
+  complete-region:
+    name: "完成区域"
+    type: complete-region
+    defaults:
+      region: "target_region"

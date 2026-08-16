@@ -38,6 +38,7 @@ class WorldScriptPlugin : JavaPlugin() {
         }
         saveResource("lang/en_US.yml", false)
         saveResource("lang/zh_CN.yml", false)
+        saveResource("presets/actions.yml", false)
         taboolib = TabooLibBridge(this)
         taboolib.report()
         validateMaterialConfig()

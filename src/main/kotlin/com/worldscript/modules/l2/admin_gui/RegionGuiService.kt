@@ -441,6 +441,8 @@ class RegionGuiService(
 
     private fun actionMaterial(type: ActionType): Material = when (type) {
         ActionType.KETHER -> material("ENCHANTED_BOOK")
+        ActionType.TEXT_DISPLAY -> material("NAME_TAG")
+        ActionType.SOUND -> material("NOTE_BLOCK")
         ActionType.MESSAGE -> material("PAPER")
         ActionType.PLAYER_COMMAND -> material("COMMAND_BLOCK")
         ActionType.CONSOLE_COMMAND -> material("CHAIN_COMMAND_BLOCK", "COMMAND")

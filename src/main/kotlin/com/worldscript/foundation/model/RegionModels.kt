@@ -14,6 +14,8 @@ enum class RegionEventType {
 
 enum class ActionType {
     KETHER,
+    TEXT_DISPLAY,
+    SOUND,
     PLAYER_COMMAND,
     CONSOLE_COMMAND,
     MESSAGE,
@@ -96,7 +98,12 @@ data class RewardDefinition(
     val once: Boolean = false,
 )
 
-data class ActionDefinition(val type: ActionType, val value: String)
+data class ActionDefinition(
+    val type: ActionType,
+    val value: String = "",
+    val parameters: Map<String, String> = emptyMap(),
+    val preset: String? = null,
+)
 
 data class RegionParticleDefinition(
     val enabled: Boolean = true,

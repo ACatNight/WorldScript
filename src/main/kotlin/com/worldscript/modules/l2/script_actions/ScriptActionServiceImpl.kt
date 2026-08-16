@@ -63,7 +63,8 @@ class ScriptActionServiceImpl(
 
     override fun execute(player: Player, regionId: String, actions: List<ActionDefinition>) {
         actions.forEach { action ->
-            val value = action.value
+            val values = action.parameters.mapValues { (_, raw) -> expand(raw, player, regionId) }
+            val value = expand(action.value, player, regionId)
                 .replace("%player%", player.name)
                 .replace("%player_name%", player.name)
                 .replace("%uuid%", player.uniqueId.toString())
@@ -79,21 +80,44 @@ class ScriptActionServiceImpl(
             runCatching {
                 when (action.type) {
                     ActionType.KETHER -> executeKether(player, regionId, value)
+                    ActionType.TEXT_DISPLAY -> player.sendTitle(
+                        color(values["title"] ?: value),
+                        color(values["subtitle"] ?: ""),
+                        values["fade-in"]?.toIntOrNull() ?: 0,
+                        values["stay"]?.toIntOrNull() ?: 20,
+                        values["fade-out"]?.toIntOrNull() ?: 0,
+                    )
+                    ActionType.SOUND -> player.playSound(
+                        player.location,
+                        values["sound"] ?: value,
+                        values["volume"]?.toFloatOrNull() ?: 1.0f,
+                        values["pitch"]?.toFloatOrNull() ?: 1.0f,
+                    )
                     ActionType.PLAYER_COMMAND -> player.performCommand(value.removePrefix("/"))
                     ActionType.CONSOLE_COMMAND -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), value.removePrefix("/"))
-                    ActionType.MESSAGE -> player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', value))
+                    ActionType.MESSAGE -> player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', values["text"] ?: value))
                     ActionType.TELEPORT -> teleport(player, value)
-                    ActionType.SET_VARIABLE -> setPlayerVariable(player, value)
+                    ActionType.SET_VARIABLE -> setPlayerVariable(player, "${values["key"] ?: ""}=${values["value"] ?: value}")
                     ActionType.SET_REGION_STATUS -> setRegionStatus(player, value)
                     ActionType.GIVE_ITEM -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.ITEM, value)))
                     ActionType.GIVE_EXPERIENCE -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.EXPERIENCE, value)))
                     ActionType.GIVE_MONEY -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.MONEY, value)))
-                    ActionType.UNLOCK_REGION -> state.unlockRegion(player, value)
-                    ActionType.COMPLETE_REGION -> state.markRegionCompleted(player, value)
+                    ActionType.UNLOCK_REGION -> state.unlockRegion(player, values["region"] ?: value)
+                    ActionType.COMPLETE_REGION -> state.markRegionCompleted(player, values["region"] ?: value)
                 }
             }.onFailure { plugin.logger.warning("Failed to execute ${action.type} in region $regionId: ${it.message}") }
         }
     }
+
+    private fun expand(value: String, player: Player, regionId: String): String = value
+        .replace("%player%", player.name)
+        .replace("%player_name%", player.name)
+        .replace("%uuid%", player.uniqueId.toString())
+        .replace("%region%", regionId)
+        .replace("%world%", player.world.name)
+        .replace("%region_role%", regions.effective(regionId)?.role?.name?.lowercase() ?: "")
+        .replace("%content_id%", regions.effective(regionId)?.contentId ?: "")
+        .let { expanded -> regions.effective(regionId)?.variables?.entries?.fold(expanded) { text, (key, variable) -> text.replace("%var.$key%", variable) } ?: expanded }
 
     private fun executeKether(player: Player, regionId: String, script: String) {
         if (executeTitleCompat(player, script)) return

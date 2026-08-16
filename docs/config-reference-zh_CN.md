@@ -91,6 +91,26 @@ conditions:
 
 动作 `type`：`kether`、`message`、`player_command`、`console_command`、`teleport`、`set_variable`、`set_region_status`、`give_item`、`give_experience`、`give_money`、`unlock_region`、`complete_region`。
 
+推荐使用内置预设，只填写参数，不必直接编写 Kether：
+
+```yaml
+events:
+  enter:
+    actions:
+      - preset: text-display
+        title: '&b遗迹核心'
+        subtitle: '&f发现了新的线索'
+        fade-in: 20
+        stay: 100
+        fade-out: 20
+      - preset: sound
+        sound: BLOCK_PORTAL_TRIGGER
+        volume: 1.0
+        pitch: 0.8
+```
+
+当前内置预设包括 `text-display`、`message`、`sound`、`set-variable`、`unlock-region` 和 `complete-region`。完整默认参数位于插件目录的 `presets/actions.yml`；复杂流程仍可使用 `type: kether`。
+
 `kether` 用于复杂逻辑，脚本值可以使用 YAML 多行字符串。WorldScript 会自动提供 `player`、`uuid`、`region` 和 `world` 变量；玩家变量以 `ws_var_<变量名>` 提供，区域变量以 `ws_region_var_<变量名>` 提供。GUI 聊天输入适合短脚本，多行脚本请直接写入 YAML；简单消息、命令和状态更新优先使用原生动作，便于维护。
 
 ```yaml

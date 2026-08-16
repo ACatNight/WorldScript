@@ -86,7 +86,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             data.set("$eventPath.inherit", !script.overrideParent)
             data.set("$eventPath.cooldown-seconds", script.cooldownSeconds)
             data.set("$eventPath.mode", eventMode(script))
-            data.set("$eventPath.actions", script.actions.map { mapOf("type" to it.type.name.lowercase(), "value" to it.value) })
+            data.set("$eventPath.actions", script.actions.map(::actionMap))
             data.set("$eventPath.conditions", script.conditions.map { conditionMap(it) })
             data.set("$eventPath.rewards", script.rewards.map { rewardMap(it) })
         }
@@ -326,6 +326,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         val path = "$prefix.actions[$index]"
         when (action.type) {
             ActionType.KETHER -> if (action.value.isBlank()) issues += "$path: script is empty"
+            ActionType.TEXT_DISPLAY -> if (action.parameters["title"].isNullOrBlank() && action.value.isBlank()) issues += "$path: title is empty"
+            ActionType.SOUND -> if (action.parameters["sound"].isNullOrBlank() && action.value.isBlank()) issues += "$path: sound is empty"
             ActionType.TELEPORT -> {
                 val parts = action.value.split(',').map(String::trim)
                 if (parts.size < 4 || parts[1].toDoubleOrNull() == null || parts[2].toDoubleOrNull() == null || parts[3].toDoubleOrNull() == null) issues += "$path: teleport must use world,x,y,z"
@@ -415,14 +417,27 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         val path = "events.${type.name.lowercase()}"
         val mode = section.getString("$path.mode")?.trim()?.lowercase()
         val actions = section.getMapList("$path.actions").mapIndexedNotNull { index, raw ->
-            val rawType = raw["type"]?.toString()
-            val actionType = parseEnum<ActionType>(rawType)
+            val rawType = raw["type"]?.toString() ?: raw["preset"]?.toString()
+            val preset = raw["preset"]?.toString()?.trim()?.lowercase()
+            val resolvedType = when (preset) {
+                "text-display", "title" -> ActionType.TEXT_DISPLAY
+                "sound" -> ActionType.SOUND
+                "message" -> ActionType.MESSAGE
+                "set-variable" -> ActionType.SET_VARIABLE
+                "unlock-region" -> ActionType.UNLOCK_REGION
+                "complete-region" -> ActionType.COMPLETE_REGION
+                else -> null
+            }
+            val actionType = resolvedType ?: parseEnum<ActionType>(rawType)
                 ?: return@mapIndexedNotNull loadIssue(source, "$path.actions[$index].type", "unknown action type '${rawType ?: "missing"}'").let { null }
             val value = raw["value"]?.toString() ?: ""
+            val parameters = raw.entries
+                .filter { it.key.toString() !in setOf("type", "preset", "value") }
+                .associate { it.key.toString() to (it.value?.toString() ?: "") }
             if (actionType == ActionType.SET_REGION_STATUS && legacyCompletionRegion(value) != null) {
                 ActionDefinition(ActionType.COMPLETE_REGION, legacyCompletionRegion(value)!!)
             } else {
-                ActionDefinition(actionType, value)
+                ActionDefinition(actionType, value, parameters, preset)
             }
         }
         return ScriptDefinition(
@@ -471,6 +486,13 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         "type" to condition.type.name.lowercase(), "key" to condition.key, "value" to condition.value,
         "operator" to condition.operator.name.lowercase(), "amount" to condition.amount,
     )
+
+    private fun actionMap(action: ActionDefinition): Map<String, Any> = linkedMapOf<String, Any>().apply {
+        if (action.preset != null) put("preset", action.preset)
+        else put("type", action.type.name.lowercase().replace('_', '-'))
+        if (action.value.isNotBlank()) put("value", action.value)
+        putAll(action.parameters)
+    }
 
     private fun rewardMap(reward: RewardDefinition) = mapOf(
         "type" to reward.type.name.lowercase(), "value" to reward.value, "amount" to reward.amount,
