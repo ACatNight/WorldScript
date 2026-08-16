@@ -96,6 +96,7 @@ class ScriptActionServiceImpl(
     }
 
     private fun executeKether(player: Player, regionId: String, script: String) {
+        val normalizedScript = script.replace('&', '\u00a7')
         val region = regions.effective(regionId)
         val scriptVars = linkedMapOf<String, Any?>(
             "player" to player.name,
@@ -106,14 +107,18 @@ class ScriptActionServiceImpl(
         state.variables(player).forEach { (key, value) -> scriptVars["ws_var_$key"] = value }
         region?.variables?.forEach { (key, value) -> scriptVars["ws_region_var_$key"] = value }
         KetherShell.eval(
-            script,
+            normalizedScript,
             ScriptOptions.builder()
                 .sender(BukkitPlayer(player))
                 .vars(*scriptVars.map { (key, value) -> key to value }.toTypedArray())
                 .detailError(true)
                 .build(),
         ).exceptionally { error ->
-            plugin.logger.warning("Failed to execute Kether in region $regionId: ${error.message}")
+            val message = error.cause?.message ?: error.message ?: error.javaClass.simpleName
+            val hint = if (Regex("\\btitle\\s+color\\b", RegexOption.IGNORE_CASE).containsMatchIn(script)) {
+                " Use title \"...\" subtitle \"...\" by fadeIn stay fadeOut; put color codes inside the quoted text."
+            } else ""
+            plugin.logger.warning("Failed to execute Kether in region $regionId: $message.$hint")
             null
         }
     }

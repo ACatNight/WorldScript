@@ -85,6 +85,12 @@ actions:
       tell "继续向遗迹深处探索"
 ```
 
+标题示例：颜色代码写在文本中，不要写成 `title color "..."`：
+
+```yaml
+value: 'title "&b遗迹核心" subtitle "&f测试脚本" by 20 100 20'
+```
+
 奖励 `type`：`item`、`experience`、`money`、`command`、`message`、`set_variable`、`set_region_status`、`unlock_region`、`complete_region`。奖励可使用 `once: true`，确保每个玩家只领取一次。
 
 ```yaml
