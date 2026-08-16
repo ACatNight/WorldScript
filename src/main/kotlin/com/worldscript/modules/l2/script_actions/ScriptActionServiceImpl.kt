@@ -93,15 +93,17 @@ class ScriptActionServiceImpl(
                         values["volume"]?.toFloatOrNull() ?: 1.0f,
                         values["pitch"]?.toFloatOrNull() ?: 1.0f,
                     )
-                    ActionType.PLAYER_COMMAND -> player.performCommand(value.removePrefix("/"))
-                    ActionType.CONSOLE_COMMAND -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), value.removePrefix("/"))
+                    ActionType.PLAYER_COMMAND -> player.performCommand((values["command"] ?: value).removePrefix("/"))
+                    ActionType.CONSOLE_COMMAND -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), (values["command"] ?: value).removePrefix("/"))
                     ActionType.MESSAGE -> player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', values["text"] ?: value))
-                    ActionType.TELEPORT -> teleport(player, value)
+                    ActionType.TELEPORT -> teleport(player, values["location"] ?: value.ifBlank {
+                        listOf(values["world"], values["x"], values["y"], values["z"]).joinToString(",")
+                    })
                     ActionType.SET_VARIABLE -> setPlayerVariable(player, "${values["key"] ?: ""}=${values["value"] ?: value}")
-                    ActionType.SET_REGION_STATUS -> setRegionStatus(player, value)
-                    ActionType.GIVE_ITEM -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.ITEM, value)))
-                    ActionType.GIVE_EXPERIENCE -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.EXPERIENCE, value)))
-                    ActionType.GIVE_MONEY -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.MONEY, value)))
+                    ActionType.SET_REGION_STATUS -> setRegionStatus(player, "${values["region"] ?: ""},${values["status"] ?: value}")
+                    ActionType.GIVE_ITEM -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.ITEM, values["material"] ?: value, values["amount"]?.toDoubleOrNull() ?: 1.0)))
+                    ActionType.GIVE_EXPERIENCE -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.EXPERIENCE, values["amount"] ?: value)))
+                    ActionType.GIVE_MONEY -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.MONEY, values["amount"] ?: value)))
                     ActionType.UNLOCK_REGION -> state.unlockRegion(player, values["region"] ?: value)
                     ActionType.COMPLETE_REGION -> state.markRegionCompleted(player, values["region"] ?: value)
                 }

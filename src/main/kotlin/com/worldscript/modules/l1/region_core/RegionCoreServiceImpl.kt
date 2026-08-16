@@ -423,7 +423,14 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
                 "text-display", "title" -> ActionType.TEXT_DISPLAY
                 "sound" -> ActionType.SOUND
                 "message" -> ActionType.MESSAGE
+                "player-command" -> ActionType.PLAYER_COMMAND
+                "console-command" -> ActionType.CONSOLE_COMMAND
+                "teleport" -> ActionType.TELEPORT
                 "set-variable" -> ActionType.SET_VARIABLE
+                "set-region-status" -> ActionType.SET_REGION_STATUS
+                "give-item" -> ActionType.GIVE_ITEM
+                "give-experience" -> ActionType.GIVE_EXPERIENCE
+                "give-money" -> ActionType.GIVE_MONEY
                 "unlock-region" -> ActionType.UNLOCK_REGION
                 "complete-region" -> ActionType.COMPLETE_REGION
                 else -> null
