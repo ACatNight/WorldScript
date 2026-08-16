@@ -3,10 +3,15 @@ package com.worldscript.modules.l2.admin_gui
 import com.worldscript.foundation.Lang
 import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
+import com.worldscript.foundation.model.ComparisonOperator
+import com.worldscript.foundation.model.ConditionDefinition
+import com.worldscript.foundation.model.ConditionType
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.model.RegionRole
+import com.worldscript.foundation.model.RewardDefinition
+import com.worldscript.foundation.model.RewardType
 import com.worldscript.foundation.model.ScriptDefinition
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import org.bukkit.Bukkit
@@ -84,17 +89,44 @@ class RegionGuiService(
         val script = regions.effective(regionId)?.events?.get(type) ?: rawScript ?: ScriptDefinition()
         val inherited = rawScript == null && region.parentId != null
         val inventory = Bukkit.createInventory(RegionGuiHolder("event", regionId, type), 54, color(lang.text("gui-event-${type.name.lowercase()}", type.name)))
+        fillBackground(inventory)
         inventory.setItem(4, item(if (script.enabled) Material.LIME_DYE else Material.GRAY_DYE, lang.text(if (script.enabled) "gui-enabled" else "gui-disabled", "Enabled"), lang.text("gui-toggle", "Click to toggle")))
         inventory.setItem(5, item(Material.CLOCK, lang.text("gui-cooldown", "Cooldown"), "${script.cooldownSeconds}s"))
         inventory.setItem(6, item(Material.COMPASS, lang.text("gui-trigger", "Trigger"), eventModeText(script)))
         inventory.setItem(8, item(Material.CHAIN, lang.text("gui-inherit-event", "Inheritance"), if (inherited) lang.text("gui-inherited-readonly", "Inherited from parent|Edit this event to override") else "${lang.text("gui-inherit-from-parent", "Inherit parent event")}: ${!script.overrideParent}"))
         inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-action", "Add action"), lang.text("gui-add-action-lore", "Choose an action type")))
-        inventory.setItem(12, item(Material.PAPER, lang.text("gui-condition-count", "Conditions"), script.conditions.size.toString()))
-        inventory.setItem(14, item(Material.CHEST, lang.text("gui-reward-count", "Rewards"), script.rewards.size.toString()))
+        inventory.setItem(12, item(Material.PAPER, lang.text("gui-condition-count", "Conditions"), "${script.conditions.size}|${lang.text("gui-open-list", "Click to view")}"))
+        inventory.setItem(14, item(Material.CHEST, lang.text("gui-reward-count", "Rewards"), "${script.rewards.size}|${lang.text("gui-open-list", "Click to view")}"))
         script.actions.take(27).forEachIndexed { index, action ->
             val inheritedAction = rawScript?.actions?.getOrNull(index) == null && inherited
             inventory.setItem(18 + index, item(Material.PAPER, "${index + 1}. ${actionLabel(action.type)}", if (inheritedAction) "${action.value}|${lang.text("gui-inherited-readonly", "Inherited from parent|Edit this event to override")}" else action.value))
         }
+        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        player.openInventory(inventory)
+    }
+
+    private fun openConditions(player: Player, regionId: String, eventType: RegionEventType) {
+        val script = regions.effective(regionId)?.events?.get(eventType) ?: ScriptDefinition()
+        val inventory = Bukkit.createInventory(RegionGuiHolder("conditions", regionId, eventType), 54, color(lang.text("gui-conditions", "Conditions")))
+        fillBackground(inventory)
+        inventory.setItem(4, item(Material.PAPER, lang.text("gui-conditions", "Conditions"), lang.text("gui-condition-format", "type|key|value|operator|amount")))
+        script.conditions.forEachIndexed { index, condition ->
+            inventory.setItem(19 + index, item(Material.PAPER, "${index + 1}. ${condition.type.name.lowercase()}", conditionSummary(condition)))
+        }
+        inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-condition", "Add condition"), lang.text("gui-condition-format", "type|key|value|operator|amount")))
+        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        player.openInventory(inventory)
+    }
+
+    private fun openRewards(player: Player, regionId: String, eventType: RegionEventType) {
+        val script = regions.effective(regionId)?.events?.get(eventType) ?: ScriptDefinition()
+        val inventory = Bukkit.createInventory(RegionGuiHolder("rewards", regionId, eventType), 54, color(lang.text("gui-rewards", "Rewards")))
+        fillBackground(inventory)
+        inventory.setItem(4, item(Material.CHEST, lang.text("gui-rewards", "Rewards"), lang.text("gui-reward-format", "type|value|amount|once")))
+        script.rewards.forEachIndexed { index, reward ->
+            inventory.setItem(19 + index, item(Material.CHEST, "${index + 1}. ${reward.type.name.lowercase()}", rewardSummary(reward)))
+        }
+        inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-reward", "Add reward"), lang.text("gui-reward-format", "type|value|amount|once")))
         inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
@@ -124,7 +156,11 @@ class RegionGuiService(
         pendingInputs[player.uniqueId] = holder
         player.closeInventory()
         if (holder.inputKind == "cooldown") lang.send(player, "gui-cooldown-prompt")
-        else lang.send(player, "gui-action-prompt", "type" to (holder.actionType?.name ?: "MESSAGE"))
+        else when (holder.inputKind) {
+            "condition" -> lang.send(player, "gui-condition-prompt")
+            "reward" -> lang.send(player, "gui-reward-prompt")
+            else -> lang.send(player, "gui-action-prompt", "type" to (holder.actionType?.name ?: "MESSAGE"))
+        }
     }
 
     @EventHandler
@@ -153,6 +189,8 @@ class RegionGuiService(
                     event.rawSlot == 4 -> { regions.toggleEvent(rid, type); openEvent(player, rid, type) }
                     event.rawSlot == 5 -> openTextInput(player, RegionGuiHolder("chat", rid, type, inputKind = "cooldown"))
                     event.rawSlot == 10 -> openActionTypes(player, rid, type)
+                    event.rawSlot == 12 -> openConditions(player, rid, type)
+                    event.rawSlot == 14 -> openRewards(player, rid, type)
                     event.rawSlot in 18..44 && event.currentItem != null -> {
                         val index = event.rawSlot - 18
                         if (regions.find(rid)?.events?.get(type)?.actions?.getOrNull(index) == null && regions.effective(rid)?.events?.get(type)?.actions?.getOrNull(index) != null) {
@@ -183,6 +221,22 @@ class RegionGuiService(
                         player.closeInventory()
                     }
                     22 -> openEvent(player, rid, type)
+                }
+            }
+            "conditions" -> {
+                val type = holder.eventType ?: return
+                val rid = regionId ?: return
+                when (event.rawSlot) {
+                    10 -> openTextInput(player, RegionGuiHolder("chat", rid, type, inputKind = "condition"))
+                    49 -> openEvent(player, rid, type)
+                }
+            }
+            "rewards" -> {
+                val type = holder.eventType ?: return
+                val rid = regionId ?: return
+                when (event.rawSlot) {
+                    10 -> openTextInput(player, RegionGuiHolder("chat", rid, type, inputKind = "reward"))
+                    49 -> openEvent(player, rid, type)
                 }
             }
         }
@@ -225,9 +279,41 @@ class RegionGuiService(
                 val action = ActionDefinition(holder.actionType ?: ActionType.MESSAGE, value)
                 if (holder.actionIndex >= 0) regions.updateAction(regionId, type, holder.actionIndex, action) else regions.addAction(regionId, type, action)
             }
+            "condition" -> {
+                val condition = parseCondition(value) ?: run { lang.send(player, "gui-condition-invalid"); return }
+                regions.updateEvent(regionId, type) { it.copy(conditions = it.conditions + condition) }
+            }
+            "reward" -> {
+                val reward = parseReward(value) ?: run { lang.send(player, "gui-reward-invalid"); return }
+                regions.updateEvent(regionId, type) { it.copy(rewards = it.rewards + reward) }
+            }
         }
         openEvent(player, regionId, type)
     }
+
+    private fun parseCondition(value: String): ConditionDefinition? {
+        val parts = value.split('|')
+        if (parts.size < 3) return null
+        val type = runCatching { ConditionType.valueOf(parts[0].trim().uppercase()) }.getOrNull() ?: return null
+        val operator = parts.getOrNull(3)?.trim()?.takeIf(String::isNotEmpty)
+            ?.let { runCatching { ComparisonOperator.valueOf(it.uppercase()) }.getOrNull() }
+            ?: ComparisonOperator.EQUALS
+        val amount = parts.getOrNull(4)?.trim()?.toIntOrNull() ?: 1
+        return ConditionDefinition(type, parts[1].trim(), parts[2].trim(), operator, amount)
+    }
+
+    private fun parseReward(value: String): RewardDefinition? {
+        val parts = value.split('|')
+        if (parts.size < 2) return null
+        val type = runCatching { RewardType.valueOf(parts[0].trim().uppercase()) }.getOrNull() ?: return null
+        return RewardDefinition(type, parts[1].trim(), parts.getOrNull(2)?.toDoubleOrNull() ?: 1.0, parts.getOrNull(3)?.toBooleanStrictOrNull() ?: false)
+    }
+
+    private fun conditionSummary(condition: ConditionDefinition): String =
+        listOf(condition.key, condition.operator.name.lowercase(), condition.value).filter(String::isNotBlank).joinToString(" ")
+
+    private fun rewardSummary(reward: RewardDefinition): String =
+        listOf(reward.value, reward.amount.toString(), if (reward.once) "once" else "repeat").joinToString(" ")
 
     @EventHandler
     fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) { pendingInputs.remove(event.player.uniqueId) }
