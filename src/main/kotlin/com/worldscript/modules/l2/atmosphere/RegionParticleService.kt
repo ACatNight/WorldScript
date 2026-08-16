@@ -6,6 +6,7 @@ import org.bukkit.Particle
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
+import org.bukkit.Location
 
 /** Small, local atmosphere layer. The deepest active region owns the effect. */
 class RegionParticleService(
@@ -29,14 +30,27 @@ class RegionParticleService(
         if (!definition.enabled) return
         if (tick % definition.intervalTicks != 0L) return
         val particle = runCatching { Particle.valueOf(definition.type) }.getOrNull() ?: return
-        player.spawnParticle(
-            particle,
-            player.location.clone().add(0.0, 0.8, 0.0),
-            definition.count,
-            definition.spreadX,
-            definition.spreadY,
-            definition.spreadZ,
-            definition.speed,
-        )
+        effectLocations(region.bounds, player.location, definition.preset).forEach { location ->
+            if (location.distanceSquared(player.location) <= 32.0 * 32.0) {
+                player.spawnParticle(particle, location, definition.count, definition.spreadX, definition.spreadY, definition.spreadZ, definition.speed)
+            }
+        }
+    }
+
+    private fun effectLocations(bounds: com.worldscript.foundation.model.RegionBounds, playerLocation: Location, preset: String): List<Location> {
+        val world = playerLocation.world ?: return emptyList()
+        val min = bounds.min
+        val max = bounds.max
+        val center = Location(world, (min.x + max.x) / 2.0 + 0.5, (min.y + max.y) / 2.0 + 0.5, (min.z + max.z) / 2.0 + 0.5)
+        return when (preset.uppercase()) {
+            "BORDER" -> listOf(
+                Location(world, min.x + 0.5, center.y, min.z + 0.5),
+                Location(world, max.x + 0.5, center.y, min.z + 0.5),
+                Location(world, min.x + 0.5, center.y, max.z + 0.5),
+                Location(world, max.x + 0.5, center.y, max.z + 0.5),
+            )
+            "PORTAL", "ENTRANCE", "WARNING" -> listOf(center)
+            else -> listOf(playerLocation.clone().add(0.0, 0.8, 0.0))
+        }
     }
 }

@@ -100,6 +100,7 @@ data class ActionDefinition(val type: ActionType, val value: String)
 
 data class RegionParticleDefinition(
     val enabled: Boolean = true,
+    val preset: String = "AMBIENT",
     val type: String = "END_ROD",
     val count: Int = 2,
     val intervalTicks: Long = 20,

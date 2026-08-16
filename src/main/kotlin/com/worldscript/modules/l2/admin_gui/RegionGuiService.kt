@@ -106,6 +106,10 @@ class RegionGuiService(
             particle?.type ?: "END_ROD",
             lang.text("gui-particle-type-hint", "Left click: previous|Right click: next"),
         ).joinToString("|")))
+        inventory.setItem(8, item(material("NETHER_STAR"), lang.text("gui-particle-preset", "Visual style"), listOf(
+            particle?.preset ?: "AMBIENT",
+            lang.text("gui-particle-preset-hint", "Left click: previous|Right click: next"),
+        ).joinToString("|")))
         inventory.setItem(12, item(material("GLOWSTONE_DUST"), lang.text("gui-particle-count", "Particle count"), (particle?.count ?: 2).toString()))
         inventory.setItem(14, item(material("CLOCK"), lang.text("gui-particle-interval", "Interval"), "${particle?.intervalTicks ?: 20} ticks"))
         inventory.setItem(16, item(material("FEATHER"), lang.text("gui-particle-spread", "Spread"), particle?.let { "${it.spreadX},${it.spreadY},${it.spreadZ}" } ?: "1.5,0.8,1.5"))
@@ -221,6 +225,14 @@ class RegionGuiService(
             "particle" -> {
                 val rid = regionId ?: return
                 when (event.rawSlot) {
+                    8 -> {
+                        val current = regions.find(rid)?.particle ?: regions.effective(rid)?.particle ?: RegionParticleDefinition()
+                        val currentIndex = PARTICLE_PRESETS.indexOf(current.preset).takeIf { it >= 0 } ?: 0
+                        val offset = if (event.click == ClickType.LEFT) -1 else 1
+                        val next = PARTICLE_PRESETS[(currentIndex + offset + PARTICLE_PRESETS.size) % PARTICLE_PRESETS.size]
+                        regions.updateParticle(rid, current.copy(preset = next, enabled = true))
+                        openParticle(player, rid)
+                    }
                     4 -> {
                         val current = regions.find(rid)?.particle ?: regions.effective(rid)?.particle ?: RegionParticleDefinition()
                         regions.updateParticle(rid, current.copy(enabled = !current.enabled))
@@ -475,6 +487,7 @@ class RegionGuiService(
             "END_ROD", "FLAME", "HEART", "CLOUD", "CRIT", "ENCHANT",
             "FIREWORK", "PORTAL", "TOTEM", "WITCH", "HAPPY_VILLAGER", "LAVA",
         )
+        val PARTICLE_PRESETS = listOf("AMBIENT", "BORDER", "PORTAL", "ENTRANCE", "WARNING")
         val BORDER_SLOTS = listOf(0, 1, 2, 3, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 50, 51, 52, 53)
     }
 }

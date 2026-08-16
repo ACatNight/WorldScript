@@ -69,6 +69,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         data.set("variables", region.variables)
         region.particle?.let { particle ->
             data.set("particle.enabled", particle.enabled)
+            data.set("particle.preset", particle.preset)
             data.set("particle.type", particle.type)
             data.set("particle.count", particle.count)
             data.set("particle.interval-ticks", particle.intervalTicks)
@@ -393,6 +394,9 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         }
         return RegionParticleDefinition(
             enabled = enabled,
+            preset = section.getString("particle.preset", "AMBIENT")?.uppercase()?.let { preset ->
+                if (preset in PARTICLE_PRESETS) preset else "AMBIENT"
+            } ?: "AMBIENT",
             type = type.uppercase(),
             count = section.getInt("particle.count", 2).coerceIn(1, 64),
             intervalTicks = section.getLong("particle.interval-ticks", 20).coerceAtLeast(1),
@@ -401,6 +405,10 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             spreadZ = section.getDouble("particle.spread.z", 1.5).coerceIn(0.0, 16.0),
             speed = section.getDouble("particle.speed", 0.0).coerceIn(0.0, 4.0),
         )
+    }
+
+    private companion object {
+        val PARTICLE_PRESETS = setOf("AMBIENT", "BORDER", "PORTAL", "ENTRANCE", "WARNING")
     }
 
     private fun readScript(section: ConfigurationSection, type: RegionEventType, source: String): ScriptDefinition {
