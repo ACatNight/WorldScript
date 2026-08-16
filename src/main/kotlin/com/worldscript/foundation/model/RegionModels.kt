@@ -98,6 +98,16 @@ data class RewardDefinition(
 
 data class ActionDefinition(val type: ActionType, val value: String)
 
+data class RegionParticleDefinition(
+    val type: String = "END_ROD",
+    val count: Int = 2,
+    val intervalTicks: Long = 20,
+    val spreadX: Double = 1.5,
+    val spreadY: Double = 0.8,
+    val spreadZ: Double = 1.5,
+    val speed: Double = 0.0,
+)
+
 data class ScriptDefinition(
     val enabled: Boolean = true,
     val cooldownSeconds: Long = 0,
@@ -123,4 +133,5 @@ data class RegionDefinition(
     val inheritParent: Boolean = true,
     val variables: Map<String, String> = emptyMap(),
     val statuses: Set<GlobalRegionStatus> = emptySet(),
+    val particle: RegionParticleDefinition? = null,
 )

@@ -11,6 +11,7 @@ WorldScript is currently fully free and available under the [MIT License](LICENS
 ## Features
 
 - Parent and child regions with inherited variables, statuses, and scripts
+- Optional region atmosphere particles with child-region overrides
 - Enter, leave, and block interaction events
 - Per-player unlock, first-entry, completion, and one-time reward state
 - Conditions, actions, rewards, and PlaceholderAPI variables

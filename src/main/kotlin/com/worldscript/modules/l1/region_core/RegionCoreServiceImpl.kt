@@ -14,6 +14,7 @@ import com.worldscript.foundation.model.RegionRole
 import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
 import com.worldscript.foundation.model.RegionBounds
+import com.worldscript.foundation.model.RegionParticleDefinition
 import com.worldscript.foundation.model.ScriptDefinition
 import org.bukkit.Location
 import org.bukkit.Material
@@ -66,6 +67,16 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         data.set("state.inherit", region.inheritParent)
         data.set("state.statuses", region.statuses.map { it.name.lowercase() })
         data.set("variables", region.variables)
+        region.particle?.let { particle ->
+            data.set("particle.enabled", true)
+            data.set("particle.type", particle.type)
+            data.set("particle.count", particle.count)
+            data.set("particle.interval-ticks", particle.intervalTicks)
+            data.set("particle.spread.x", particle.spreadX)
+            data.set("particle.spread.y", particle.spreadY)
+            data.set("particle.spread.z", particle.spreadZ)
+            data.set("particle.speed", particle.speed)
+        }
         writePosition(data, "location.min", region.bounds.min)
         writePosition(data, "location.max", region.bounds.max)
         region.events.forEach { (type, script) ->
@@ -245,6 +256,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             events = inheritedEvents,
             variables = parent.variables + region.variables,
             statuses = parent.statuses + region.statuses,
+            particle = region.particle ?: parent.particle,
         )
     }
 
@@ -359,6 +371,25 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             inheritParent = if (section.contains("state.inherit")) section.getBoolean("state.inherit") else section.getBoolean("inherit-parent", true),
             variables = section.getConfigurationSection("variables")?.getKeys(false)?.associateWith { key -> section.getString("variables.$key", "") ?: "" } ?: emptyMap(),
             statuses = statuses,
+            particle = readParticle(section, source),
+        )
+    }
+
+    private fun readParticle(section: ConfigurationSection, source: String): RegionParticleDefinition? {
+        if (!section.getBoolean("particle.enabled", false)) return null
+        val type = section.getString("particle.type", "END_ROD") ?: "END_ROD"
+        if (runCatching { org.bukkit.Particle.valueOf(type.uppercase()) }.isFailure) {
+            loadIssue(source, "particle.type", "unknown particle '$type'")
+            return null
+        }
+        return RegionParticleDefinition(
+            type = type.uppercase(),
+            count = section.getInt("particle.count", 2).coerceIn(1, 64),
+            intervalTicks = section.getLong("particle.interval-ticks", 20).coerceAtLeast(1),
+            spreadX = section.getDouble("particle.spread.x", 1.5).coerceIn(0.0, 16.0),
+            spreadY = section.getDouble("particle.spread.y", 0.8).coerceIn(0.0, 16.0),
+            spreadZ = section.getDouble("particle.spread.z", 1.5).coerceIn(0.0, 16.0),
+            speed = section.getDouble("particle.speed", 0.0).coerceIn(0.0, 4.0),
         )
     }
 

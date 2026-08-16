@@ -11,6 +11,7 @@ import com.worldscript.modules.l2.admin_gui.RegionGuiService
 import com.worldscript.modules.l2.rpg.ConditionEvaluator
 import com.worldscript.modules.l2.rpg.RewardService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
+import com.worldscript.modules.l2.atmosphere.RegionParticleService
 import com.worldscript.integration.placeholder.WorldScriptPlaceholderExpansion
 import com.worldscript.integration.taboolib.TabooLibBridge
 import com.worldscript.foundation.MaterialResolver
@@ -27,6 +28,7 @@ class WorldScriptPlugin : JavaPlugin() {
         private set
     lateinit var taboolib: TabooLibBridge
         private set
+    private lateinit var particles: RegionParticleService
 
     override fun onEnable() {
         saveDefaultConfig()
@@ -45,6 +47,7 @@ class WorldScriptPlugin : JavaPlugin() {
         playerVariables = PlayerVariableService(this)
         playerProgress = playerVariables
         val rewards = RewardService(this, regionCore, playerVariables)
+        particles = RegionParticleService(this, regionCore, playerVariables)
         val conditions = ConditionEvaluator(regionCore, playerVariables)
         val events = RegionEventServiceImpl(this, regionCore, playerVariables)
         val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards)
@@ -74,6 +77,7 @@ class WorldScriptPlugin : JavaPlugin() {
     }
 
     override fun onDisable() {
+        if (::particles.isInitialized) particles.close()
         if (::playerVariables.isInitialized) playerVariables.saveAll()
         logger.info("WorldScript disabled.")
     }

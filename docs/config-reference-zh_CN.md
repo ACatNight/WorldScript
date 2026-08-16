@@ -44,6 +44,23 @@ events:
 
 `identity.parent` 指向父区域 ID。`state.inherit: true` 时，子区域会继承父区域的变量、状态和事件；事件只有在 `inherit: false` 时才使用子区域自己的同类事件。
 
+区域氛围粒子默认关闭。开启后只显示当前玩家所在的最深区域粒子；子区域配置粒子时会覆盖父区域效果，避免多层区域叠加造成视觉噪声。
+
+```yaml
+particle:
+  enabled: true
+  type: END_ROD
+  count: 2
+  interval-ticks: 20
+  spread:
+    x: 1.5
+    y: 0.8
+    z: 1.5
+  speed: 0.0
+```
+
+`count` 控制每次生成数量，`interval-ticks` 控制频率，`spread` 控制粒子范围，`speed` 控制粒子速度。建议开放世界普通区域使用低密度和较长间隔，重要地点再提高密度。
+
 `state.statuses` 只表示全服共享状态：`locked`、`open`、`dangerous`、`peaceful`。玩家解锁、进入、完成状态不应写在这里。
 
 ## 事件
