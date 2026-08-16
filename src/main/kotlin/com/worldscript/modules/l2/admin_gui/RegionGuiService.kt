@@ -1,6 +1,7 @@
 package com.worldscript.modules.l2.admin_gui
 
 import com.worldscript.foundation.Lang
+import com.worldscript.foundation.MaterialResolver
 import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
 import com.worldscript.foundation.model.ComparisonOperator
@@ -35,11 +36,11 @@ class RegionGuiService(
     fun openList(player: Player) {
         val inventory = Bukkit.createInventory(RegionGuiHolder("list"), 54, color(lang.text("gui-atlas-title", "WorldScript Atlas")))
         fillBackground(inventory)
-        inventory.setItem(4, item(Material.MAP, lang.text("gui-atlas-title", "WorldScript Atlas"), lang.text("gui-atlas-hint", "Select a region to edit")))
+        inventory.setItem(4, item(material("MAP"), lang.text("gui-atlas-title", "WorldScript Atlas"), lang.text("gui-atlas-hint", "Select a region to edit")))
         regions.all().take(REGION_SLOTS.size).forEachIndexed { index, region ->
             inventory.setItem(REGION_SLOTS[index], regionItem(region))
         }
-        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-close", "Close"), ""))
+        inventory.setItem(49, item(material("BARRIER"), lang.text("gui-close", "Close"), ""))
         player.openInventory(inventory)
     }
 
@@ -50,36 +51,36 @@ class RegionGuiService(
         val inventory = Bukkit.createInventory(RegionGuiHolder("region", region.id), 54, color(region.displayName))
         fillBackground(inventory)
 
-        inventory.setItem(4, item(Material.MAP, region.displayName, listOf(
+        inventory.setItem(4, item(material("MAP"), region.displayName, listOf(
             "${lang.text("gui-region-id", "ID")}: ${region.id}",
             "${lang.text("gui-region-role", "Role")}: ${region.role.name.lowercase()}",
             "${lang.text("gui-region-content", "Content")}: ${region.contentId.ifBlank { "-" }}",
         ).joinToString("|")))
-        inventory.setItem(10, item(Material.NAME_TAG, lang.text("gui-card-identity", "Identity"), listOf(
+        inventory.setItem(10, item(material("NAME_TAG"), lang.text("gui-card-identity", "Identity"), listOf(
             "${lang.text("gui-region-name", "Name")}: ${region.displayName}",
             "${lang.text("gui-region-role", "Role")}: ${region.role.name.lowercase()}",
         ).joinToString("|")))
-        inventory.setItem(12, item(Material.COMPASS, lang.text("gui-card-location", "Location"), listOf(
+        inventory.setItem(12, item(material("COMPASS"), lang.text("gui-card-location", "Location"), listOf(
             "${lang.text("gui-region-world", "World")}: ${region.worldName}",
             region.bounds.toString(),
         ).joinToString("|")))
-        inventory.setItem(14, item(Material.REDSTONE, lang.text("gui-card-state", "World state"), listOf(
+        inventory.setItem(14, item(material("REDSTONE"), lang.text("gui-card-state", "World state"), listOf(
             "${lang.text("gui-region-status", "Status")}: ${statusText(effective.statuses)}",
             "${lang.text("gui-region-priority", "Priority")}: ${region.priority}",
         ).joinToString("|")))
-        inventory.setItem(16, item(Material.CHAIN, lang.text("gui-card-inheritance", "Inheritance"), listOf(
+        inventory.setItem(16, item(material("CHAIN", "LEASH"), lang.text("gui-card-inheritance", "Inheritance"), listOf(
             "${lang.text("gui-region-parent", "Parent")}: ${parent?.displayName ?: lang.text("gui-none", "None")}",
             "${lang.text("gui-region-inherit", "Enabled")}: ${region.inheritParent}",
         ).joinToString("|")))
 
-        inventory.setItem(26, item(Material.WOODEN_SWORD, lang.text("gui-event-left-click", "Left-click block"), lang.text("gui-event-card-hint", "Open event settings")))
-        inventory.setItem(28, item(Material.LIME_DYE, lang.text("gui-event-enter", "Enter event"), lang.text("gui-event-card-hint", "Open event settings")))
-        inventory.setItem(30, item(Material.RED_DYE, lang.text("gui-event-leave", "Leave event"), lang.text("gui-event-card-hint", "Open event settings")))
-        inventory.setItem(32, item(Material.YELLOW_DYE, lang.text("gui-event-interact", "Legacy interact"), lang.text("gui-event-card-hint", "Open event settings")))
-        inventory.setItem(34, item(Material.STONE_BUTTON, lang.text("gui-event-right-click", "Right-click block"), lang.text("gui-event-card-hint", "Open event settings")))
-        inventory.setItem(38, item(Material.PAPER, lang.text("gui-card-variables", "Variables"), "${region.variables.size}"))
-        inventory.setItem(40, item(Material.BOOK, lang.text("gui-card-content", "External content"), region.contentId.ifBlank { "-" }))
-        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        inventory.setItem(26, item(material("WOODEN_SWORD", "WOOD_SWORD"), lang.text("gui-event-left-click", "Left-click block"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(28, item(material("LIME_DYE", "INK_SACK"), lang.text("gui-event-enter", "Enter event"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(30, item(material("RED_DYE", "INK_SACK"), lang.text("gui-event-leave", "Leave event"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(32, item(material("YELLOW_DYE", "INK_SACK"), lang.text("gui-event-interact", "Legacy interact"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(34, item(material("STONE_BUTTON"), lang.text("gui-event-right-click", "Right-click block"), lang.text("gui-event-card-hint", "Open event settings")))
+        inventory.setItem(38, item(material("PAPER"), lang.text("gui-card-variables", "Variables"), "${region.variables.size}"))
+        inventory.setItem(40, item(material("BOOK"), lang.text("gui-card-content", "External content"), region.contentId.ifBlank { "-" }))
+        inventory.setItem(49, item(material("BARRIER"), lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
@@ -90,18 +91,18 @@ class RegionGuiService(
         val inherited = rawScript == null && region.parentId != null
         val inventory = Bukkit.createInventory(RegionGuiHolder("event", regionId, type), 54, color(lang.text("gui-event-${type.name.lowercase()}", type.name)))
         fillBackground(inventory)
-        inventory.setItem(4, item(if (script.enabled) Material.LIME_DYE else Material.GRAY_DYE, lang.text(if (script.enabled) "gui-enabled" else "gui-disabled", "Enabled"), lang.text("gui-toggle", "Click to toggle")))
-        inventory.setItem(5, item(Material.CLOCK, lang.text("gui-cooldown", "Cooldown"), "${script.cooldownSeconds}s"))
-        inventory.setItem(6, item(Material.COMPASS, lang.text("gui-trigger", "Trigger"), eventModeText(script)))
-        inventory.setItem(8, item(Material.CHAIN, lang.text("gui-inherit-event", "Inheritance"), if (inherited) lang.text("gui-inherited-readonly", "Inherited from parent|Edit this event to override") else "${lang.text("gui-inherit-from-parent", "Inherit parent event")}: ${!script.overrideParent}"))
-        inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-action", "Add action"), lang.text("gui-add-action-lore", "Choose an action type")))
-        inventory.setItem(12, item(Material.PAPER, lang.text("gui-condition-count", "Conditions"), "${script.conditions.size}|${lang.text("gui-open-list", "Click to view")}"))
-        inventory.setItem(14, item(Material.CHEST, lang.text("gui-reward-count", "Rewards"), "${script.rewards.size}|${lang.text("gui-open-list", "Click to view")}"))
+        inventory.setItem(4, item(if (script.enabled) material("LIME_DYE", "INK_SACK") else material("GRAY_DYE", "INK_SACK"), lang.text(if (script.enabled) "gui-enabled" else "gui-disabled", "Enabled"), lang.text("gui-toggle", "Click to toggle")))
+        inventory.setItem(5, item(material("CLOCK"), lang.text("gui-cooldown", "Cooldown"), "${script.cooldownSeconds}s"))
+        inventory.setItem(6, item(material("COMPASS"), lang.text("gui-trigger", "Trigger"), eventModeText(script)))
+        inventory.setItem(8, item(material("CHAIN", "LEASH"), lang.text("gui-inherit-event", "Inheritance"), if (inherited) lang.text("gui-inherited-readonly", "Inherited from parent|Edit this event to override") else "${lang.text("gui-inherit-from-parent", "Inherit parent event")}: ${!script.overrideParent}"))
+        inventory.setItem(10, item(material("WRITABLE_BOOK"), lang.text("gui-add-action", "Add action"), lang.text("gui-add-action-lore", "Choose an action type")))
+        inventory.setItem(12, item(material("PAPER"), lang.text("gui-condition-count", "Conditions"), "${script.conditions.size}|${lang.text("gui-open-list", "Click to view")}"))
+        inventory.setItem(14, item(material("CHEST"), lang.text("gui-reward-count", "Rewards"), "${script.rewards.size}|${lang.text("gui-open-list", "Click to view")}"))
         script.actions.take(27).forEachIndexed { index, action ->
             val inheritedAction = rawScript?.actions?.getOrNull(index) == null && inherited
-            inventory.setItem(18 + index, item(Material.PAPER, "${index + 1}. ${actionLabel(action.type)}", if (inheritedAction) "${action.value}|${lang.text("gui-inherited-readonly", "Inherited from parent|Edit this event to override")}" else action.value))
+            inventory.setItem(18 + index, item(material("PAPER"), "${index + 1}. ${actionLabel(action.type)}", if (inheritedAction) "${action.value}|${lang.text("gui-inherited-readonly", "Inherited from parent|Edit this event to override")}" else action.value))
         }
-        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        inventory.setItem(49, item(material("BARRIER"), lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
@@ -109,12 +110,12 @@ class RegionGuiService(
         val script = regions.effective(regionId)?.events?.get(eventType) ?: ScriptDefinition()
         val inventory = Bukkit.createInventory(RegionGuiHolder("conditions", regionId, eventType), 54, color(lang.text("gui-conditions", "Conditions")))
         fillBackground(inventory)
-        inventory.setItem(4, item(Material.PAPER, lang.text("gui-conditions", "Conditions"), lang.text("gui-condition-format", "type|key|value|operator|amount")))
+        inventory.setItem(4, item(material("PAPER"), lang.text("gui-conditions", "Conditions"), lang.text("gui-condition-format", "type|key|value|operator|amount")))
         script.conditions.forEachIndexed { index, condition ->
-            inventory.setItem(19 + index, item(Material.PAPER, "${index + 1}. ${condition.type.name.lowercase()}", conditionSummary(condition)))
+            inventory.setItem(19 + index, item(material("PAPER"), "${index + 1}. ${condition.type.name.lowercase()}", conditionSummary(condition)))
         }
-        inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-condition", "Add condition"), lang.text("gui-condition-format", "type|key|value|operator|amount")))
-        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        inventory.setItem(10, item(material("WRITABLE_BOOK"), lang.text("gui-add-condition", "Add condition"), lang.text("gui-condition-format", "type|key|value|operator|amount")))
+        inventory.setItem(49, item(material("BARRIER"), lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
@@ -122,22 +123,22 @@ class RegionGuiService(
         val script = regions.effective(regionId)?.events?.get(eventType) ?: ScriptDefinition()
         val inventory = Bukkit.createInventory(RegionGuiHolder("rewards", regionId, eventType), 54, color(lang.text("gui-rewards", "Rewards")))
         fillBackground(inventory)
-        inventory.setItem(4, item(Material.CHEST, lang.text("gui-rewards", "Rewards"), lang.text("gui-reward-format", "type|value|amount|once")))
+        inventory.setItem(4, item(material("CHEST"), lang.text("gui-rewards", "Rewards"), lang.text("gui-reward-format", "type|value|amount|once")))
         script.rewards.forEachIndexed { index, reward ->
-            inventory.setItem(19 + index, item(Material.CHEST, "${index + 1}. ${reward.type.name.lowercase()}", rewardSummary(reward)))
+            inventory.setItem(19 + index, item(material("CHEST"), "${index + 1}. ${reward.type.name.lowercase()}", rewardSummary(reward)))
         }
-        inventory.setItem(10, item(Material.WRITABLE_BOOK, lang.text("gui-add-reward", "Add reward"), lang.text("gui-reward-format", "type|value|amount|once")))
-        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        inventory.setItem(10, item(material("WRITABLE_BOOK"), lang.text("gui-add-reward", "Add reward"), lang.text("gui-reward-format", "type|value|amount|once")))
+        inventory.setItem(49, item(material("BARRIER"), lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
     private fun openActionTypes(player: Player, regionId: String, eventType: RegionEventType, actionIndex: Int = -1) {
         val inventory = Bukkit.createInventory(RegionGuiHolder("types", regionId, eventType, actionIndex), 54, color(lang.text("gui-action-types", "Choose action type")))
-        inventory.setItem(4, item(Material.WRITABLE_BOOK, lang.text("gui-action-types", "Choose action type"), lang.text("gui-action-types-hint", "Choose what this event should do")))
+        inventory.setItem(4, item(material("WRITABLE_BOOK"), lang.text("gui-action-types", "Choose action type"), lang.text("gui-action-types-hint", "Choose what this event should do")))
         ActionType.entries.forEachIndexed { index, type ->
             inventory.setItem(ACTION_TYPE_SLOTS[index], item(actionMaterial(type), actionLabel(type), actionDescription(type)))
         }
-        inventory.setItem(49, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        inventory.setItem(49, item(material("BARRIER"), lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
@@ -145,10 +146,10 @@ class RegionGuiService(
         val action = regions.find(regionId)?.events?.get(eventType)?.actions?.getOrNull(index) ?: return openEvent(player, regionId, eventType)
         val inventory = Bukkit.createInventory(RegionGuiHolder("action", regionId, eventType, index, action.type), 27, color("${index + 1}. ${action.type.name}"))
         inventory.setItem(4, item(actionMaterial(action.type), actionLabel(action.type), action.value))
-        inventory.setItem(10, item(Material.NAME_TAG, lang.text("gui-change-type", "Change type"), ""))
-        inventory.setItem(12, item(Material.WRITABLE_BOOK, lang.text("gui-edit-value", "Edit value"), action.value))
-        inventory.setItem(14, item(Material.LAVA_BUCKET, lang.text("gui-delete-action", "Delete action"), ""))
-        inventory.setItem(22, item(Material.BARRIER, lang.text("gui-back", "Back"), ""))
+        inventory.setItem(10, item(material("NAME_TAG"), lang.text("gui-change-type", "Change type"), ""))
+        inventory.setItem(12, item(material("WRITABLE_BOOK"), lang.text("gui-edit-value", "Edit value"), action.value))
+        inventory.setItem(14, item(material("LAVA_BUCKET"), lang.text("gui-delete-action", "Delete action"), ""))
+        inventory.setItem(22, item(material("BARRIER"), lang.text("gui-back", "Back"), ""))
         player.openInventory(inventory)
     }
 
@@ -338,27 +339,29 @@ class RegionGuiService(
     private fun actionDescription(type: ActionType): String = lang.text("gui-type-${type.name.lowercase().replace('_', '-')}-desc", type.name)
 
     private fun actionMaterial(type: ActionType): Material = when (type) {
-        ActionType.KETHER -> Material.ENCHANTED_BOOK
-        ActionType.MESSAGE -> Material.PAPER
-        ActionType.PLAYER_COMMAND -> Material.COMMAND_BLOCK
-        ActionType.CONSOLE_COMMAND -> Material.CHAIN_COMMAND_BLOCK
-        ActionType.TELEPORT -> Material.ENDER_PEARL
-        ActionType.SET_VARIABLE -> Material.WRITABLE_BOOK
-        ActionType.SET_REGION_STATUS -> Material.REDSTONE
-        ActionType.GIVE_ITEM -> Material.CHEST
-        ActionType.GIVE_EXPERIENCE -> Material.EXPERIENCE_BOTTLE
-        ActionType.GIVE_MONEY -> Material.GOLD_INGOT
-        ActionType.UNLOCK_REGION -> Material.TRIPWIRE_HOOK
-        ActionType.COMPLETE_REGION -> Material.NETHER_STAR
+        ActionType.KETHER -> material("ENCHANTED_BOOK")
+        ActionType.MESSAGE -> material("PAPER")
+        ActionType.PLAYER_COMMAND -> material("COMMAND_BLOCK")
+        ActionType.CONSOLE_COMMAND -> material("CHAIN_COMMAND_BLOCK", "COMMAND")
+        ActionType.TELEPORT -> material("ENDER_PEARL")
+        ActionType.SET_VARIABLE -> material("WRITABLE_BOOK")
+        ActionType.SET_REGION_STATUS -> material("REDSTONE")
+        ActionType.GIVE_ITEM -> material("CHEST")
+        ActionType.GIVE_EXPERIENCE -> material("EXPERIENCE_BOTTLE")
+        ActionType.GIVE_MONEY -> material("GOLD_INGOT")
+        ActionType.UNLOCK_REGION -> material("TRIPWIRE_HOOK")
+        ActionType.COMPLETE_REGION -> material("NETHER_STAR")
     }
 
     private fun roleMaterial(role: RegionRole): Material = when (role) {
-        RegionRole.HUB -> Material.COMPASS
-        RegionRole.OPEN_ZONE -> Material.GRASS_BLOCK
-        RegionRole.POINT_OF_INTEREST -> Material.MAP
-        RegionRole.DANGER_ZONE -> Material.REDSTONE
-        RegionRole.GATE -> Material.IRON_BARS
+        RegionRole.HUB -> material("COMPASS")
+        RegionRole.OPEN_ZONE -> material("GRASS_BLOCK", "GRASS")
+        RegionRole.POINT_OF_INTEREST -> material("MAP")
+        RegionRole.DANGER_ZONE -> material("REDSTONE")
+        RegionRole.GATE -> material("IRON_BARS")
     }
+
+    private fun material(primary: String, vararg legacy: String): Material = MaterialResolver.find(primary, *legacy) ?: Material.PAPER
 
     private fun item(material: Material, name: String, lore: String): ItemStack = ItemStack(material).also { stack ->
         stack.itemMeta = stack.itemMeta?.also { meta: ItemMeta ->
@@ -370,7 +373,7 @@ class RegionGuiService(
     private fun color(value: String) = ChatColor.translateAlternateColorCodes('&', value)
 
     private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
-        val pane = item(Material.GRAY_STAINED_GLASS_PANE, " ", "")
+        val pane = item(material("GRAY_STAINED_GLASS_PANE", "STAINED_GLASS_PANE"), " ", "")
         BORDER_SLOTS.forEach { slot -> inventory.setItem(slot, pane) }
     }
 

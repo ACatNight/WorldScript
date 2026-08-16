@@ -1,7 +1,7 @@
 config-version: 2
 language: en_US
 selection:
-  tool: GOLDEN_AXE
+  tool: GOLD_AXE
 messages:
   enter: '&aEntering region: &f%region%'
   leave: '&7Leaving region: &f%region%'

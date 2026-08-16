@@ -1,6 +1,6 @@
 # WorldScript
 
-WorldScript is a region scripting plugin for Paper 1.21.8 servers.
+WorldScript is a region scripting plugin for Paper 1.12.2 through 1.21.8.
 
 中文文档：[README-zh_CN.md](README-zh_CN.md)
 
@@ -56,8 +56,8 @@ With PlaceholderAPI: `%worldscript_region_name%`, `%worldscript_parent_name%`, `
 
 ## Compatibility
 
-- Paper 1.21.8
-- Java 21
+- Paper 1.12.2 through 1.21.8 is the compatibility target. Runtime smoke tests are still required for each server line before production use.
+- Java 8 for 1.12.2-1.16.x, Java 17 for 1.17-1.20.4, and Java 21 for 1.20.5-1.21.8
 - PlaceholderAPI is optional
 - TabooLib and Kether are bundled in the WorldScript jar; no separate installation is required
 

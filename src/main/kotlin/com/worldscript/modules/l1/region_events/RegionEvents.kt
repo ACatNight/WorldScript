@@ -1,6 +1,7 @@
 package com.worldscript.modules.l1.region_events
 
 import com.worldscript.foundation.Lang
+import com.worldscript.foundation.MaterialResolver
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l2.rpg.PlayerVariableService
@@ -86,7 +87,7 @@ class RegionEventServiceImpl(
     @EventHandler(ignoreCancelled = true)
     fun onInteract(event: PlayerInteractEvent) {
         if (!RegionInteractionPolicy.shouldDispatch(event.hand == EquipmentSlot.HAND, event.isCancelled)) return
-        val selectionTool = Material.matchMaterial(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE") ?: Material.GOLDEN_AXE
+        val selectionTool = MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK
         if (event.item?.type == selectionTool) return
         val block = event.clickedBlock ?: return
         val region = regions.regionsAt(block.location) { id -> regions.isAccessible(id, state.isRegionUnlocked(event.player, id)) }.lastOrNull() ?: return

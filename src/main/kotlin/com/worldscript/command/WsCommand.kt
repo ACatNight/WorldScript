@@ -2,6 +2,7 @@ package com.worldscript.command
 
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.Lang
+import com.worldscript.foundation.MaterialResolver
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import org.bukkit.Bukkit
@@ -20,7 +21,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (!sender.hasPermission("worldscript.admin")) return reply(sender, "no-permission")
         when (args.firstOrNull()?.lowercase()) {
-            "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(Material.matchMaterial(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE") ?: Material.GOLDEN_AXE)); reply(it, "wand-given") } ?: reply(sender, "only-player")
+            "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK)); reply(it, "wand-given") } ?: reply(sender, "only-player")
             "gui" -> (sender as? Player)?.let { guiOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
             "list" -> { if (regions.all().isEmpty()) reply(sender, "region-list-empty") else regions.all().forEach { lang.send(sender, "region-list-item", "region" to it.id) } }
             "reload" -> { plugin.reloadConfig(); regions.load(); reply(sender, "reload-success") }

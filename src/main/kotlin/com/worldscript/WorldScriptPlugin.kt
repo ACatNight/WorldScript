@@ -13,6 +13,7 @@ import com.worldscript.modules.l2.rpg.RewardService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import com.worldscript.integration.placeholder.WorldScriptPlaceholderExpansion
 import com.worldscript.integration.taboolib.TabooLibBridge
+import com.worldscript.foundation.MaterialResolver
 import com.worldscript.foundation.api.PlayerRegionProgressService
 import org.bukkit.Material
 
@@ -74,12 +75,12 @@ class WorldScriptPlugin : JavaPlugin() {
 
     private fun validateMaterialConfig() {
         val tool = config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE"
-        if (Material.matchMaterial(tool) == null) {
+        if (MaterialResolver.find(tool, "GOLD_AXE") == null) {
             logger.warning("Invalid selection.tool '$tool'; using GOLDEN_AXE.")
-            config.set("selection.tool", "GOLDEN_AXE")
+            config.set("selection.tool", "GOLD_AXE")
         }
         val icon = config.getString("gui.event-icon", "PAPER") ?: "PAPER"
-        if (Material.matchMaterial(icon) == null) {
+        if (MaterialResolver.find(icon, "PAPER") == null) {
             logger.warning("Invalid gui.event-icon '$icon'; using PAPER.")
             config.set("gui.event-icon", "PAPER")
         }

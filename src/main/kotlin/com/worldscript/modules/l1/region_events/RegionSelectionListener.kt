@@ -3,6 +3,7 @@ package com.worldscript.modules.l1.region_events
 import com.worldscript.foundation.Lang
 import com.worldscript.modules.l1.region_core.SelectionService
 import org.bukkit.Material
+import com.worldscript.foundation.MaterialResolver
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
@@ -16,7 +17,7 @@ class RegionSelectionListener(
     @EventHandler
     fun onInteract(event: PlayerInteractEvent) {
         val item = event.item ?: return
-        val configured = Material.matchMaterial(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE") ?: Material.GOLDEN_AXE
+        val configured = MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK
         if (item.type != configured || event.clickedBlock == null || !event.player.hasPermission("worldscript.admin")) return
         val index = when (event.action) { Action.LEFT_CLICK_BLOCK -> 1; Action.RIGHT_CLICK_BLOCK -> 2; else -> return }
         event.isCancelled = true

@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.worldscript"
-version = "0.1.28-SNAPSHOT"
+version = "0.1.29-SNAPSHOT"
 
 repositories {
     mavenLocal()
@@ -42,7 +42,11 @@ taboolib {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(8)
+
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+    }
 }
 
 tasks.test {
