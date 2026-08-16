@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.17-SNAPSHOT
+
+- Replaced the single-line `/ws` usage text with a structured command tree and added `/ws help`.
+
 ## 0.1.16-SNAPSHOT
 
 - Added the recommended Schema 2 region format with grouped identity, location, state, variables, and events sections.

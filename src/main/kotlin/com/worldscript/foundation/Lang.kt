@@ -14,10 +14,14 @@ class Lang(private val plugin: JavaPlugin) {
     fun text(key: String, fallback: String = key): String =
         selectedLanguageFile().getString(key) ?: fallbackFile.getString(key) ?: fallback
 
-    fun send(sender: CommandSender, key: String, vararg replacements: Pair<String, Any?>) {
+    fun send(sender: CommandSender, key: String, vararg replacements: Pair<String, Any?>) =
+        send(sender, key, true, *replacements)
+
+    fun send(sender: CommandSender, key: String, includePrefix: Boolean, vararg replacements: Pair<String, Any?>) {
         var text = text(key)
         replacements.forEach { (name, value) -> text = text.replace("%$name%", value?.toString() ?: "") }
-        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', this.text("prefix", "") + text))
+        val prefix = if (includePrefix) this.text("prefix", "") else ""
+        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', prefix + text))
     }
 
     private fun selectedLanguageFile(): YamlConfiguration {
