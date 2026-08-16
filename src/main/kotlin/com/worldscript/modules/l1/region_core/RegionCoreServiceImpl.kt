@@ -209,12 +209,27 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             worldId = first.world!!.uid.toString(),
             worldName = first.world!!.name,
             bounds = RegionGeometry.from(first.toBlockPosition(), second.toBlockPosition()),
-            events = RegionEventType.entries.associateWith { ScriptDefinition() },
+            parentId = regions.values
+                .asSequence()
+                .filter { it.worldName == first.world!!.name && contains(it.bounds, RegionGeometry.from(first.toBlockPosition(), second.toBlockPosition())) }
+                .minByOrNull { volume(it.bounds) }
+                ?.id,
+            events = RegionEventType.entries.associateWith { type ->
+                ScriptDefinition(enabled = type != RegionEventType.LEFT_CLICK && type != RegionEventType.RIGHT_CLICK)
+            },
         )
         regions[cleanId.lowercase()] = region
         save(region)
         return true
     }
+
+    private fun contains(outer: com.worldscript.foundation.model.RegionBounds, inner: com.worldscript.foundation.model.RegionBounds): Boolean =
+        RegionGeometry.contains(outer, inner.min) && RegionGeometry.contains(outer, inner.max)
+
+    private fun volume(bounds: com.worldscript.foundation.model.RegionBounds): Long =
+        (bounds.max.x.toLong() - bounds.min.x + 1) *
+            (bounds.max.y.toLong() - bounds.min.y + 1) *
+            (bounds.max.z.toLong() - bounds.min.z + 1)
 
     private fun resolve(id: String, visited: Set<String>): RegionDefinition? {
         val region = find(id) ?: return null
