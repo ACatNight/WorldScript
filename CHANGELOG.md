@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.15-SNAPSHOT
+
+- Removed internal development artifacts and obsolete module placeholder documents.
+- Simplified the project README files and kept detailed setup information in `docs/`.
+
 ## 0.1.14-SNAPSHOT
 
 - Region transitions now handle cross-world movement and players joining inside a region.

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Open-World RPG Region Designer"
-  short_description: "Audit open-world regions, progression, HUD, and quest boundaries"
-  default_prompt: "Use $open-world-rpg-region-designer to audit an open-world RPG region plan and produce actionable design decisions."
-
-policy:
-  allow_implicit_invocation: true
