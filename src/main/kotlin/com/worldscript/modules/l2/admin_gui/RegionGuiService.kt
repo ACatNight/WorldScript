@@ -452,7 +452,7 @@ class RegionGuiService(
 
     private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
         val pane = item(material("GRAY_STAINED_GLASS_PANE", "STAINED_GLASS_PANE"), " ", "")
-        BORDER_SLOTS.forEach { slot -> inventory.setItem(slot, pane) }
+        BORDER_SLOTS.filter { it in 0 until inventory.size }.forEach { slot -> inventory.setItem(slot, pane) }
     }
 
     private fun RegionGuiHolder.copyForInput(kind: String) = RegionGuiHolder("anvil", regionId, eventType, actionIndex, actionType, kind)
