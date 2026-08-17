@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.59
+
+- Reworked the chat editor layout with a compact breadcrumb, friendly labels, and readable region bounds.
+- Added targeted `/ws validate <region>` checks and diagnostics for duplicate IDs, invalid parent geometry, and particle presets.
+- Refreshes online players immediately after an external region unlock.
+
 ## 0.1.58
 
 - Rebuilt the chat editor around one consistent property-panel layout.

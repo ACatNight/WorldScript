@@ -19,6 +19,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
     var guiOpener: ((Player) -> Unit)? = null
     var chatEditor: RegionChatEditor? = null
     var reloadHandler: (() -> Unit)? = null
+    var playerRefresh: ((Player) -> Unit)? = null
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (!sender.hasPermission("worldscript.admin")) return reply(sender, "no-permission")
@@ -28,7 +29,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "edit" -> edit(sender, args)
             "list" -> { if (regions.all().isEmpty()) reply(sender, "region-list-empty") else regions.all().forEach { lang.send(sender, "region-list-item", "region" to it.id) } }
             "reload" -> { plugin.reloadConfig(); regions.load(); reloadHandler?.invoke(); reply(sender, "reload-success") }
-            "validate" -> validate(sender)
+            "validate" -> validate(sender, args.getOrNull(1)?.takeUnless { it.isBlank() })
             "progress" -> progress(sender, args)
             "help" -> sendUsage(sender)
             "create" -> create(sender, args)
@@ -73,8 +74,10 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         chatEditor?.open(player, region, section)
     }
 
-    private fun validate(sender: CommandSender) {
-        val issues = regions.validate()
+    private fun validate(sender: CommandSender, regionId: String? = null) {
+        val issues = regions.validate().filter { issue ->
+            regionId == null || issue.startsWith("${regionId.trim()}.", true) || issue.startsWith("${regionId.trim()}:", true)
+        }
         if (issues.isEmpty()) {
             lang.send(sender, "validation-clean")
             return
@@ -89,7 +92,10 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         if (player == null) { lang.send(sender, "progress-player-offline", "player" to args[1]); return }
         if (regions.find(args[2]) == null) { reply(sender, "region-not-found", args[2]); return }
         when (args[3].lowercase()) {
-            "unlock" -> state.unlockRegion(player.uniqueId, args[2])
+            "unlock" -> {
+                state.unlockRegion(player.uniqueId, args[2])
+                if (player is Player) playerRefresh?.invoke(player)
+            }
             "complete" -> state.markRegionCompleted(player.uniqueId, args[2])
             else -> { lang.send(sender, "progress-usage"); return }
         }
@@ -117,6 +123,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
     private fun reply(sender: CommandSender, key: String, vararg values: Any): Boolean { lang.send(sender, key, "region" to values.firstOrNull()); return true }
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> = when {
         args.size == 1 -> listOf("wand", "create", "delete", "list", "info", "gui", "edit", "reload", "validate", "progress", "help")
+        args.size == 2 && args[0].equals("validate", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("progress", true) -> regions.all().map { it.id }
         args.size == 4 && args[0].equals("progress", true) -> listOf("unlock", "complete")
         args.size == 2 -> regions.all().map { it.id }

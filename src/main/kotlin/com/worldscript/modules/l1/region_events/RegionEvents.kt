@@ -50,6 +50,11 @@ class RegionEventServiceImpl(
 
     fun reset() = current.clear()
 
+    /** Re-evaluates a player's location after an external progress update. */
+    fun refresh(player: Player) {
+        updateRegions(player, player.location)
+    }
+
     @EventHandler
     fun onMove(event: PlayerMoveEvent) {
         val to = event.to ?: return

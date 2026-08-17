@@ -67,34 +67,35 @@ class RegionChatEditor(
     }
 
     private fun header(player: Player, region: RegionDefinition, section: String) {
-        player.sendMessage(color("&6公共单位 &8> &e${region.id} &8> &f${region.displayName} &8> &6${pageName(section)}"))
-        player.sendMessage(color("&8世界 &f${region.worldName} &8| &7坐标范围 &f${region.bounds}"))
-        player.sendMessage(color("&7区域角色 &f${region.role.name.lowercase(Locale.ROOT)} &8| &7内容 ID &f${region.contentId.ifBlank { "-" }}"))
+        player.sendMessage(color("&8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+        player.sendMessage(color("&6区域编辑 &8/ &e${region.displayName} &8/ &f${pageName(section)}"))
+        player.sendMessage(color("&7ID &f${region.id} &8· &7世界 &f${region.worldName}"))
+        player.sendMessage(color("&8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
     }
 
     private fun main(player: Player, region: RegionDefinition) {
         group(player, "&6公共特性")
         property(player, "&e[区域状态]", statusText(region), "&e[切换]", "/ws edit ${region.id} status:next")
-        property(player, "&e[父区域]", region.parentId ?: "无", "&8[只读]")
-        property(player, "&e[子区域]", childCount(region).toString(), "&8[只读]")
-        property(player, "&e[继承关系]", if (region.inheritParent) "继承父区域" else "独立配置", "&8[配置文件]")
+        property(player, "&e父区域", region.parentId?.let { regions.find(it)?.displayName ?: it } ?: "无", "&8—")
+        property(player, "&e子区域", "${childCount(region)} 个", "&8—")
+        property(player, "&e继承关系", if (region.inheritParent) "继承父区域" else "独立配置", "&8—")
 
         group(player, "&e公共数据")
-        property(player, "&f[坐标范围]", region.bounds.toString(), "&8[只读]")
-        property(player, "&f[内容 ID]", region.contentId.ifBlank { "-" }, "&8[只读]")
-        property(player, "&f[优先级]", region.priority.toString(), "&8[配置文件]")
+        property(player, "&f坐标范围", boundsText(region), "&8—")
+        property(player, "&f内容 ID", region.contentId.ifBlank { "未设置" }, "&8—")
+        property(player, "&f优先级", region.priority.toString(), "&8—")
 
         group(player, "&b区域变量")
-        property(player, "&b[变量数量]", region.variables.size.toString(), "&8[配置文件]")
-        property(player, "&b[父区域名称]", region.parentId?.let { regions.find(it)?.displayName } ?: "无", "&8[HUD 可用]")
-        property(player, "&b[当前区域名称]", region.displayName, "&8[HUD 可用]")
+        property(player, "&b变量数量", "${region.variables.size} 个", "&8—")
+        property(player, "&b父区域名称", region.parentId?.let { regions.find(it)?.displayName } ?: "无", "&8HUD")
+        property(player, "&b当前区域名称", region.displayName, "&8HUD")
 
         group(player, "&a事件与反馈")
-        property(player, "&a[事件编辑]", "${region.events.values.count { it.enabled }} 个启用", "&a[打开]", "/ws edit ${region.id} events")
+        property(player, "&a事件编辑", "${region.events.values.count { it.enabled }} 个启用", "&a[打开]", "/ws edit ${region.id} events")
 
         group(player, "&d区域氛围")
         val particle = region.particle ?: regions.effective(region.id)?.particle
-        property(player, "&d[区域粒子]", particle?.takeIf { it.enabled }?.type ?: "关闭", "&d[打开]", "/ws edit ${region.id} particles")
+        property(player, "&d区域粒子", particle?.takeIf { it.enabled }?.type ?: "关闭", "&d[打开]", "/ws edit ${region.id} particles")
 
     }
 
@@ -155,20 +156,20 @@ class RegionChatEditor(
         val action = region.events[menu.type]?.actions?.getOrNull(index) ?: return open(player, region.id, key)
 
         group(player, "&6动作档案")
-        property(player, "&7[所属事件]", plain(menu.label), "&8[只读]")
-        property(player, "&7[动作类型]", actionLabel(action), "&8[只读]")
+        property(player, "&7所属事件", plain(menu.label), "&8—")
+        property(player, "&7动作类型", actionLabel(action), "&8—")
         if (action.type == ActionType.SOUND) soundProperties(player, region, key, index, action)
 
         group(player, "&b动作参数")
         if (action.parameters.isEmpty()) {
-            property(player, "&b[value]", action.value.ifBlank { "未设置" }, "&e[输入]", "/ws edit ${region.id} $key set:$index:value")
+            property(player, "&b动作内容", action.value.ifBlank { "未设置" }, "&e[输入]", "/ws edit ${region.id} $key set:$index:value")
         } else {
             action.parameters.toSortedMap().forEach { (name, current) ->
                 val extra = if (name == "region") listOf(
                     Button("&e[上一项]", "选择上一个区域", "/ws edit ${region.id} $key select:$index:region:prev"),
                     Button("&e[下一项]", "选择下一个区域", "/ws edit ${region.id} $key select:$index:region:next"),
                 ) else emptyList()
-                property(player, "&b[$name]", current.ifBlank { "未设置" }, "&e[输入]", "/ws edit ${region.id} $key set:$index:$name", extra)
+                property(player, "&b${parameterLabel(name)}", current.ifBlank { "未设置" }, "&e[输入]", "/ws edit ${region.id} $key set:$index:$name", extra)
             }
         }
         group(player, "&c危险操作")
@@ -398,12 +399,12 @@ class RegionChatEditor(
     }
 
     private fun group(player: Player, title: String) {
-        player.sendMessage(color("$title &8&m----------------------------------------"))
+        player.sendMessage(color("$title &8&m------------------------------"))
     }
 
     private fun property(player: Player, label: String, value: String, actionLabel: String, action: String? = null, extra: List<Button> = emptyList()) {
         val components = mutableListOf<BaseComponent>()
-        components += TextComponent(color("$label &f$value"))
+        components += TextComponent(color("&8├─ $label &f$value"))
         if (action == null) components += TextComponent(color(" &8$actionLabel"))
         else {
             components += TextComponent(" ")
@@ -433,7 +434,35 @@ class RegionChatEditor(
         player.spigot().sendMessage(*components.toTypedArray())
     }
 
-    private fun actionLabel(action: ActionDefinition): String = action.preset ?: action.type.name.lowercase(Locale.ROOT).replace('_', ' ')
+    private fun actionLabel(action: ActionDefinition): String = action.preset ?: mapOf(
+        ActionType.TEXT_DISPLAY to "标题显示",
+        ActionType.SOUND to "音效",
+        ActionType.MESSAGE to "聊天消息",
+        ActionType.PLAYER_COMMAND to "玩家命令",
+        ActionType.CONSOLE_COMMAND to "控制台命令",
+        ActionType.TELEPORT to "传送",
+        ActionType.KETHER to "Kether 脚本",
+        ActionType.SET_VARIABLE to "设置变量",
+        ActionType.SET_REGION_STATUS to "区域状态",
+        ActionType.GIVE_ITEM to "给予物品",
+        ActionType.GIVE_EXPERIENCE to "给予经验",
+        ActionType.GIVE_MONEY to "给予金钱",
+        ActionType.UNLOCK_REGION to "解锁区域",
+        ActionType.COMPLETE_REGION to "完成区域",
+    )[action.type] ?: action.type.name.lowercase(Locale.ROOT).replace('_', ' ')
+
+    private fun parameterLabel(name: String): String = mapOf(
+        "sound" to "音效", "volume" to "音量", "pitch" to "音调",
+        "title" to "标题", "subtitle" to "副标题", "text" to "消息内容",
+        "command" to "命令", "region" to "目标区域", "material" to "物品",
+        "amount" to "数量", "location" to "坐标", "key" to "变量名", "value" to "变量值",
+    )[name.lowercase(Locale.ROOT)] ?: name
+
+    private fun boundsText(region: RegionDefinition): String {
+        val min = region.bounds.min
+        val max = region.bounds.max
+        return "(${min.x}, ${min.y}, ${min.z}) -> (${max.x}, ${max.y}, ${max.z})"
+    }
     private fun childCount(region: RegionDefinition): Int = regions.all().count { it.parentId.equals(region.id, true) }
     private fun statusText(region: RegionDefinition): String = when (region.statuses.firstOrNull()) {
         GlobalRegionStatus.OPEN -> "开放"

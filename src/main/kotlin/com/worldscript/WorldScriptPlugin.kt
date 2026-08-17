@@ -67,6 +67,7 @@ class WorldScriptPlugin : JavaPlugin() {
             gui.reset()
             presets.reload()
         }
+        command.playerRefresh = events::refresh
         getCommand("ws")?.apply {
             setExecutor(command)
             tabCompleter = command

@@ -35,7 +35,16 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         migrateLegacyConfig()
         regionDirectory.listFiles { file -> file.isFile && file.extension.equals("yml", true) }
             ?.sortedBy { it.name.lowercase() }
-            ?.forEach { file -> readRegion(YamlConfiguration.loadConfiguration(file), file.nameWithoutExtension, "regions/${file.name}")?.let { region -> regions[region.id.lowercase()] = region } }
+            ?.forEach { file ->
+                readRegion(YamlConfiguration.loadConfiguration(file), file.nameWithoutExtension, "regions/${file.name}")?.let { region ->
+                    val key = region.id.lowercase()
+                    if (regions.containsKey(key)) {
+                        loadIssue("regions/${file.name}", "id", "duplicate region id '${region.id}'; file was ignored")
+                    } else {
+                        regions[key] = region
+                    }
+                }
+            }
     }
 
     override fun find(id: String): RegionDefinition? = regions[id.trim().lowercase()]
@@ -194,6 +203,15 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             val prefix = "${region.id}"
             if (region.parentId != null && find(region.parentId) == null) {
                 issues += "$prefix: parent-id '${region.parentId}' does not exist"
+            }
+            region.parentId?.let { parentId ->
+                find(parentId)?.let { parent ->
+                    if (parent.worldName != region.worldName) {
+                        issues += "$prefix: parent '$parentId' is in another world"
+                    } else if (!contains(parent.bounds, region.bounds)) {
+                        issues += "$prefix: bounds are not fully inside parent '$parentId'"
+                    }
+                }
             }
             if (hasParentCycle(region.id)) issues += "$prefix: parent-id creates a cycle"
             region.events.forEach { (eventType, script) ->
@@ -408,7 +426,10 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         return RegionParticleDefinition(
             enabled = enabled,
             preset = section.getString("particle.preset", "AMBIENT")?.uppercase()?.let { preset ->
-                if (preset in PARTICLE_PRESETS) preset else "AMBIENT"
+                if (preset in PARTICLE_PRESETS) preset else {
+                    loadIssue(source, "particle.preset", "unknown preset '$preset'; using AMBIENT")
+                    "AMBIENT"
+                }
             } ?: "AMBIENT",
             type = type.uppercase(),
             count = section.getInt("particle.count", 2).coerceIn(1, 64),

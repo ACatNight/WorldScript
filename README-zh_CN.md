@@ -43,7 +43,7 @@ language: zh_CN
 /ws edit <区域ID> events         编辑区域事件
 /ws gui                          打开管理界面
 /ws reload                       重新加载配置
-/ws validate                     检查配置错误
+/ws validate [区域ID]            检查全部或指定区域的配置错误
 /ws progress <玩家> <区域> <状态> 回写玩家区域状态
 ```
 
