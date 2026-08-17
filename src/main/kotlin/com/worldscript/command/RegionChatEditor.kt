@@ -72,7 +72,9 @@ class RegionChatEditor(
     private fun header(player: Player, region: RegionDefinition, section: String) {
         player.sendMessage(color(editorText("header", "&6公共单位 &8> &e%id% &8> &f%name%").replace("%id%", region.id).replace("%name%", region.displayName)))
         player.sendMessage(color(editorText("meta", "&7ID &f%id% &8· &7世界 &f%world%").replace("%id%", region.id).replace("%world%", region.worldName)))
+        spacer(player)
         player.sendMessage(color(editorText("context", "&8观察者 &f(1) &8· &7编辑器 &f区域内容 &8· &7当前页 &f%page%").replace("%page%", pageName(section))))
+        spacer(player)
         operationRow(player,
             Button(editorText("tab-identity", "&e[公共特性]"), editorText("hint-identity", "查看区域概览"), "/ws edit ${region.id} main"),
             Button(editorText("tab-data", "&e[公共数据]"), editorText("hint-data", "查看区域数据"), "/ws edit ${region.id} main"),
@@ -84,6 +86,7 @@ class RegionChatEditor(
             Button(editorText("refresh", "&7[刷新]"), editorText("hint-refresh", "重新读取当前页面"), "/ws edit ${region.id} $section"),
             Button(editorText("close", "&c[关闭]"), editorText("hint-close", "关闭聊天编辑器"), "/ws edit close"),
         )
+        spacer(player)
         player.sendMessage(color("&8&m----------------------------------------"))
     }
 
@@ -403,6 +406,7 @@ class RegionChatEditor(
             RegionEventMenu.entries.any { it.key == section } -> "events"
             else -> "main"
         }
+        spacer(player)
         player.sendMessage(color("&8&m----------------------------------------"))
         operationRow(player,
             Button("&7[返回]", "返回上一级", "/ws edit ${region.id} $back"),
@@ -413,7 +417,12 @@ class RegionChatEditor(
     }
 
     private fun group(player: Player, title: String) {
+        spacer(player)
         player.sendMessage(color("$title"))
+    }
+
+    private fun spacer(player: Player) {
+        player.sendMessage("")
     }
 
     private fun property(player: Player, label: String, value: String, actionLabel: String, action: String? = null, extra: List<Button> = emptyList()) {

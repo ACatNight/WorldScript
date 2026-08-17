@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.63
+
+- Added deliberate spacing between the archive header, context, tabs, groups, and footer in the chat editor.
+
 ## 0.1.62
 
 - Uses configured preset display names instead of exposing internal preset IDs in the editor.
