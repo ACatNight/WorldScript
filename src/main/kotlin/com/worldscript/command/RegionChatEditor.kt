@@ -209,10 +209,10 @@ class RegionChatEditor(
     }
 
     private fun setInput(player: Player, region: RegionDefinition, value: String) {
-        val parts = value.split(':', limit = 3)
-        val eventKey = parts.getOrNull(0) ?: return
-        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
-        val parameter = parts.getOrNull(2) ?: return
+        val target = EditorActionRef.parse(value) ?: return
+        val eventKey = target.eventKey
+        val index = target.index
+        val parameter = target.arguments.firstOrNull() ?: return
         val type = RegionEventMenu.entries.firstOrNull { it.key == eventKey }?.type ?: return
         if (!ensureLocalAction(region, type, index)) return
         input[player.uniqueId] = PendingInput(region.id, eventKey, type, index, parameter)
@@ -220,10 +220,10 @@ class RegionChatEditor(
     }
 
     private fun removeAction(player: Player, region: RegionDefinition, value: String) {
-        val parts = value.split(':', limit = 2)
-        val key = parts.firstOrNull() ?: return
+        val target = EditorActionRef.parse(value) ?: return
+        val key = target.eventKey
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
-        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
+        val index = target.index
         if (region.events[type]?.actions?.getOrNull(index) == null && regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) == null) return
         input[player.uniqueId] = PendingInput(region.id, key, type, index, "__delete__")
         player.sendMessage(color("&c确认删除动作 $index？&7请在聊天栏输入 &f确认 &7，其他内容取消。"))
@@ -299,17 +299,17 @@ class RegionChatEditor(
     }
 
     private fun soundControl(player: Player, region: RegionDefinition, value: String) {
-        val parts = value.split(':', limit = 3)
-        val key = parts.getOrNull(0) ?: return
-        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
+        val target = EditorActionRef.parse(value) ?: return
+        val key = target.eventKey
+        val index = target.index
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         val action = regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) ?: return
         val current = action.parameters["sound"] ?: action.value
         val sounds = SOUND_CHOICES.filter { resolveSound(it) != null }.ifEmpty { listOf(current) }
         val currentIndex = sounds.indexOf(current).coerceAtLeast(0)
-        when (parts.getOrNull(2)) {
+        when (target.arguments.firstOrNull()) {
             "prev", "next" -> {
-                val delta = if (parts[2] == "next") 1 else -1
+                val delta = if (target.arguments.first() == "next") 1 else -1
                 val selected = sounds[(currentIndex + delta + sounds.size) % sounds.size]
                 updateActionParameter(region, key, index, action.copy(parameters = action.parameters + ("sound" to selected)))
                 player.sendMessage(color("&a音效已切换为 &f$selected"))
@@ -323,8 +323,9 @@ class RegionChatEditor(
                 }
             }
             "volume-down", "volume-up", "pitch-down", "pitch-up" -> {
-                val name = if (parts[2].startsWith("volume")) "volume" else "pitch"
-                val delta = if (parts[2].endsWith("up")) 0.1 else -0.1
+                val operation = target.arguments.first()
+                val name = if (operation.startsWith("volume")) "volume" else "pitch"
+                val delta = if (operation.endsWith("up")) 0.1 else -0.1
                 val next = ((action.parameters[name]?.toDoubleOrNull() ?: 1.0) + delta).coerceIn(0.0, 2.0)
                 updateActionParameter(region, key, index, action.copy(parameters = action.parameters + (name to "%.1f".format(Locale.US, next))))
                 player.sendMessage(color("&a${if (name == "volume") "音量" else "音调"} &f${"%.1f".format(Locale.US, next)} &7已保存。"))
@@ -342,11 +343,11 @@ class RegionChatEditor(
     }
 
     private fun selectParameter(player: Player, region: RegionDefinition, value: String) {
-        val parts = value.split(':', limit = 4)
-        val key = parts.getOrNull(0) ?: return
-        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
-        val parameter = parts.getOrNull(2) ?: return
-        val direction = parts.getOrNull(3) ?: return
+        val target = EditorActionRef.parse(value) ?: return
+        val key = target.eventKey
+        val index = target.index
+        val parameter = target.arguments.getOrNull(0) ?: return
+        val direction = target.arguments.getOrNull(1) ?: return
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         val action = regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) ?: return
         val options = regions.all().map { it.id }.sorted()

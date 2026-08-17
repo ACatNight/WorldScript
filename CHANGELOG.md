@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.75
+
+- Centralized editor action target parsing for input, deletion, sound, and region selection.
+- Added action target parsing coverage to the built-in logic test runner.
+
 ## 0.1.74
 
 - Centralized editor command and mutation routing in `EditorRoute`.
