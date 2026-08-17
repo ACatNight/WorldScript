@@ -111,39 +111,40 @@ class RegionChatEditor(
     }
 
     private fun main(player: Player, region: RegionDefinition) {
-        group(player, "&6公共特性")
-        property(player, "&e[区域状态]", statusText(region), "&e[切换]", "/ws edit ${region.id} status:next")
-        property(player, "&e父区域", region.parentId?.let { regions.find(it)?.displayName ?: it } ?: "无", "&8—")
-        property(player, "&e子区域", "${childCount(region)} 个", "&8—")
-        property(player, "&e继承关系", if (region.inheritParent) "继承父区域" else "独立配置", "&8—")
+        group(player, editorText("group-identity", "&6Properties"))
+        property(player, editorText("label-status", "&e[Region status]"), statusText(region), "&e[切换]", "/ws edit ${region.id} status:next")
+        property(player, editorText("label-parent", "&eParent region"), region.parentId?.let { regions.find(it)?.displayName ?: it } ?: editorText("value-none", "None"), "&8—")
+        property(player, editorText("label-children", "&eChild regions"), "${childCount(region)}", "&8—")
+        property(player, editorText("label-inheritance", "&eInheritance"), if (region.inheritParent) editorText("value-inherited", "Inherited from parent") else editorText("value-independent", "Local configuration"), "&8—")
 
     }
 
     private fun data(player: Player, region: RegionDefinition) {
-        group(player, "&e公共数据")
-        property(player, "&f坐标范围", boundsText(region), "&8—")
-        property(player, "&f内容 ID", region.contentId.ifBlank { "未设置" }, "&8—")
-        property(player, "&f优先级", region.priority.toString(), "&8—")
-        property(player, "&f世界", region.worldName, "&8—")
-        property(player, "&f区域角色", region.role.name.lowercase(Locale.ROOT), "&8—")
+        group(player, editorText("group-data", "&eData"))
+        property(player, editorText("label-bounds", "&fBounds"), boundsText(region), "&8—")
+        property(player, editorText("label-content-id", "&fContent ID"), region.contentId.ifBlank { editorText("value-unset", "Not set") }, "&8—")
+        property(player, editorText("label-priority", "&fPriority"), region.priority.toString(), "&8—")
+        property(player, editorText("label-world", "&fWorld"), region.worldName, "&8—")
+        property(player, editorText("label-role", "&fRegion role"), region.role.name.lowercase(Locale.ROOT), "&8—")
     }
 
     private fun variables(player: Player, region: RegionDefinition) {
-        group(player, "&b区域变量")
-        property(player, "&b变量数量", "${region.variables.size} 个", "&8—")
-        property(player, "&b父区域名称", region.parentId?.let { regions.find(it)?.displayName } ?: "无", "&8HUD")
-        property(player, "&b当前区域名称", region.displayName, "&8HUD")
+        group(player, editorText("group-variables", "&bVariables"))
+        property(player, editorText("label-variable-count", "&bVariables"), region.variables.size.toString(), "&8—")
+        property(player, editorText("label-parent-name", "&bParent name"), region.parentId?.let { regions.find(it)?.displayName } ?: editorText("value-none", "None"), "&8HUD")
+        property(player, editorText("label-current-name", "&bCurrent name"), region.displayName, "&8HUD")
         region.variables.toSortedMap().forEach { (key, value) ->
-            property(player, "&b$key", value.ifBlank { "未设置" }, "&8配置")
+            property(player, "&b$key", value.ifBlank { editorText("value-unset", "Not set") }, "&8配置")
         }
     }
 
     private fun events(player: Player, region: RegionDefinition) {
-        group(player, "&a事件与反馈")
+        group(player, editorText("group-events", "&aEvents and feedback"))
         RegionEventMenu.entries.forEach { menu ->
             val script = regions.effective(region.id)?.events?.get(menu.type)
-            val status = if (script?.enabled == false) "关闭" else "启用"
-            property(player, eventLabel(menu), "$status &8| &f${script?.actions?.size ?: 0} 个动作", "&a[打开]", "/ws edit ${region.id} ${menu.key}")
+            val status = if (script?.enabled == false) editorText("value-disabled", "Disabled") else editorText("value-enabled", "Enabled")
+            val actionCount = editorMessage("value-actions", "%count% action(s)", "count" to (script?.actions?.size ?: 0))
+            property(player, eventLabel(menu), "$status &8| &f$actionCount", editorText("button-open", "&a[Open]"), "/ws edit ${region.id} ${menu.key}")
         }
     }
 
@@ -151,9 +152,9 @@ class RegionChatEditor(
         val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
         val script = regions.effective(region.id)?.events?.get(menu.type)
         group(player, "&e${eventLabel(menu)}")
-        property(player, "&e[启用状态]", if (script?.enabled == false) "关闭" else "启用", if (script?.enabled == false) "&a[打开]" else "&c[关闭]", "/ws edit ${region.id} ${menu.key} toggle")
-        property(player, "&b[触发模式]", mode(script), "&b[切换]", "/ws edit ${region.id} ${menu.key} mode:next")
-        stepper(player, "&e[冷却时间]", "${script?.cooldownSeconds ?: 0}s", "&c[-5]", "/ws edit ${region.id} ${menu.key} cooldown:-5", "&a[+5]", "/ws edit ${region.id} ${menu.key} cooldown:5")
+        property(player, editorText("label-enabled", "&e[Enabled]"), if (script?.enabled == false) editorText("value-disabled", "Disabled") else editorText("value-enabled", "Enabled"), if (script?.enabled == false) editorText("button-open", "&a[Open]") else "&c[关闭]", "/ws edit ${region.id} ${menu.key} toggle")
+        property(player, editorText("label-mode", "&b[Trigger mode]"), mode(script), "&b[切换]", "/ws edit ${region.id} ${menu.key} mode:next")
+        stepper(player, editorText("label-cooldown", "&e[Cooldown]"), "${script?.cooldownSeconds ?: 0}s", "&c[-5]", "/ws edit ${region.id} ${menu.key} cooldown:-5", "&a[+5]", "/ws edit ${region.id} ${menu.key} cooldown:5")
 
         group(player, editorText("action-list", "&6动作列表"))
         operation(player, editorText("add-action", "&a[+ 添加动作]"), editorText("hint-add-action", "添加一个动作，不会覆盖已有动作"), "/ws edit ${region.id} add:$key")
@@ -176,15 +177,15 @@ class RegionChatEditor(
             sendEditor(player, "action-added", "&aAction added: &f%value%", "value" to parts[1])
             return open(player, region.id, key)
         }
-        group(player, "&6添加动作")
+        group(player, editorText("group-add-action", "&6Add action"))
         if (presets.all().isEmpty()) {
-            property(player, "&8[预设库]", "暂无可用动作", "&7[返回]", "/ws edit ${region.id} $key")
+            property(player, "&8[预设库]", editorText("empty-actions", "Not configured"), "&7[返回]", "/ws edit ${region.id} $key")
         } else {
             presets.all().forEach { preset ->
-                property(player, "&b[${preset.name}]", preset.type.name.lowercase(Locale.ROOT), "&a[添加]", "/ws edit ${region.id} add:$key:${preset.id}")
+                property(player, "&b[${preset.name}]", preset.type.name.lowercase(Locale.ROOT), editorText("button-add", "&a[Add]"), "/ws edit ${region.id} add:$key:${preset.id}")
             }
         }
-        group(player, "&7操作")
+        group(player, editorText("group-operations", "&7Operations"))
         operation(player, "&7[返回]", "返回事件设置", "/ws edit ${region.id} $key")
     }
 
@@ -195,36 +196,36 @@ class RegionChatEditor(
         val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
         val action = regions.effective(region.id)?.events?.get(menu.type)?.actions?.getOrNull(index) ?: return open(player, region.id, key)
 
-        group(player, "&6动作档案")
-        property(player, "&7所属事件", eventLabel(menu), "&8—")
-        property(player, "&7动作类型", actionLabel(action), "&8—")
+        group(player, editorText("group-profile", "&6Action profile"))
+        property(player, editorText("label-owner", "&7Event"), eventLabel(menu), "&8—")
+        property(player, editorText("label-action-type", "&7Action type"), actionLabel(action), "&8—")
         if (action.type == ActionType.SOUND) soundProperties(player, region, key, index, action)
 
-        group(player, "&b动作参数")
+        group(player, editorText("group-parameters", "&bAction parameters"))
         if (action.parameters.isEmpty()) {
-            property(player, "&b动作内容", action.value.ifBlank { "未设置" }, "&e[输入]", "/ws edit ${region.id} $key set:$index:value")
+            property(player, editorText("label-action-value", "&bAction value"), action.value.ifBlank { editorText("value-unset", "Not set") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:value")
         } else {
             action.parameters.toSortedMap().forEach { (name, current) ->
                 val extra = if (name == "region") listOf(
                     Button("&e[上一项]", "选择上一个区域", "/ws edit ${region.id} $key select:$index:region:prev"),
                     Button("&e[下一项]", "选择下一个区域", "/ws edit ${region.id} $key select:$index:region:next"),
                 ) else emptyList()
-                property(player, "&b${parameterLabel(name)}", current.ifBlank { "未设置" }, "&e[输入]", "/ws edit ${region.id} $key set:$index:$name", extra)
+                property(player, "&b${parameterLabel(name)}", current.ifBlank { editorText("value-unset", "Not set") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:$name", extra)
             }
         }
-        group(player, "&c危险操作")
-        operation(player, "&c[删除动作]", "删除这个动作", "/ws edit ${region.id} $key remove:$index")
+        group(player, editorText("group-danger", "&cDanger zone"))
+        operation(player, editorText("button-delete", "&c[Delete action]"), "删除这个动作", "/ws edit ${region.id} $key remove:$index")
     }
 
     private fun soundProperties(player: Player, region: RegionDefinition, key: String, index: Int, action: ActionDefinition) {
         val sound = action.parameters["sound"] ?: action.value
-        group(player, "&3音效属性")
-        property(player, "&3[音效]", sound.ifBlank { "未设置" }, "&3[试听]", "/ws edit ${region.id} $key sound:$index:play", listOf(
+        group(player, editorText("group-sound", "&3Sound"))
+        property(player, editorText("label-sound", "&3[Sound]"), sound.ifBlank { editorText("value-unset", "Not set") }, "&3[试听]", "/ws edit ${region.id} $key sound:$index:play", listOf(
             Button("&3[上一项]", "选择上一种音效", "/ws edit ${region.id} $key sound:$index:prev"),
             Button("&3[下一项]", "选择下一种音效", "/ws edit ${region.id} $key sound:$index:next"),
         ))
-        stepper(player, "&e[音量]", action.parameters["volume"] ?: "1.0", "&c[-0.1]", "/ws edit ${region.id} $key sound:$index:volume-down", "&a[+0.1]", "/ws edit ${region.id} $key sound:$index:volume-up")
-        stepper(player, "&e[音调]", action.parameters["pitch"] ?: "1.0", "&c[-0.1]", "/ws edit ${region.id} $key sound:$index:pitch-down", "&a[+0.1]", "/ws edit ${region.id} $key sound:$index:pitch-up")
+        stepper(player, editorText("label-volume", "&e[Volume]"), action.parameters["volume"] ?: "1.0", "&c[-0.1]", "/ws edit ${region.id} $key sound:$index:volume-down", "&a[+0.1]", "/ws edit ${region.id} $key sound:$index:volume-up")
+        stepper(player, editorText("label-pitch", "&e[Pitch]"), action.parameters["pitch"] ?: "1.0", "&c[-0.1]", "/ws edit ${region.id} $key sound:$index:pitch-down", "&a[+0.1]", "/ws edit ${region.id} $key sound:$index:pitch-up")
     }
 
     private fun setInput(player: Player, region: RegionDefinition, value: String) {
@@ -316,9 +317,9 @@ class RegionChatEditor(
     }
 
     private fun mode(script: com.worldscript.foundation.model.ScriptDefinition?): String = when {
-        script?.firstEntryOnly == true -> "首次进入"
-        script?.repeatEntryOnly == true -> "重复进入"
-        else -> "每次触发"
+        script?.firstEntryOnly == true -> editorText("value-mode-first", "First entry")
+        script?.repeatEntryOnly == true -> editorText("value-mode-repeat", "Repeat entry")
+        else -> editorText("value-mode-always", "Always")
     }
 
     private fun soundControl(player: Player, region: RegionDefinition, value: String) {
@@ -399,16 +400,16 @@ class RegionChatEditor(
     private fun particles(player: Player, region: RegionDefinition) {
         val local = region.particle
         val particle = local ?: regions.effective(region.id)?.particle ?: RegionParticleDefinition(enabled = false)
-        group(player, "&d区域氛围")
-        property(player, "&d[显示状态]", if (particle.enabled) "启用" else "关闭", if (particle.enabled) "&c[关闭]" else "&a[打开]", "/ws edit ${region.id} particle:toggle")
-        property(player, "&d[视觉样式]", particle.preset, "&8[只读]")
-        property(player, "&d[粒子类型]", particle.type, "&d[预览]", "/ws edit ${region.id} particle:preview", listOf(
+        group(player, editorText("group-atmosphere", "&dRegion atmosphere"))
+        property(player, editorText("label-particle-state", "&d[Display state]"), if (particle.enabled) editorText("value-enabled", "Enabled") else editorText("value-disabled", "Disabled"), if (particle.enabled) "&c[关闭]" else "&a[打开]", "/ws edit ${region.id} particle:toggle")
+        property(player, editorText("label-preset", "&d[Visual style]"), particle.preset, editorText("button-readonly", "&8[Read-only]"))
+        property(player, editorText("label-particle-type", "&d[Particle type]"), particle.type, editorText("button-preview", "&d[Preview]"), "/ws edit ${region.id} particle:preview", listOf(
             Button("&d[上一项]", "选择上一种粒子", "/ws edit ${region.id} particle:prev"),
             Button("&d[下一项]", "选择下一种粒子", "/ws edit ${region.id} particle:next"),
         ))
-        stepper(player, "&e[粒子数量]", particle.count.toString(), "&c[-1]", "/ws edit ${region.id} particle:count:-1", "&a[+1]", "/ws edit ${region.id} particle:count:1")
-        stepper(player, "&e[生成间隔]", "${particle.intervalTicks} tick", "&c[-5]", "/ws edit ${region.id} particle:interval:-5", "&a[+5]", "/ws edit ${region.id} particle:interval:5")
-        property(player, "&b[扩散范围]", "${particle.spreadX}, ${particle.spreadY}, ${particle.spreadZ}", "&8[配置文件]")
+        stepper(player, editorText("label-particle-count", "&e[Particle count]"), particle.count.toString(), "&c[-1]", "/ws edit ${region.id} particle:count:-1", "&a[+1]", "/ws edit ${region.id} particle:count:1")
+        stepper(player, editorText("label-particle-interval", "&e[Spawn interval]"), "${particle.intervalTicks} tick", "&c[-5]", "/ws edit ${region.id} particle:interval:-5", "&a[+5]", "/ws edit ${region.id} particle:interval:5")
+        property(player, editorText("label-particle-spread", "&b[Spread]"), "${particle.spreadX}, ${particle.spreadY}, ${particle.spreadZ}", editorText("button-config", "&8[Config]"))
         if (local == null && region.parentId != null) sendEditor(player, "particle-inherited", "&8Particles are inherited from the parent; the first edit creates a local override.")
     }
 
@@ -561,11 +562,11 @@ class RegionChatEditor(
     }
     private fun childCount(region: RegionDefinition): Int = regions.all().count { it.parentId.equals(region.id, true) }
     private fun statusText(region: RegionDefinition): String = when (region.statuses.firstOrNull()) {
-        GlobalRegionStatus.OPEN -> "开放"
-        GlobalRegionStatus.DANGEROUS -> "危险"
-        GlobalRegionStatus.PEACEFUL -> "和平"
-        GlobalRegionStatus.LOCKED -> "锁定"
-        null -> "开放"
+        GlobalRegionStatus.OPEN -> editorText("value-status-open", "Open")
+        GlobalRegionStatus.DANGEROUS -> editorText("value-status-dangerous", "Dangerous")
+        GlobalRegionStatus.PEACEFUL -> editorText("value-status-peaceful", "Peaceful")
+        GlobalRegionStatus.LOCKED -> editorText("value-status-locked", "Locked")
+        null -> editorText("value-status-open", "Open")
     }
 
     private fun pageName(section: String): String = when {

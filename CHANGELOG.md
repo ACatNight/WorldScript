@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.78
+
+- Moved editor page groups, property labels, buttons, statuses, and modes into language files.
+- Completed the localized editor labels used by the main region, event, action, sound, and particle pages.
+
 ## 0.1.77
 
 - Moved editor feedback and event labels into the language files.
