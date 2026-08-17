@@ -9,6 +9,7 @@ import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.hover.content.Text
+import net.md_5.bungee.api.chat.BaseComponent
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 
@@ -20,7 +21,7 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
             return
         }
         player.sendMessage(color("&8&m----------------------------------------"))
-        player.sendMessage(color("&6区域编辑 &8<临时编辑器> &f${region.id}"))
+        player.sendMessage(color("&6⌁区域编辑 &8<临时编辑器> &f> &e${region.id}"))
         player.sendMessage(color("&7${region.displayName} &8| &7${region.worldName} &8| &7${region.bounds}"))
         when (section) {
             "main" -> main(player, region)
@@ -31,22 +32,25 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
     }
 
     private fun main(player: Player, region: RegionDefinition) {
-        line(player, "&6[公共特性]", "区域状态、父子关系和基础信息", "/ws edit ${region.id} main")
-        line(player, "&e[公共数据]", "查看区域坐标和内容 ID", "/ws edit ${region.id} main")
-        line(player, "&b[区域变量]", "编辑请直接修改区域 YAML", "/ws edit ${region.id} main")
-        player.sendMessage("")
-        line(player, "&a[事件编辑]", "打开进入、离开和交互事件", "/ws edit ${region.id} events")
-        line(player, "&d[区域粒子]", "粒子效果请在区域 YAML 中编辑", "/ws edit ${region.id} main")
-        line(player, "&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} main")
-        line(player, "&c[关闭]", "关闭聊天编辑器", "/ws edit close")
+        row(player,
+            Button("&6[公共特性]", "区域状态、父子关系和基础信息", "/ws edit ${region.id} main"),
+            Button("&e[公共数据]", "查看区域坐标和内容 ID", "/ws edit ${region.id} main"),
+            Button("&b[区域变量]", "编辑请直接修改区域 YAML", "/ws edit ${region.id} main"),
+            Button("&a[事件编辑]", "打开进入、离开和交互事件", "/ws edit ${region.id} events"),
+            Button("&d[区域粒子]", "粒子效果请在区域 YAML 中编辑", "/ws edit ${region.id} main"),
+        )
+        row(player,
+            Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} main"),
+            Button("&c[关闭]", "关闭聊天编辑器", "/ws edit close"),
+        )
     }
 
     private fun events(player: Player, region: RegionDefinition) {
-        RegionEventMenu.entries.forEach { menu ->
+        row(player, *RegionEventMenu.entries.map { menu ->
             val script = region.events[menu.type]
             val status = if (script?.enabled == false) "&8关闭" else "&a启用"
-            line(player, "$status ${menu.label}", "动作 ${script?.actions?.size ?: 0} 个，配置请编辑区域文件", "/ws edit ${region.id} ${menu.key}")
-        }
+            Button("$status ${menu.label}", "动作 ${script?.actions?.size ?: 0} 个，点击查看", "/ws edit ${region.id} ${menu.key}")
+        }.toTypedArray())
         line(player, "&7[返回]", "返回区域总览", "/ws edit ${region.id} main")
     }
 
@@ -88,14 +92,26 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
     }
 
     private fun line(player: Player, label: String, hover: String, command: String) {
-        val component = ComponentBuilder(color(label))
+        player.spigot().sendMessage(*button(label, hover, command))
+    }
+
+    private fun row(player: Player, vararg buttons: Button) {
+        val components = mutableListOf<BaseComponent>()
+        buttons.forEachIndexed { index, button ->
+            if (index > 0) components += ComponentBuilder(color(" &8| ")).create().first()
+            components += button(button.label, button.hover, button.command)
+        }
+        player.spigot().sendMessage(*components.toTypedArray())
+    }
+
+    private fun button(label: String, hover: String, command: String): Array<BaseComponent> = ComponentBuilder(color(label))
             .event(ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
             .event(HoverEvent(HoverEvent.Action.SHOW_TEXT, Text(hover)))
             .create()
-        player.spigot().sendMessage(*component)
-    }
 
     private fun color(value: String) = ChatColor.translateAlternateColorCodes('&', value)
+
+    private data class Button(val label: String, val hover: String, val command: String)
 
     private enum class RegionEventMenu(val key: String, val label: String, val type: RegionEventType) {
         ENTER("enter", "&a[进入区域]", RegionEventType.ENTER),
