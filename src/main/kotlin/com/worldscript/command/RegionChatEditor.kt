@@ -50,7 +50,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
                 else -> event(player, region, section)
             }
         }
-        row(player, Button("&7[返回]", "返回区域总览", "/ws edit ${region.id} main"), Button("&f1 / 1", "当前页", "/ws edit ${region.id} main"), Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} main"))
+        footer(player, region, section)
     }
 
     private fun main(player: Player, region: RegionDefinition) {
@@ -92,6 +92,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         row(player, Button("&e[冷却 ${script?.cooldownSeconds ?: 0}s]", "减少或增加冷却时间", "/ws edit ${region.id} ${menu.key} cooldown:5"), Button("&7[冷却 -5s]", "减少五秒冷却", "/ws edit ${region.id} ${menu.key} cooldown:-5"))
         row(player, Button("&b[模式: ${mode(script)}]", "切换总是、首次进入或重复进入", "/ws edit ${region.id} ${menu.key} mode:next"))
         heading(player, "&f动作列表 &8(${script?.actions?.size ?: 0})")
+        if (script?.actions.isNullOrEmpty()) player.sendMessage(color("&8尚未配置动作。点击下方 &a[添加预设动作] &8开始。"))
         script?.actions?.forEachIndexed { index, action ->
             line(player, "&8${index + 1}. &f${action.preset ?: action.type.name.lowercase()}", "查看并编辑动作参数", "/ws edit ${region.id} ${menu.key} action:$index")
         }
@@ -138,7 +139,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         val type = RegionEventMenu.entries.firstOrNull { it.key == eventKey }?.type ?: return
         region.events[type]?.actions?.getOrNull(index) ?: return
         input[player.uniqueId] = PendingInput(region.id, type, index, parameter)
-        player.sendMessage(color("&6请输入 &f$parameter &6的新值，输入 &c取消 &6放弃修改。"))
+        player.sendMessage(color("&6正在编辑 &f$parameter &8| &7直接输入新值，输入 &c取消 &7放弃。"))
     }
 
     private fun removeAction(player: Player, region: RegionDefinition, value: String) {
@@ -366,6 +367,22 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         section.startsWith("action:") -> "动作参数"
         section.startsWith("add:") -> "添加动作"
         else -> "区域编辑"
+    }
+
+    private fun footer(player: Player, region: RegionDefinition, section: String) {
+        val back = when {
+            section == "main" -> "main"
+            section == "events" || section == "particles" -> "main"
+            section.startsWith("action:") -> section.removePrefix("action:").substringBefore(':')
+            section.startsWith("add:") -> section.removePrefix("add:").substringBefore(':')
+            RegionEventMenu.entries.any { it.key == section } -> "events"
+            else -> "main"
+        }
+        row(player,
+            Button("&7[返回]", "返回上一级", "/ws edit ${region.id} $back"),
+            Button("&f1 / 1", "当前页", "/ws edit ${region.id} $section"),
+            Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} $section"),
+        )
     }
 
     private fun row(player: Player, vararg buttons: Button) {
