@@ -65,7 +65,7 @@ particle:
 
 ## 事件
 
-区域支持 `enter`、`leave`、`interact`。`interact` 只在玩家主手右键方块且事件没有被其他插件取消时触发。
+区域支持 `enter`、`leave`、`left-click`、`right-click` 和兼容用的 `interact`。`right-click` 与 `interact` 只在玩家主手右键方块且事件没有被其他插件取消时触发；`left-click` 用于左键方块。
 
 `mode` 可选值：`always`、`first`、`repeat`。`first` 只在玩家第一次进入时执行，`repeat` 跳过第一次进入。旧配置中的 `first-entry-only`、`repeat-entry-only` 和 `override-parent` 仍然兼容。
 

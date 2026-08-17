@@ -10,3 +10,5 @@ messages:
   leave: '&7Leaving region: &f%region%'
 gui:
   event-icon: PAPER
+editor:
+  input-timeout-seconds: 120

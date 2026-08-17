@@ -33,10 +33,13 @@ class RegionChatEditor(
 ): Listener {
     private val input = mutableMapOf<UUID, PendingInput>()
     private val lang = com.worldscript.foundation.Lang(plugin)
+    private val inputTimeoutMillis: Long
+        get() = plugin.config.getLong("editor.input-timeout-seconds", 120).coerceIn(15, 600) * 1000
 
     private fun editorText(key: String, fallback: String): String = lang.textWithLocalFallback("editor-$key", fallback)
 
     fun open(player: Player, regionId: String, section: String = "main") {
+        input.remove(player.uniqueId)
         val region = regions.find(regionId) ?: run {
             player.sendMessage(color("&c区域不存在：&f$regionId"))
             return
@@ -68,6 +71,12 @@ class RegionChatEditor(
             else -> event(player, region, section)
         }
         footer(player, region, section)
+    }
+
+    fun reset() = input.clear()
+
+    fun close(player: Player) {
+        input.remove(player.uniqueId)
     }
 
     private fun header(player: Player, region: RegionDefinition, section: String) {
@@ -215,7 +224,7 @@ class RegionChatEditor(
         val parameter = target.arguments.firstOrNull() ?: return
         val type = RegionEventMenu.entries.firstOrNull { it.key == eventKey }?.type ?: return
         if (!ensureLocalAction(region, type, index)) return
-        input[player.uniqueId] = PendingInput(region.id, eventKey, type, index, parameter)
+        input[player.uniqueId] = PendingInput(region.id, eventKey, type, index, parameter, System.currentTimeMillis())
         player.sendMessage(color("&6正在编辑 &f$parameter &8| &7请输入新值，输入 &c取消 &7放弃。"))
     }
 
@@ -225,7 +234,7 @@ class RegionChatEditor(
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         val index = target.index
         if (region.events[type]?.actions?.getOrNull(index) == null && regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) == null) return
-        input[player.uniqueId] = PendingInput(region.id, key, type, index, "__delete__")
+        input[player.uniqueId] = PendingInput(region.id, key, type, index, "__delete__", System.currentTimeMillis())
         player.sendMessage(color("&c确认删除动作 $index？&7请在聊天栏输入 &f确认 &7，其他内容取消。"))
     }
 
@@ -234,6 +243,10 @@ class RegionChatEditor(
         val pending = input.remove(event.player.uniqueId) ?: return
         event.isCancelled = true
         val message = event.message
+        if (System.currentTimeMillis() - pending.createdAt > inputTimeoutMillis) {
+            event.player.sendMessage(color(editorText("input-expired", "&e编辑会话已超时，请重新打开对应动作。")))
+            return
+        }
         if (message.equals("取消", true)) {
             event.player.sendMessage(color("&7已取消修改。"))
             return
@@ -562,8 +575,20 @@ class RegionChatEditor(
     private fun color(value: String): String = ChatColor.translateAlternateColorCodes('&', value)
     private fun plain(value: String): String = ChatColor.stripColor(color(value)) ?: value
 
+    @EventHandler
+    fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) {
+        input.remove(event.player.uniqueId)
+    }
+
     private data class Button(val label: String, val hover: String, val command: String)
-    private data class PendingInput(val regionId: String, val eventKey: String, val type: RegionEventType, val index: Int, val parameter: String)
+    private data class PendingInput(
+        val regionId: String,
+        val eventKey: String,
+        val type: RegionEventType,
+        val index: Int,
+        val parameter: String,
+        val createdAt: Long,
+    )
 
     private companion object {
         val SOUND_CHOICES = listOf("BLOCK_PORTAL_TRIGGER", "BLOCK_NOTE_BLOCK_PLING", "ENTITY_PLAYER_LEVELUP", "ENTITY_VILLAGER_TRADE", "ENTITY_GENERIC_EXPLODE", "ENTITY_PLAYER_ATTACK_STRONG")

@@ -55,7 +55,10 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
     private fun edit(sender: CommandSender, args: Array<out String>) {
         val player = sender as? Player ?: run { reply(sender, "only-player"); return }
         val region = args.getOrNull(1) ?: run { sendUsage(sender); return }
-        if (region.equals("close", true)) return
+        if (region.equals("close", true)) {
+            chatEditor?.close(player)
+            return
+        }
         val eventKey = args.getOrNull(2)
         val actionPage = args.getOrNull(3)
         val section = EditorRoute.fromCommand(eventKey, actionPage)

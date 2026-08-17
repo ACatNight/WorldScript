@@ -66,6 +66,7 @@ class WorldScriptPlugin : JavaPlugin() {
         command.reloadHandler = {
             events.reset()
             actions.reset()
+            chatEditor.reset()
             presets.reload()
         }
         command.playerRefresh = events::refresh

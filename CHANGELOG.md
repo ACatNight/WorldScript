@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.76
+
+- Added editor input cleanup on page changes, player quit, reload, and close.
+- Added a configurable editor input timeout.
+- Documented left-click and right-click block events.
+
 ## 0.1.75
 
 - Centralized editor action target parsing for input, deletion, sound, and region selection.
