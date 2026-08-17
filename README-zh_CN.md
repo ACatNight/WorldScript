@@ -39,6 +39,8 @@ language: zh_CN
 /ws delete <名称>                删除区域
 /ws list                         列出区域
 /ws info <名称>                  查看区域信息
+/ws edit <区域ID>                打开聊天区域编辑器
+/ws edit <区域ID> events         编辑区域事件
 /ws gui                          打开管理界面
 /ws reload                       重新加载配置
 /ws validate                     检查配置错误

@@ -41,6 +41,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
                 section.startsWith("add:") -> addPreset(player, region, section.removePrefix("add:"))
                 section.startsWith("action:") -> action(player, region, section.removePrefix("action:"))
                 section.startsWith("sound:") -> soundControl(player, region, section.removePrefix("sound:"))
+                section.startsWith("select:") -> selectParameter(player, region, section.removePrefix("select:"))
                 section.startsWith("particle:") -> particleControl(player, region, section.removePrefix("particle:"))
                 section.startsWith("set:") -> setInput(player, region, section.removePrefix("set:"))
                 section.startsWith("remove:") -> removeAction(player, region, section.removePrefix("remove:"))
@@ -108,10 +109,13 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         if (action.type == com.worldscript.foundation.model.ActionType.SOUND) {
             row(player, Button("&3[上一音效]", "选择上一个音效", "/ws edit ${region.id} $key sound:$index:prev"), Button("&3[下一音效]", "选择下一个音效", "/ws edit ${region.id} $key sound:$index:next"))
             row(player, Button("&3[试听]", "试听当前音效", "/ws edit ${region.id} $key sound:$index:play"))
+            row(player, Button("&c[音量 -]", "音量减少 0.1", "/ws edit ${region.id} $key sound:$index:volume-down"), Button("&a[音量 +]", "音量增加 0.1", "/ws edit ${region.id} $key sound:$index:volume-up"))
+            row(player, Button("&c[音调 -]", "音调减少 0.1", "/ws edit ${region.id} $key sound:$index:pitch-down"), Button("&a[音调 +]", "音调增加 0.1", "/ws edit ${region.id} $key sound:$index:pitch-up"))
         }
         if (action.parameters.isEmpty()) line(player, "&7[value]", "当前值：${action.value}", "/ws edit ${region.id} $key set:$index:value")
         action.parameters.forEach { (name, current) ->
             line(player, "&b[$name] &f$current", "点击后在聊天栏输入新值", "/ws edit ${region.id} $key set:$index:$name")
+            if (name == "region") row(player, Button("&e[上一地区]", "从现有区域中选择", "/ws edit ${region.id} $key select:$index:region:prev"), Button("&e[下一地区]", "从现有区域中选择", "/ws edit ${region.id} $key select:$index:region:next"))
         }
         row(player,
             Button("&c[删除动作]", "删除这个动作", "/ws edit ${region.id} $key remove:$index"),
@@ -224,8 +228,31 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
                 val selected = sounds[(currentIndex + delta + sounds.size) % sounds.size]
                 updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + ("sound" to selected)))
             }
-            "play" -> runCatching { player.playSound(player.location, current, 1f, 1f) }
+            "play" -> runCatching { player.playSound(player.location, current, action.parameters["volume"]?.toFloatOrNull() ?: 1f, action.parameters["pitch"]?.toFloatOrNull() ?: 1f) }
+            "volume-down", "volume-up", "pitch-down", "pitch-up" -> {
+                val name = if (parts[2].startsWith("volume")) "volume" else "pitch"
+                val delta = if (parts[2].endsWith("up")) 0.1 else -0.1
+                val next = ((action.parameters[name]?.toDoubleOrNull() ?: 1.0) + delta).coerceIn(0.0, 2.0)
+                updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + (name to "%.1f".format(java.util.Locale.US, next))))
+            }
         }
+        open(player, region.id, "action:$key:$index")
+    }
+
+    private fun selectParameter(player: Player, region: RegionDefinition, value: String) {
+        val parts = value.split(':', limit = 4)
+        val key = parts.getOrNull(0) ?: return
+        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
+        val parameter = parts.getOrNull(2) ?: return
+        val direction = parts.getOrNull(3) ?: return
+        val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
+        val action = region.events[type]?.actions?.getOrNull(index) ?: return
+        val options = regions.all().map { it.id }
+        if (options.isEmpty()) return
+        val current = options.indexOf(action.parameters[parameter]).coerceAtLeast(0)
+        val delta = if (direction == "next") 1 else -1
+        val selected = options[(current + delta + options.size) % options.size]
+        updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + (parameter to selected)))
         open(player, region.id, "action:$key:$index")
     }
 

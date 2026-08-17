@@ -37,6 +37,8 @@ The complete five-region sample is available in [examples/regions](examples/regi
 /ws delete <name>
 /ws list
 /ws info <name>
+/ws edit <region-id>
+/ws edit <region-id> events
 /ws gui
 /ws reload
 /ws validate

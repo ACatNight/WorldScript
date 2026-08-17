@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.50
+
+- Added a separated breadcrumb-style chat editor layout for regions, events, actions, and parameters.
+- Added in-game event toggles, trigger modes, cooldown adjustment, particle cycling, and particle count adjustment.
+- Added sound selection, preview, volume/pitch adjustment, and region target cycling for parameterized actions.
+- Made action preset YAML the source used by the chat editor and fixed parameterized action validation.
+- Kept legacy `value` action syntax compatible with the new parameter map format.
+
 ## 0.1.17-SNAPSHOT
 
 - Replaced the single-line `/ws` usage text with a structured command tree and added `/ws help`.
