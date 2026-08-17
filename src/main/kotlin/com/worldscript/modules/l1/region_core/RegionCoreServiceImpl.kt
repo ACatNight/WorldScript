@@ -324,20 +324,31 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     private fun validateAction(issues: MutableList<String>, prefix: String, index: Int, action: ActionDefinition) {
         val path = "$prefix.actions[$index]"
+        fun value(name: String): String = action.parameters[name]?.takeIf { it.isNotBlank() } ?: action.value
         when (action.type) {
             ActionType.KETHER -> if (action.value.isBlank()) issues += "$path: script is empty"
-            ActionType.TEXT_DISPLAY -> if (action.parameters["title"].isNullOrBlank() && action.value.isBlank()) issues += "$path: title is empty"
-            ActionType.SOUND -> if (action.parameters["sound"].isNullOrBlank() && action.value.isBlank()) issues += "$path: sound is empty"
+            ActionType.TEXT_DISPLAY -> if (value("title").isBlank()) issues += "$path: title is empty"
+            ActionType.SOUND -> if (value("sound").isBlank()) issues += "$path: sound is empty"
             ActionType.TELEPORT -> {
-                val parts = action.value.split(',').map(String::trim)
-                if (parts.size < 4 || parts[1].toDoubleOrNull() == null || parts[2].toDoubleOrNull() == null || parts[3].toDoubleOrNull() == null) issues += "$path: teleport must use world,x,y,z"
+                val parts = value("location").split(',').map(String::trim)
+                val parameterized = listOf(value("world"), value("x"), value("y"), value("z"))
+                if ((parts.size < 4 || parts[1].toDoubleOrNull() == null || parts[2].toDoubleOrNull() == null || parts[3].toDoubleOrNull() == null) &&
+                    (parameterized[0].isBlank() || parameterized.drop(1).any { it.toDoubleOrNull() == null })
+                ) issues += "$path: teleport must provide world,x,y,z"
             }
-            ActionType.SET_VARIABLE -> if (action.value.split('=', limit = 2).size != 2) issues += "$path: value must use key=value"
-            ActionType.SET_REGION_STATUS -> validateRegionStatusValue(issues, path, action.value)
-            ActionType.UNLOCK_REGION, ActionType.COMPLETE_REGION -> if (find(action.value) == null) issues += "$path: target region '${action.value}' does not exist"
-            ActionType.GIVE_ITEM -> if (Material.matchMaterial(action.value) == null) issues += "$path: item material '${action.value}' is invalid"
-            ActionType.GIVE_EXPERIENCE, ActionType.GIVE_MONEY -> if (action.value.toDoubleOrNull() == null) issues += "$path: value must be numeric"
-            ActionType.PLAYER_COMMAND, ActionType.CONSOLE_COMMAND, ActionType.MESSAGE -> if (action.value.isBlank()) issues += "$path: value is empty"
+            ActionType.SET_VARIABLE -> if (action.parameters.isNotEmpty()) {
+                if (value("key").isBlank()) issues += "$path: variable key is empty"
+            } else if (action.value.split('=', limit = 2).size != 2) issues += "$path: value must use key=value"
+            ActionType.SET_REGION_STATUS -> if (action.parameters.isNotEmpty()) {
+                val status = GlobalRegionStatus.parse(value("status"))
+                if (find(value("region")) == null) issues += "$path: target region '${value("region")}' does not exist"
+                if (status == null) issues += "$path: region status '${value("status")}' is invalid"
+            } else validateRegionStatusValue(issues, path, action.value)
+            ActionType.UNLOCK_REGION, ActionType.COMPLETE_REGION -> if (find(value("region")) == null) issues += "$path: target region '${value("region")}' does not exist"
+            ActionType.GIVE_ITEM -> if (Material.matchMaterial(value("material")) == null) issues += "$path: item material '${value("material")}' is invalid"
+            ActionType.GIVE_EXPERIENCE, ActionType.GIVE_MONEY -> if (value("amount").toDoubleOrNull() == null) issues += "$path: value must be numeric"
+            ActionType.PLAYER_COMMAND, ActionType.CONSOLE_COMMAND -> if (value("command").isBlank()) issues += "$path: command is empty"
+            ActionType.MESSAGE -> if (value("text").isBlank()) issues += "$path: message is empty"
         }
     }
 

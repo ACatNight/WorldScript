@@ -3,7 +3,6 @@ package com.worldscript.command
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.model.ActionDefinition
-import com.worldscript.foundation.model.ActionType
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -19,7 +18,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
 /** A small chat-first editor for operators who prefer config files over inventories. */
-class RegionChatEditor(private val plugin: JavaPlugin, private val regions: RegionCoreServiceImpl) : Listener {
+class RegionChatEditor(private val plugin: JavaPlugin, private val regions: RegionCoreServiceImpl, private val presets: ActionPresetCatalog) : Listener {
     private val input = mutableMapOf<UUID, PendingInput>()
     fun open(player: Player, regionId: String, section: String = "main") {
         val region = regions.find(regionId) ?: run {
@@ -145,26 +144,13 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
             player.sendMessage(color("&a已添加预设动作：&f${parts[1]}"))
             return open(player, region.id, parts[0])
         }
-        PRESETS.forEach { (id, label) -> line(player, label, "使用默认参数添加，随后可在游戏内修改", "/ws edit ${region.id} add:$key:$id") }
+        presets.all().forEach { preset ->
+            line(player, "&b[${preset.name}]", "使用默认参数添加，随后可在游戏内修改", "/ws edit ${region.id} add:$key:${preset.id}")
+        }
         line(player, "&7[返回]", "返回事件", "/ws edit ${region.id} $key")
     }
 
-    private fun preset(id: String): ActionDefinition? = when (id) {
-        "text-display" -> ActionDefinition(ActionType.TEXT_DISPLAY, parameters = mapOf("title" to "&b区域标题", "subtitle" to "&f区域副标题", "fade-in" to "20", "stay" to "100", "fade-out" to "20"), preset = id)
-        "message" -> ActionDefinition(ActionType.MESSAGE, parameters = mapOf("text" to "&7区域消息"), preset = id)
-        "sound" -> ActionDefinition(ActionType.SOUND, parameters = mapOf("sound" to "BLOCK_PORTAL_TRIGGER", "volume" to "1.0", "pitch" to "1.0"), preset = id)
-        "set-variable" -> ActionDefinition(ActionType.SET_VARIABLE, parameters = mapOf("key" to "discovered", "value" to "true"), preset = id)
-        "unlock-region" -> ActionDefinition(ActionType.UNLOCK_REGION, parameters = mapOf("region" to "target_region"), preset = id)
-        "complete-region" -> ActionDefinition(ActionType.COMPLETE_REGION, parameters = mapOf("region" to "target_region"), preset = id)
-        "player-command" -> ActionDefinition(ActionType.PLAYER_COMMAND, parameters = mapOf("command" to "spawn"), preset = id)
-        "console-command" -> ActionDefinition(ActionType.CONSOLE_COMMAND, parameters = mapOf("command" to "say %player% entered %region%"), preset = id)
-        "teleport" -> ActionDefinition(ActionType.TELEPORT, parameters = mapOf("world" to "world", "x" to "0", "y" to "80", "z" to "0"), preset = id)
-        "give-item" -> ActionDefinition(ActionType.GIVE_ITEM, parameters = mapOf("material" to "DIAMOND", "amount" to "1"), preset = id)
-        "give-experience" -> ActionDefinition(ActionType.GIVE_EXPERIENCE, parameters = mapOf("amount" to "10"), preset = id)
-        "give-money" -> ActionDefinition(ActionType.GIVE_MONEY, parameters = mapOf("amount" to "100"), preset = id)
-        "set-region-status" -> ActionDefinition(ActionType.SET_REGION_STATUS, parameters = mapOf("region" to "target_region", "status" to "open"), preset = id)
-        else -> null
-    }
+    private fun preset(id: String): ActionDefinition? = presets.create(id)
 
     private fun line(player: Player, label: String, hover: String, command: String) {
         player.spigot().sendMessage(*button(label, hover, command))
@@ -197,21 +183,4 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         INTERACT("interact", "&d[交互事件]", RegionEventType.INTERACT),
     }
 
-    private companion object {
-        val PRESETS = listOf(
-            "text-display" to "&b[区域标题]",
-            "message" to "&e[聊天消息]",
-            "sound" to "&d[播放音效]",
-        "player-command" to "&6[玩家命令]",
-        "console-command" to "&c[控制台命令]",
-        "teleport" to "&3[传送玩家]",
-        "give-item" to "&2[给予物品]",
-        "give-experience" to "&a[给予经验]",
-        "give-money" to "&6[给予金钱]",
-        "set-region-status" to "&5[设置区域状态]",
-            "set-variable" to "&a[设置变量]",
-            "unlock-region" to "&b[解锁区域]",
-            "complete-region" to "&5[完成区域]",
-        )
-    }
 }

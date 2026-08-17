@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.worldscript"
-version = "0.1.46-SNAPSHOT"
+version = "0.1.47-SNAPSHOT"
 
 repositories {
     mavenLocal()

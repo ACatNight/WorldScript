@@ -99,8 +99,14 @@ class ScriptActionServiceImpl(
                     ActionType.TELEPORT -> teleport(player, values["location"] ?: value.ifBlank {
                         listOf(values["world"], values["x"], values["y"], values["z"]).joinToString(",")
                     })
-                    ActionType.SET_VARIABLE -> setPlayerVariable(player, "${values["key"] ?: ""}=${values["value"] ?: value}")
-                    ActionType.SET_REGION_STATUS -> setRegionStatus(player, "${values["region"] ?: ""},${values["status"] ?: value}")
+                    ActionType.SET_VARIABLE -> {
+                        val variable = values["key"]?.let { "$it=${values["value"].orEmpty()}" } ?: value
+                        setPlayerVariable(player, variable)
+                    }
+                    ActionType.SET_REGION_STATUS -> {
+                        val status = values["region"]?.let { "$it,${values["status"].orEmpty()}" } ?: value
+                        setRegionStatus(player, status)
+                    }
                     ActionType.GIVE_ITEM -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.ITEM, values["material"] ?: value, values["amount"]?.toDoubleOrNull() ?: 1.0)))
                     ActionType.GIVE_EXPERIENCE -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.EXPERIENCE, values["amount"] ?: value)))
                     ActionType.GIVE_MONEY -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.MONEY, values["amount"] ?: value)))

@@ -45,6 +45,7 @@ actions:
     type: give-item
     defaults:
       material: "DIAMOND"
+      amount: "1"
   give-experience:
     name: "给予经验"
     type: give-experience
