@@ -28,8 +28,9 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
             player.sendMessage("${ChatColor.RED}区域不存在：$regionId")
             return
         }
-        player.sendMessage(color("&6区域编辑 &8> &e${region.id} &8> &f${region.displayName}"))
-        player.sendMessage(color("&8${region.worldName} &7${region.bounds}"))
+        player.sendMessage(color("&6公共单位 &8> &e${region.id} &8> &f${region.displayName} &8> &6${pageName(section)}"))
+        player.sendMessage(color("&8${region.worldName} &7${region.bounds} &8| &7父区域: &f${region.parentId ?: "无"} &8| &7子区域: &f${regions.all().count { it.parentId.equals(region.id, true) }}"))
+        player.sendMessage(color("&7区域类型 &f${region.role.name.lowercase()} &8| &7内容 ID &f${region.contentId.ifBlank { "-" }}"))
         when (section) {
             "main" -> main(player, region)
             "events" -> events(player, region)
@@ -48,7 +49,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
                 else -> event(player, region, section)
             }
         }
-        player.sendMessage(color("&7[返回] &8[<] &f1 &8/ &f1 &8[>] &7[聊天输入]"))
+        row(player, Button("&7[返回]", "返回上一级", "/ws edit ${region.id} main"), Button("&8[<]", "上一页", "/ws edit ${region.id} main"), Button("&f1 / 1", "当前页", "/ws edit ${region.id} main"), Button("&8[>]", "下一页", "/ws edit ${region.id} main"), Button("&7[聊天输入]", "需要输入文字时点击属性值", "/ws edit ${region.id} main"))
     }
 
     private fun main(player: Player, region: RegionDefinition) {
@@ -295,7 +296,16 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
     }
 
     private fun heading(player: Player, text: String) {
-        player.sendMessage(color("&8$text &8&m--------------------"))
+        player.sendMessage(color("$text &8&m----------------------------------------"))
+    }
+
+    private fun pageName(section: String): String = when {
+        section == "main" -> "公共特性"
+        section == "events" -> "事件列表"
+        section == "particles" -> "区域粒子"
+        section.startsWith("action:") -> "动作参数"
+        section.startsWith("add:") -> "添加动作"
+        else -> "区域编辑"
     }
 
     private fun row(player: Player, vararg buttons: Button) {

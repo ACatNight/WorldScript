@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.51
+
+- Refined the chat editor into a breadcrumb-based region property panel with separated groups and full-width dividers.
+- Added region identity context for world, bounds, parent, child count, role, and content ID.
+
 ## 0.1.50
 
 - Added a separated breadcrumb-style chat editor layout for regions, events, actions, and parameters.
