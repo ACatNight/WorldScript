@@ -20,10 +20,6 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.plugin.java.JavaPlugin
 
-/**
- * The list is the editor shell. Region details stay in the chat editor so this
- * inventory remains a fast map-like index, not a second configuration system.
- */
 class RegionGuiService(
     private val plugin: JavaPlugin,
     private val regions: RegionCoreServiceImpl,
@@ -31,14 +27,12 @@ class RegionGuiService(
     private val lang = Lang(plugin)
     var editorOpener: ((Player, String) -> Unit)? = null
 
-    fun reset() = Unit
-
     fun openList(player: Player, requestedPage: Int = 0) {
-        val entries = regions.all().sortedWith(compareBy<RegionDefinition> { it.worldName }.thenBy { it.id })
+        val entries = sortedRegions()
         val pageCount = ((entries.size + PAGE_SIZE - 1) / PAGE_SIZE).coerceAtLeast(1)
         val page = requestedPage.coerceIn(0, pageCount - 1)
         val inventory = Bukkit.createInventory(
-            RegionGuiHolder("list", inputKind = page.toString()),
+            RegionGuiHolder("list", page),
             54,
             color(lang.text("gui-list-title", "WorldScript Regions")),
         )
@@ -51,9 +45,9 @@ class RegionGuiService(
         entries.drop(page * PAGE_SIZE).take(PAGE_SIZE).forEachIndexed { index, region ->
             inventory.setItem(REGION_SLOTS[index], regionItem(region, player))
         }
-        inventory.setItem(45, item(material("ARROW"), lang.text("gui-page-previous", "Previous page"), emptyList()))
-        inventory.setItem(49, item(material("BARRIER"), lang.text("gui-close", "Close"), emptyList()))
-        inventory.setItem(53, item(material("ARROW"), lang.text("gui-page-next", "Next page"), emptyList()))
+        inventory.setItem(45, button("ARROW", "gui-page-previous", "Previous page"))
+        inventory.setItem(49, button("BARRIER", "gui-close", "Close"))
+        inventory.setItem(53, button("ARROW", "gui-page-next", "Next page"))
         player.openInventory(inventory)
     }
 
@@ -63,20 +57,15 @@ class RegionGuiService(
         val holder = event.inventory.holder as? RegionGuiHolder ?: return
         if (holder.page != "list") return
         event.isCancelled = true
-        val page = holder.inputKind?.toIntOrNull() ?: 0
+        val page = holder.pageIndex
         when (event.rawSlot) {
             45 -> if (page > 0) openList(player, page - 1)
             49 -> player.closeInventory()
             53 -> openList(player, page + 1)
             in REGION_SLOTS -> {
-                val regionIndex = page * PAGE_SIZE + REGION_SLOTS.indexOf(event.rawSlot)
-                val region = regions.all().sortedWith(compareBy<RegionDefinition> { it.worldName }.thenBy { it.id }).getOrNull(regionIndex) ?: return
-                if (event.click == ClickType.RIGHT || event.click == ClickType.SHIFT_RIGHT) {
-                    player.closeInventory()
-                    editorOpener?.invoke(player, region.id)
-                } else if (event.click == ClickType.LEFT || event.click == ClickType.SHIFT_LEFT) {
-                    teleportToRegion(player, region)
-                }
+                val slotIndex = REGION_SLOTS.indexOf(event.rawSlot)
+                val region = sortedRegions().getOrNull(page * PAGE_SIZE + slotIndex) ?: return
+                handleRegionClick(player, region, event.click)
             }
         }
     }
@@ -102,6 +91,20 @@ class RegionGuiService(
         ))
         lang.send(player, "gui-teleported", "region" to region.id)
     }
+
+    private fun handleRegionClick(player: Player, region: RegionDefinition, click: ClickType) {
+        when (click) {
+            ClickType.RIGHT, ClickType.SHIFT_RIGHT -> {
+                player.closeInventory()
+                editorOpener?.invoke(player, region.id)
+            }
+            ClickType.LEFT, ClickType.SHIFT_LEFT -> teleportToRegion(player, region)
+            else -> Unit
+        }
+    }
+
+    private fun sortedRegions(): List<RegionDefinition> =
+        regions.all().sortedWith(compareBy<RegionDefinition> { it.worldName }.thenBy { it.id })
 
     private fun regionItem(region: RegionDefinition, player: Player): ItemStack {
         val effective = regions.effective(region.id) ?: region
@@ -138,6 +141,9 @@ class RegionGuiService(
     }
 
     private fun material(primary: String, vararg legacy: String): Material = MaterialResolver.find(primary, *legacy) ?: Material.PAPER
+
+    private fun button(material: String, key: String, fallback: String): ItemStack =
+        item(this.material(material), lang.text(key, fallback), emptyList())
 
     private fun item(material: Material, name: String, lore: List<String>): ItemStack = ItemStack(material).also { stack ->
         stack.itemMeta = stack.itemMeta?.also { meta: ItemMeta ->

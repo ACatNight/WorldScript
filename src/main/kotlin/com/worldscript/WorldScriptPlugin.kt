@@ -66,7 +66,6 @@ class WorldScriptPlugin : JavaPlugin() {
         command.reloadHandler = {
             events.reset()
             actions.reset()
-            gui.reset()
             presets.reload()
         }
         command.playerRefresh = events::refresh

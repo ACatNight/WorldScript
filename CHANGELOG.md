@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.70
+
+- Simplified the region list state and removed obsolete GUI holder fields.
+- Centralized region ordering and click handling for easier maintenance.
+
 ## 0.1.69
 
 - Replaced the multi-page inventory editor with a compact region list.
