@@ -251,7 +251,8 @@ class RegionChatEditor(
     private fun toggleEvent(player: Player, region: RegionDefinition, key: String) {
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         regions.toggleEvent(region.id, type)
-        open(player, region.id, key)
+        val enabled = regions.effective(region.id)?.events?.get(type)?.enabled != false
+        player.sendMessage(color("&a${plain(key)} &7已${if (enabled) "启用" else "关闭"}。&8 点击刷新查看完整页面。"))
     }
 
     private fun adjustCooldown(player: Player, region: RegionDefinition, value: String) {
@@ -259,7 +260,8 @@ class RegionChatEditor(
         val type = RegionEventMenu.entries.firstOrNull { it.key == parts[0] }?.type ?: return
         val delta = parts.getOrNull(1)?.toLongOrNull() ?: return
         regions.updateEvent(region.id, type) { it.copy(cooldownSeconds = (it.cooldownSeconds + delta).coerceAtLeast(0)) }
-        open(player, region.id, parts[0])
+        val cooldown = regions.effective(region.id)?.events?.get(type)?.cooldownSeconds ?: 0
+        player.sendMessage(color("&a冷却时间 &f${cooldown}s &7已保存。"))
     }
 
     private fun toggleMode(player: Player, region: RegionDefinition, value: String) {
@@ -272,7 +274,8 @@ class RegionChatEditor(
                 else -> it.copy(repeatEntryOnly = false)
             }
         }
-        open(player, region.id, parts[0])
+        val script = regions.effective(region.id)?.events?.get(type)
+        player.sendMessage(color("&a触发模式 &f${mode(script)} &7已保存。"))
     }
 
     private fun mode(script: com.worldscript.foundation.model.ScriptDefinition?): String = when {
@@ -286,7 +289,7 @@ class RegionChatEditor(
         val key = parts.getOrNull(0) ?: return
         val index = parts.getOrNull(1)?.toIntOrNull() ?: return
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
-        val action = region.events[type]?.actions?.getOrNull(index) ?: return
+        val action = regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) ?: return
         val current = action.parameters["sound"] ?: action.value
         val sounds = SOUND_CHOICES.filter { resolveSound(it) != null }.ifEmpty { listOf(current) }
         val currentIndex = sounds.indexOf(current).coerceAtLeast(0)
@@ -295,6 +298,7 @@ class RegionChatEditor(
                 val delta = if (parts[2] == "next") 1 else -1
                 val selected = sounds[(currentIndex + delta + sounds.size) % sounds.size]
                 updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + ("sound" to selected)))
+                player.sendMessage(color("&a音效已切换为 &f$selected"))
             }
             "play" -> {
                 val sound = resolveSound(current)
@@ -309,9 +313,9 @@ class RegionChatEditor(
                 val delta = if (parts[2].endsWith("up")) 0.1 else -0.1
                 val next = ((action.parameters[name]?.toDoubleOrNull() ?: 1.0) + delta).coerceIn(0.0, 2.0)
                 updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + (name to "%.1f".format(Locale.US, next))))
+                player.sendMessage(color("&a${if (name == "volume") "音量" else "音调"} &f${"%.1f".format(Locale.US, next)} &7已保存。"))
             }
         }
-        open(player, region.id, "action:$key:$index")
     }
 
     private fun resolveSound(value: String): Sound? {
@@ -330,14 +334,14 @@ class RegionChatEditor(
         val parameter = parts.getOrNull(2) ?: return
         val direction = parts.getOrNull(3) ?: return
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
-        val action = region.events[type]?.actions?.getOrNull(index) ?: return
+        val action = regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) ?: return
         val options = regions.all().map { it.id }.sorted()
         if (options.isEmpty()) return
         val current = options.indexOf(action.parameters[parameter]).coerceAtLeast(0)
         val delta = if (direction == "next") 1 else -1
         val selected = options[(current + delta + options.size) % options.size]
         updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + (parameter to selected)))
-        open(player, region.id, "action:$key:$index")
+        player.sendMessage(color("&a${parameterLabel(parameter)} &f$selected &7已保存。"))
     }
 
     private fun updateActionParameter(player: Player, region: RegionDefinition, key: String, index: Int, action: ActionDefinition) {
@@ -365,9 +369,12 @@ class RegionChatEditor(
     private fun particleControl(player: Player, region: RegionDefinition, value: String) {
         val current = region.particle ?: regions.effective(region.id)?.particle ?: RegionParticleDefinition(enabled = false)
         val parts = value.split(':', limit = 2)
+        if (parts[0] == "preview") {
+            previewParticle(player, current)
+            return
+        }
         val updated = when (parts[0]) {
             "toggle" -> current.copy(enabled = !current.enabled)
-            "preview" -> { previewParticle(player, current); current }
             "prev", "next" -> {
                 val choices = PARTICLE_CHOICES.filter { runCatching { Particle.valueOf(it) }.isSuccess }.ifEmpty { listOf(current.type) }
                 val index = choices.indexOf(current.type).coerceAtLeast(0)
@@ -379,7 +386,14 @@ class RegionChatEditor(
             else -> current
         }
         regions.updateParticle(region.id, updated)
-        open(player, region.id, "particles")
+        val message = when (parts[0]) {
+            "toggle" -> "粒子${if (updated.enabled) "已启用" else "已关闭"}"
+            "prev", "next" -> "粒子类型已切换为 ${updated.type}"
+            "count" -> "粒子数量已调整为 ${updated.count}"
+            "interval" -> "生成间隔已调整为 ${updated.intervalTicks} tick"
+            else -> "粒子配置已保存"
+        }
+        player.sendMessage(color("&a$message &8| &7点击刷新查看完整页面。"))
     }
 
     private fun previewParticle(player: Player, definition: RegionParticleDefinition) {
@@ -398,7 +412,7 @@ class RegionChatEditor(
         val next = statuses[(current + 1) % statuses.size]
         statuses.filter { it != next }.forEach { regions.setStatus(region.id, it, false) }
         regions.setStatus(region.id, next, true)
-        open(player, region.id, "main")
+        player.sendMessage(color("&a区域状态已切换为 &f${statusText(region.copy(statuses = setOf(next)))} &7。"))
     }
 
     private fun footer(player: Player, region: RegionDefinition, section: String) {

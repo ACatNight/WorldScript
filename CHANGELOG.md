@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.66
+
+- Changed editor micro-adjustments to use one-line feedback instead of full-page redraws.
+- Preview actions no longer write configuration accidentally.
+
 ## 0.1.65
 
 - Keeps editor fallback text in the selected language when upgrading from an older language file.
