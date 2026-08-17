@@ -9,7 +9,7 @@ WorldScript 是一个面向 Paper 1.12.2 至 1.21.8 的区域脚本插件，用�
 - 进入、离开、方块交互事件
 - 玩家解锁、首次进入、完成和一次性奖励状态
 - 条件、动作、奖励和 PlaceholderAPI HUD 变量
-- 选区工具、管理命令、GUI 和 `/ws validate` 配置检查
+- 选区工具、区域列表、聊天编辑器和 `/ws validate` 配置检查
 - 内置 TabooLib 6.3.0 与 Kether，可在区域事件中执行高级脚本
 - Kether 可读取玩家变量与区域变量
 
@@ -60,6 +60,7 @@ messages:
 
 ## 文档
 
+- [中文 Wiki](docs/wiki-zh_CN.md)
 - [配置参考](docs/config-reference-zh_CN.md)
 - [外部整合](docs/integration-zh_CN.md)
 - [开放世界示例](examples/region-progression-template.yml)

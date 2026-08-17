@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.71
+
+- Added a user-facing Chinese Wiki for installation, configuration, integrations, and troubleshooting.
+- Replaced the internal design-agent document with concise project design principles.
+- Updated README feature wording to match the region list and chat editor workflow.
+
 ## 0.1.70
 
 - Simplified the region list state and removed obsolete GUI holder fields.

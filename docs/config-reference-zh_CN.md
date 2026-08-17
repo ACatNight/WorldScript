@@ -111,7 +111,7 @@ events:
 
 当前内置预设包括 `text-display`、`message`、`sound`、`player-command`、`console-command`、`teleport`、`set-variable`、`set-region-status`、`give-item`、`give-experience`、`give-money`、`unlock-region` 和 `complete-region`。完整默认参数位于插件目录的 `presets/actions.yml`；复杂流程仍可使用 `type: kether`。
 
-`kether` 用于复杂逻辑，脚本值可以使用 YAML 多行字符串。WorldScript 会自动提供 `player`、`uuid`、`region` 和 `world` 变量；玩家变量以 `ws_var_<变量名>` 提供，区域变量以 `ws_region_var_<变量名>` 提供。GUI 聊天输入适合短脚本，多行脚本请直接写入 YAML；简单消息、命令和状态更新优先使用原生动作，便于维护。
+`kether` 用于复杂逻辑，脚本值可以使用 YAML 多行字符串。WorldScript 会自动提供 `player`、`uuid`、`region` 和 `world` 变量；玩家变量以 `ws_var_<变量名>` 提供，区域变量以 `ws_region_var_<变量名>` 提供。聊天编辑器适合短脚本，多行脚本请直接写入 YAML；简单消息、命令和状态更新优先使用原生动作，便于维护。
 
 ```yaml
 actions:

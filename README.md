@@ -15,7 +15,7 @@ WorldScript is currently fully free and available under the [MIT License](LICENS
 - Enter, leave, and block interaction events
 - Per-player unlock, first-entry, completion, and one-time reward state
 - Conditions, actions, rewards, and PlaceholderAPI variables
-- Selection tool, admin commands, GUI, and configuration validation
+- Selection tool, region list, chat editor, and configuration validation
 - Embedded TabooLib 6.3.0 runtime with Kether script actions
 - Kether context variables for player and region data
 
@@ -53,6 +53,7 @@ With PlaceholderAPI: `%worldscript_region_name%`, `%worldscript_parent_name%`, `
 
 ## Documentation
 
+- [Chinese Wiki](docs/wiki-zh_CN.md)
 - [Chinese configuration reference](docs/config-reference-zh_CN.md)
 - [Chinese integration guide](docs/integration-zh_CN.md)
 - [Chinese README](README-zh_CN.md)
