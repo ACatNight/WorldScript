@@ -25,9 +25,8 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
             player.sendMessage("${ChatColor.RED}区域不存在：$regionId")
             return
         }
-        player.sendMessage(color("&8&m----------------------------------------"))
-        player.sendMessage(color("&6⌁区域编辑 &8<临时编辑器> &f> &e${region.id}"))
-        player.sendMessage(color("&7${region.displayName} &8| &7${region.worldName} &8| &7${region.bounds}"))
+        player.sendMessage(color("&6区域编辑 &8> &e${region.id} &8> &f${region.displayName}"))
+        player.sendMessage(color("&8${region.worldName} &7${region.bounds}"))
         when (section) {
             "main" -> main(player, region)
             "events" -> events(player, region)
@@ -39,42 +38,50 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
                 else -> event(player, region, section)
             }
         }
-        player.sendMessage(color("&8&m----------------------------------------"))
+        player.sendMessage(color("&7[返回] &8[<] &f1 &8/ &f1 &8[>] &7[聊天输入]"))
     }
 
     private fun main(player: Player, region: RegionDefinition) {
-        row(player,
-            Button("&6[公共特性]", "区域状态、父子关系和基础信息", "/ws edit ${region.id} main"),
-            Button("&e[公共数据]", "查看区域坐标和内容 ID", "/ws edit ${region.id} main"),
-            Button("&b[区域变量]", "编辑请直接修改区域 YAML", "/ws edit ${region.id} main"),
-            Button("&a[事件编辑]", "打开进入、离开和交互事件", "/ws edit ${region.id} events"),
-            Button("&d[区域粒子]", "粒子效果请在区域 YAML 中编辑", "/ws edit ${region.id} main"),
-        )
-        row(player,
-            Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} main"),
-            Button("&c[关闭]", "关闭聊天编辑器", "/ws edit close"),
-        )
+        heading(player, "&6公共特性")
+        row(player, Button("&e[区域状态]", "查看区域状态和父子关系", "/ws edit ${region.id} main"))
+        row(player, Button("&e[继承关系]", "查看父区域与继承规则", "/ws edit ${region.id} main"))
+        heading(player, "&e公共数据")
+        row(player, Button("&f[坐标范围]", "查看区域坐标范围", "/ws edit ${region.id} main"))
+        row(player, Button("&f[内容 ID]", "查看外部内容标识", "/ws edit ${region.id} main"))
+        heading(player, "&b区域变量")
+        row(player, Button("&b[变量列表]", "查看区域变量，编辑请使用 YAML", "/ws edit ${region.id} main"))
+        heading(player, "&a事件与反馈")
+        row(player, Button("&a[事件编辑]", "打开进入、离开和交互事件", "/ws edit ${region.id} events"))
+        heading(player, "&d区域氛围")
+        row(player, Button("&d[区域粒子]", "打开区域粒子设置", "/ws edit ${region.id} main"))
+        heading(player, "&7操作")
+        row(player, Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} main"), Button("&c[关闭]", "关闭聊天编辑器", "/ws edit close"))
     }
 
     private fun events(player: Player, region: RegionDefinition) {
-        row(player, *RegionEventMenu.entries.map { menu ->
+        heading(player, "&a事件列表")
+        RegionEventMenu.entries.forEach { menu ->
             val script = region.events[menu.type]
             val status = if (script?.enabled == false) "&8关闭" else "&a启用"
-            Button("$status ${menu.label}", "动作 ${script?.actions?.size ?: 0} 个，点击查看", "/ws edit ${region.id} ${menu.key}")
-        }.toTypedArray())
-        line(player, "&7[返回]", "返回区域总览", "/ws edit ${region.id} main")
+            row(player, Button("$status ${menu.label}", "动作 ${script?.actions?.size ?: 0} 个，点击查看", "/ws edit ${region.id} ${menu.key}"))
+        }
+        heading(player, "&7操作")
+        row(player, Button("&7[返回]", "返回区域总览", "/ws edit ${region.id} main"))
     }
 
     private fun event(player: Player, region: RegionDefinition, key: String) {
         val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
         val script = region.events[menu.type]
-        player.sendMessage(color("&e${menu.label} &8| &7enabled=${script?.enabled ?: false} &7actions=${script?.actions?.size ?: 0}"))
+        heading(player, "&e${menu.label}")
+        player.sendMessage(color("&7启用状态 &f${script?.enabled ?: false} &8| &7动作数量 &f${script?.actions?.size ?: 0}"))
+        heading(player, "&f动作列表")
         script?.actions?.forEachIndexed { index, action ->
             line(player, "&8${index + 1}. &f${action.preset ?: action.type.name.lowercase()}", "查看并编辑动作参数", "/ws edit ${region.id} ${menu.key} action:$index")
         }
-        line(player, "&a[添加预设动作]", "选择一个内置动作并写入区域配置", "/ws edit ${region.id} add:$key")
-        line(player, "&b[配置文件]", "编辑 regions/${region.id}.yml", "/ws edit ${region.id} main")
-        line(player, "&7[返回事件]", "返回事件列表", "/ws edit ${region.id} events")
+        heading(player, "&7操作")
+        row(player, Button("&a[添加预设动作]", "选择一个内置动作并写入区域配置", "/ws edit ${region.id} add:$key"))
+        row(player, Button("&b[配置文件]", "编辑 regions/${region.id}.yml", "/ws edit ${region.id} main"))
+        row(player, Button("&7[返回事件]", "返回事件列表", "/ws edit ${region.id} events"))
     }
 
     private fun action(player: Player, region: RegionDefinition, value: String) {
@@ -84,6 +91,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
         val action = region.events[menu.type]?.actions?.getOrNull(index) ?: return open(player, region.id, key)
         player.sendMessage(color("&e动作 ${index + 1} &8| &f${action.preset ?: action.type.name.lowercase()}"))
+        heading(player, "&f参数")
         if (action.parameters.isEmpty()) line(player, "&7[value]", "当前值：${action.value}", "/ws edit ${region.id} $key set:$index:value")
         action.parameters.forEach { (name, current) ->
             line(player, "&b[$name] &f$current", "点击后在聊天栏输入新值", "/ws edit ${region.id} $key set:$index:$name")
@@ -154,6 +162,10 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
 
     private fun line(player: Player, label: String, hover: String, command: String) {
         player.spigot().sendMessage(*button(label, hover, command))
+    }
+
+    private fun heading(player: Player, text: String) {
+        player.sendMessage(color("&8$text &8&m--------------------"))
     }
 
     private fun row(player: Player, vararg buttons: Button) {
