@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.74
+
+- Centralized editor command and mutation routing in `EditorRoute`.
+- Added route parsing coverage to the built-in logic test runner.
+
 ## 0.1.73
 
 - Editing an inherited action now creates a local child-region override first.

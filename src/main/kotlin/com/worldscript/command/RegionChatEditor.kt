@@ -42,16 +42,18 @@ class RegionChatEditor(
             return
         }
 
-        when {
-            section.startsWith("status:") -> return cycleStatus(player, region)
-            section.startsWith("toggle:") -> return toggleEvent(player, region, section.removePrefix("toggle:"))
-            section.startsWith("cooldown:") -> return adjustCooldown(player, region, section.removePrefix("cooldown:"))
-            section.startsWith("mode:") -> return toggleMode(player, region, section.removePrefix("mode:"))
-            section.startsWith("sound:") -> return soundControl(player, region, section.removePrefix("sound:"))
-            section.startsWith("select:") -> return selectParameter(player, region, section.removePrefix("select:"))
-            section.startsWith("particle:") -> return particleControl(player, region, section.removePrefix("particle:"))
-            section.startsWith("set:") -> return setInput(player, region, section.removePrefix("set:"))
-            section.startsWith("remove:") -> return removeAction(player, region, section.removePrefix("remove:"))
+        EditorRoute.mutation(section)?.let { mutation ->
+            return when (mutation.operation) {
+                EditorOperation.STATUS -> cycleStatus(player, region)
+                EditorOperation.TOGGLE -> toggleEvent(player, region, mutation.payload)
+                EditorOperation.COOLDOWN -> adjustCooldown(player, region, mutation.payload)
+                EditorOperation.MODE -> toggleMode(player, region, mutation.payload)
+                EditorOperation.SOUND -> soundControl(player, region, mutation.payload)
+                EditorOperation.SELECT -> selectParameter(player, region, mutation.payload)
+                EditorOperation.PARTICLE -> particleControl(player, region, mutation.payload)
+                EditorOperation.SET -> setInput(player, region, mutation.payload)
+                EditorOperation.REMOVE -> removeAction(player, region, mutation.payload)
+            }
         }
 
         header(player, region, section)
