@@ -57,7 +57,8 @@ class WorldScriptPlugin : JavaPlugin() {
         val selection = SelectionService(this)
         val command = WsCommand(this, regionCore, selection, playerVariables)
         command.guiOpener = gui::openList
-        command.chatEditor = RegionChatEditor(regionCore)
+        val chatEditor = RegionChatEditor(this, regionCore)
+        command.chatEditor = chatEditor
         command.reloadHandler = {
             events.reset()
             actions.reset()
@@ -71,6 +72,7 @@ class WorldScriptPlugin : JavaPlugin() {
         server.pluginManager.registerEvents(playerVariables, this)
         server.pluginManager.registerEvents(actions, this)
         server.pluginManager.registerEvents(gui, this)
+        server.pluginManager.registerEvents(chatEditor, this)
         server.pluginManager.registerEvents(RegionSelectionListener(this, selection), this)
         if (server.pluginManager.isPluginEnabled("PlaceholderAPI")) {
             WorldScriptPlaceholderExpansion(this, regionCore, playerVariables).register()

@@ -12,9 +12,15 @@ import net.md_5.bungee.api.chat.hover.content.Text
 import net.md_5.bungee.api.chat.BaseComponent
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.player.AsyncPlayerChatEvent
+import org.bukkit.plugin.java.JavaPlugin
+import java.util.UUID
 
 /** A small chat-first editor for operators who prefer config files over inventories. */
-class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
+class RegionChatEditor(private val plugin: JavaPlugin, private val regions: RegionCoreServiceImpl) : Listener {
+    private val input = mutableMapOf<UUID, PendingInput>()
     fun open(player: Player, regionId: String, section: String = "main") {
         val region = regions.find(regionId) ?: run {
             player.sendMessage("${ChatColor.RED}区域不存在：$regionId")
@@ -26,7 +32,13 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
         when (section) {
             "main" -> main(player, region)
             "events" -> events(player, region)
-            else -> if (section.startsWith("add:")) addPreset(player, region, section.removePrefix("add:")) else event(player, region, section)
+            else -> when {
+                section.startsWith("add:") -> addPreset(player, region, section.removePrefix("add:"))
+                section.startsWith("action:") -> action(player, region, section.removePrefix("action:"))
+                section.startsWith("set:") -> setInput(player, region, section.removePrefix("set:"))
+                section.startsWith("remove:") -> removeAction(player, region, section.removePrefix("remove:"))
+                else -> event(player, region, section)
+            }
         }
         player.sendMessage(color("&8&m----------------------------------------"))
     }
@@ -59,12 +71,70 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
         val script = region.events[menu.type]
         player.sendMessage(color("&e${menu.label} &8| &7enabled=${script?.enabled ?: false} &7actions=${script?.actions?.size ?: 0}"))
         script?.actions?.forEachIndexed { index, action ->
-            player.sendMessage(color("&8${index + 1}. &f${action.preset ?: action.type.name.lowercase()} &7${action.parameters.values.firstOrNull() ?: action.value}"))
+            line(player, "&8${index + 1}. &f${action.preset ?: action.type.name.lowercase()}", "查看并编辑动作参数", "/ws edit ${region.id} ${menu.key} action:$index")
         }
         line(player, "&a[添加预设动作]", "选择一个内置动作并写入区域配置", "/ws edit ${region.id} add:$key")
         line(player, "&b[配置文件]", "编辑 regions/${region.id}.yml", "/ws edit ${region.id} main")
         line(player, "&7[返回事件]", "返回事件列表", "/ws edit ${region.id} events")
     }
+
+    private fun action(player: Player, region: RegionDefinition, value: String) {
+        val parts = value.split(':', limit = 2)
+        val key = parts.firstOrNull() ?: return open(player, region.id, "events")
+        val index = parts.getOrNull(1)?.toIntOrNull() ?: return open(player, region.id, key)
+        val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
+        val action = region.events[menu.type]?.actions?.getOrNull(index) ?: return open(player, region.id, key)
+        player.sendMessage(color("&e动作 ${index + 1} &8| &f${action.preset ?: action.type.name.lowercase()}"))
+        if (action.parameters.isEmpty()) line(player, "&7[value]", "当前值：${action.value}", "/ws edit ${region.id} $key set:$index:value")
+        action.parameters.forEach { (name, current) ->
+            line(player, "&b[$name] &f$current", "点击后在聊天栏输入新值", "/ws edit ${region.id} $key set:$index:$name")
+        }
+        row(player,
+            Button("&c[删除动作]", "删除这个动作", "/ws edit ${region.id} $key remove:$index"),
+            Button("&7[返回]", "返回事件动作列表", "/ws edit ${region.id} $key"),
+        )
+    }
+
+    private fun setInput(player: Player, region: RegionDefinition, value: String) {
+        val parts = value.split(':', limit = 3)
+        val eventKey = parts.getOrNull(0) ?: return
+        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
+        val parameter = parts.getOrNull(2) ?: return
+        val type = RegionEventMenu.entries.firstOrNull { it.key == eventKey }?.type ?: return
+        region.events[type]?.actions?.getOrNull(index) ?: return
+        input[player.uniqueId] = PendingInput(region.id, type, index, parameter)
+        player.sendMessage(color("&6请输入 &f$parameter &6的新值，输入 &c取消 &6放弃修改。"))
+    }
+
+    private fun removeAction(player: Player, region: RegionDefinition, value: String) {
+        val parts = value.split(':', limit = 2)
+        val type = RegionEventMenu.entries.firstOrNull { it.key == parts[0] }?.type ?: return
+        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
+        regions.removeAction(region.id, type, index)
+        player.sendMessage(color("&a动作已删除。"))
+        open(player, region.id, parts[0])
+    }
+
+    @EventHandler
+    fun onChat(event: AsyncPlayerChatEvent) {
+        val pending = input.remove(event.player.uniqueId) ?: return
+        event.isCancelled = true
+        val player = event.player
+        val message = event.message
+        if (message.equals("取消", true)) {
+            event.player.sendMessage(color("&7已取消修改。"))
+            return
+        }
+        org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+            val action = currentAction(regions.find(pending.regionId), pending.type, pending.index) ?: return@Runnable
+            val updated = if (pending.parameter == "value") action.copy(value = message) else action.copy(parameters = action.parameters + (pending.parameter to message))
+            regions.updateAction(pending.regionId, pending.type, pending.index, updated)
+            player.sendMessage(color("&a参数已保存：&f${pending.parameter} &7= &f$message"))
+            open(player, pending.regionId, pending.type.name.lowercase().replace('_', '-'))
+        })
+    }
+
+    private fun currentAction(region: RegionDefinition?, type: RegionEventType, index: Int): ActionDefinition? = region?.events?.get(type)?.actions?.getOrNull(index)
 
     private fun addPreset(player: Player, region: RegionDefinition, key: String) {
         if (key.contains(':')) {
@@ -75,7 +145,7 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
             player.sendMessage(color("&a已添加预设动作：&f${parts[1]}"))
             return open(player, region.id, parts[0])
         }
-        PRESETS.forEach { (id, label) -> line(player, label, "使用默认参数添加，之后可编辑 YAML", "/ws edit ${region.id} add:$key:$id") }
+        PRESETS.forEach { (id, label) -> line(player, label, "使用默认参数添加，随后可在游戏内修改", "/ws edit ${region.id} add:$key:$id") }
         line(player, "&7[返回]", "返回事件", "/ws edit ${region.id} $key")
     }
 
@@ -88,6 +158,11 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
         "complete-region" -> ActionDefinition(ActionType.COMPLETE_REGION, parameters = mapOf("region" to "target_region"), preset = id)
         "player-command" -> ActionDefinition(ActionType.PLAYER_COMMAND, parameters = mapOf("command" to "spawn"), preset = id)
         "console-command" -> ActionDefinition(ActionType.CONSOLE_COMMAND, parameters = mapOf("command" to "say %player% entered %region%"), preset = id)
+        "teleport" -> ActionDefinition(ActionType.TELEPORT, parameters = mapOf("world" to "world", "x" to "0", "y" to "80", "z" to "0"), preset = id)
+        "give-item" -> ActionDefinition(ActionType.GIVE_ITEM, parameters = mapOf("material" to "DIAMOND", "amount" to "1"), preset = id)
+        "give-experience" -> ActionDefinition(ActionType.GIVE_EXPERIENCE, parameters = mapOf("amount" to "10"), preset = id)
+        "give-money" -> ActionDefinition(ActionType.GIVE_MONEY, parameters = mapOf("amount" to "100"), preset = id)
+        "set-region-status" -> ActionDefinition(ActionType.SET_REGION_STATUS, parameters = mapOf("region" to "target_region", "status" to "open"), preset = id)
         else -> null
     }
 
@@ -112,6 +187,7 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
     private fun color(value: String) = ChatColor.translateAlternateColorCodes('&', value)
 
     private data class Button(val label: String, val hover: String, val command: String)
+    private data class PendingInput(val regionId: String, val type: RegionEventType, val index: Int, val parameter: String)
 
     private enum class RegionEventMenu(val key: String, val label: String, val type: RegionEventType) {
         ENTER("enter", "&a[进入区域]", RegionEventType.ENTER),
@@ -126,8 +202,13 @@ class RegionChatEditor(private val regions: RegionCoreServiceImpl) {
             "text-display" to "&b[区域标题]",
             "message" to "&e[聊天消息]",
             "sound" to "&d[播放音效]",
-            "player-command" to "&6[玩家命令]",
-            "console-command" to "&c[控制台命令]",
+        "player-command" to "&6[玩家命令]",
+        "console-command" to "&c[控制台命令]",
+        "teleport" to "&3[传送玩家]",
+        "give-item" to "&2[给予物品]",
+        "give-experience" to "&a[给予经验]",
+        "give-money" to "&6[给予金钱]",
+        "set-region-status" to "&5[设置区域状态]",
             "set-variable" to "&a[设置变量]",
             "unlock-region" to "&b[解锁区域]",
             "complete-region" to "&5[完成区域]",

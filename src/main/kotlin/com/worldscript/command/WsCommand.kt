@@ -55,7 +55,17 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         val player = sender as? Player ?: run { reply(sender, "only-player"); return }
         val region = args.getOrNull(1) ?: run { sendUsage(sender); return }
         if (region.equals("close", true)) return
-        chatEditor?.open(player, region, args.getOrNull(2) ?: "main")
+        val eventKey = args.getOrNull(2)
+        val actionPage = args.getOrNull(3)
+        val section = when {
+            eventKey == null -> "main"
+            actionPage == null -> eventKey
+            actionPage.startsWith("action:") -> "action:$eventKey:${actionPage.removePrefix("action:")}"
+            actionPage.startsWith("set:") -> "set:$eventKey:${actionPage.removePrefix("set:")}"
+            actionPage.startsWith("remove:") -> "remove:$eventKey:${actionPage.removePrefix("remove:")}"
+            else -> eventKey
+        }
+        chatEditor?.open(player, region, section)
     }
 
     private fun validate(sender: CommandSender) {
