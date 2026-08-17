@@ -36,6 +36,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
             "events" -> events(player, region)
             else -> when {
                 section == "particles" -> particles(player, region)
+                section.startsWith("status:") -> cycleStatus(player, region)
                 section.startsWith("toggle:") -> toggleEvent(player, region, section.removePrefix("toggle:"))
                 section.startsWith("cooldown:") -> adjustCooldown(player, region, section.removePrefix("cooldown:"))
                 section.startsWith("mode:") -> toggleMode(player, region, section.removePrefix("mode:"))
@@ -49,22 +50,23 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
                 else -> event(player, region, section)
             }
         }
-        row(player, Button("&7[返回]", "返回上一级", "/ws edit ${region.id} main"), Button("&8[<]", "上一页", "/ws edit ${region.id} main"), Button("&f1 / 1", "当前页", "/ws edit ${region.id} main"), Button("&8[>]", "下一页", "/ws edit ${region.id} main"), Button("&7[聊天输入]", "需要输入文字时点击属性值", "/ws edit ${region.id} main"))
+        row(player, Button("&7[返回]", "返回区域总览", "/ws edit ${region.id} main"), Button("&f1 / 1", "当前页", "/ws edit ${region.id} main"), Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} main"))
     }
 
     private fun main(player: Player, region: RegionDefinition) {
         heading(player, "&6公共特性")
-        row(player, Button("&e[区域状态]", "查看区域状态和父子关系", "/ws edit ${region.id} main"))
-        row(player, Button("&e[继承关系]", "查看父区域与继承规则", "/ws edit ${region.id} main"))
+        property(player, "&e[区域状态]", statusText(region), "&e[切换]", "/ws edit ${region.id} status:next")
+        property(player, "&e[父区域]", region.parentId ?: "无", "&8[只读]")
+        property(player, "&e[子区域]", regions.all().count { it.parentId.equals(region.id, true) }.toString(), "&8[只读]")
         heading(player, "&e公共数据")
-        row(player, Button("&f[坐标范围]", "查看区域坐标范围", "/ws edit ${region.id} main"))
-        row(player, Button("&f[内容 ID]", "查看外部内容标识", "/ws edit ${region.id} main"))
+        property(player, "&f[坐标范围]", region.bounds.toString(), "&8[只读]")
+        property(player, "&f[内容 ID]", region.contentId.ifBlank { "-" }, "&8[只读]")
         heading(player, "&b区域变量")
-        row(player, Button("&b[变量列表]", "查看区域变量，编辑请使用 YAML", "/ws edit ${region.id} main"))
+        property(player, "&b[变量数量]", region.variables.size.toString(), "&8[配置文件]")
         heading(player, "&a事件与反馈")
-        row(player, Button("&a[事件编辑]", "打开进入、离开和交互事件", "/ws edit ${region.id} events"))
+        property(player, "&a[事件编辑]", "${region.events.values.count { it.enabled }} 个启用", "&a[打开]", "/ws edit ${region.id} events")
         heading(player, "&d区域氛围")
-        row(player, Button("&d[区域粒子]", "打开区域粒子设置", "/ws edit ${region.id} particles"))
+        property(player, "&d[区域粒子]", region.particle?.takeIf { it.enabled }?.type ?: "关闭", "&d[打开]", "/ws edit ${region.id} particles")
         heading(player, "&7操作")
         row(player, Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} main"), Button("&c[关闭]", "关闭聊天编辑器", "/ws edit close"))
     }
@@ -329,6 +331,25 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
 
     private fun heading(player: Player, text: String) {
         player.sendMessage(color("$text &8&m----------------------------------------"))
+    }
+
+    private fun property(player: Player, label: String, value: String, actionLabel: String, action: String? = null) {
+        if (action == null) {
+            player.sendMessage(color("$label &f$value &8$actionLabel"))
+        } else {
+            row(player, Button("$label &b$value $actionLabel", "点击执行：$actionLabel", action))
+        }
+    }
+
+    private fun statusText(region: RegionDefinition): String = region.statuses.firstOrNull()?.name?.lowercase() ?: "open"
+
+    private fun cycleStatus(player: Player, region: RegionDefinition) {
+        val statuses = listOf(com.worldscript.foundation.model.GlobalRegionStatus.OPEN, com.worldscript.foundation.model.GlobalRegionStatus.DANGEROUS, com.worldscript.foundation.model.GlobalRegionStatus.PEACEFUL, com.worldscript.foundation.model.GlobalRegionStatus.LOCKED)
+        val current = statuses.indexOf(region.statuses.firstOrNull()).coerceAtLeast(0)
+        val next = statuses[(current + 1) % statuses.size]
+        statuses.filter { it != next }.forEach { regions.setStatus(region.id, it, false) }
+        regions.setStatus(region.id, next, true)
+        open(player, region.id, "main")
     }
 
     private fun pageName(section: String): String = when {
