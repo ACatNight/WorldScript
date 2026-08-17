@@ -18,6 +18,7 @@ import com.worldscript.modules.l2.rpg.RewardService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -87,12 +88,7 @@ class ScriptActionServiceImpl(
                         values["stay"]?.toIntOrNull() ?: 20,
                         values["fade-out"]?.toIntOrNull() ?: 0,
                     )
-                    ActionType.SOUND -> player.playSound(
-                        player.location,
-                        values["sound"] ?: value,
-                        values["volume"]?.toFloatOrNull() ?: 1.0f,
-                        values["pitch"]?.toFloatOrNull() ?: 1.0f,
-                    )
+                    ActionType.SOUND -> playSound(player, values["sound"] ?: value, values["volume"]?.toFloatOrNull() ?: 1.0f, values["pitch"]?.toFloatOrNull() ?: 1.0f)
                     ActionType.PLAYER_COMMAND -> player.performCommand((values["command"] ?: value).removePrefix("/"))
                     ActionType.CONSOLE_COMMAND -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), (values["command"] ?: value).removePrefix("/"))
                     ActionType.MESSAGE -> player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', values["text"] ?: value))
@@ -174,6 +170,23 @@ class ScriptActionServiceImpl(
     }
 
     private fun color(value: String): String = org.bukkit.ChatColor.translateAlternateColorCodes('&', value)
+
+    private fun playSound(player: Player, name: String, volume: Float, pitch: Float) {
+        val sound = resolveSound(name) ?: run {
+            plugin.logger.warning("Unsupported sound '$name'; action was skipped.")
+            return
+        }
+        player.playSound(player.location, sound, volume, pitch)
+    }
+
+    private fun resolveSound(value: String): Sound? {
+        val name = value.trim().uppercase()
+        return runCatching { Sound.valueOf(name) }.getOrNull() ?: when (name) {
+            "BLOCK_NOTE_BLOCK_PLING" -> runCatching { Sound.valueOf("BLOCK_NOTE_PLING") }.getOrNull()
+            "BLOCK_NOTE_PLING" -> runCatching { Sound.valueOf("BLOCK_NOTE_BLOCK_PLING") }.getOrNull()
+            else -> null
+        }
+    }
 
     private fun setPlayerVariable(player: Player, value: String) {
         val parts = value.split('=', limit = 2)
