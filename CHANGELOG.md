@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.77
+
+- Moved editor feedback and event labels into the language files.
+- Added language customization and upgrade fallback notes to the Chinese Wiki.
+
 ## 0.1.76
 
 - Added editor input cleanup on page changes, player quit, reload, and close.

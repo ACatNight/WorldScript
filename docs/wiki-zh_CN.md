@@ -192,3 +192,13 @@ gradlew.bat clean build
 ```
 
 项目使用 MIT License，欢迎提交 Issue、配置示例和 Pull Request。
+
+## 12. 语言文件
+
+语言文件位于插件目录的 `lang/`：
+
+- `en_US.yml`：默认语言
+- `zh_CN.yml`：简体中文
+- `zh_TW.yml`：繁体中文
+
+在 `config.yml` 中修改 `language` 后执行 `/ws reload`。自定义语言可以复制 `en_US.yml`，只修改等号右侧的文本，不要修改键名、占位符或颜色代码。新版本增加键时，缺少的键会回退到默认语言。

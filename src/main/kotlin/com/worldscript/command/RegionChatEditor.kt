@@ -38,10 +38,20 @@ class RegionChatEditor(
 
     private fun editorText(key: String, fallback: String): String = lang.textWithLocalFallback("editor-$key", fallback)
 
+    private fun editorMessage(key: String, fallback: String, vararg replacements: Pair<String, Any?>): String {
+        var message = editorText(key, fallback)
+        replacements.forEach { (name, value) -> message = message.replace("%$name%", value?.toString() ?: "") }
+        return message
+    }
+
+    private fun sendEditor(player: Player, key: String, fallback: String, vararg replacements: Pair<String, Any?>) {
+        player.sendMessage(color(editorMessage(key, fallback, *replacements)))
+    }
+
     fun open(player: Player, regionId: String, section: String = "main") {
         input.remove(player.uniqueId)
         val region = regions.find(regionId) ?: run {
-            player.sendMessage(color("&c区域不存在：&f$regionId"))
+            sendEditor(player, "region-not-found", "&cRegion not found: &f%region%", "region" to regionId)
             return
         }
 
@@ -133,14 +143,14 @@ class RegionChatEditor(
         RegionEventMenu.entries.forEach { menu ->
             val script = regions.effective(region.id)?.events?.get(menu.type)
             val status = if (script?.enabled == false) "关闭" else "启用"
-            property(player, menu.label, "$status &8| &f${script?.actions?.size ?: 0} 个动作", "&a[打开]", "/ws edit ${region.id} ${menu.key}")
+            property(player, eventLabel(menu), "$status &8| &f${script?.actions?.size ?: 0} 个动作", "&a[打开]", "/ws edit ${region.id} ${menu.key}")
         }
     }
 
     private fun event(player: Player, region: RegionDefinition, key: String) {
         val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
         val script = regions.effective(region.id)?.events?.get(menu.type)
-        group(player, "&e${plain(menu.label)}")
+        group(player, "&e${eventLabel(menu)}")
         property(player, "&e[启用状态]", if (script?.enabled == false) "关闭" else "启用", if (script?.enabled == false) "&a[打开]" else "&c[关闭]", "/ws edit ${region.id} ${menu.key} toggle")
         property(player, "&b[触发模式]", mode(script), "&b[切换]", "/ws edit ${region.id} ${menu.key} mode:next")
         stepper(player, "&e[冷却时间]", "${script?.cooldownSeconds ?: 0}s", "&c[-5]", "/ws edit ${region.id} ${menu.key} cooldown:-5", "&a[+5]", "/ws edit ${region.id} ${menu.key} cooldown:5")
@@ -163,7 +173,7 @@ class RegionChatEditor(
             val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
             val action = presets.create(parts[1]) ?: return open(player, region.id, "add:$key")
             regions.updateEvent(region.id, menu.type) { it.copy(actions = it.actions + action) }
-            player.sendMessage(color("&a已添加动作：&f${parts[1]}"))
+            sendEditor(player, "action-added", "&aAction added: &f%value%", "value" to parts[1])
             return open(player, region.id, key)
         }
         group(player, "&6添加动作")
@@ -186,7 +196,7 @@ class RegionChatEditor(
         val action = regions.effective(region.id)?.events?.get(menu.type)?.actions?.getOrNull(index) ?: return open(player, region.id, key)
 
         group(player, "&6动作档案")
-        property(player, "&7所属事件", plain(menu.label), "&8—")
+        property(player, "&7所属事件", eventLabel(menu), "&8—")
         property(player, "&7动作类型", actionLabel(action), "&8—")
         if (action.type == ActionType.SOUND) soundProperties(player, region, key, index, action)
 
@@ -225,7 +235,7 @@ class RegionChatEditor(
         val type = RegionEventMenu.entries.firstOrNull { it.key == eventKey }?.type ?: return
         if (!ensureLocalAction(region, type, index)) return
         input[player.uniqueId] = PendingInput(region.id, eventKey, type, index, parameter, System.currentTimeMillis())
-        player.sendMessage(color("&6正在编辑 &f$parameter &8| &7请输入新值，输入 &c取消 &7放弃。"))
+        sendEditor(player, "input-prompt", "&6Editing &f%parameter% &8| &7Enter a value or type &ccancel &7to stop.", "parameter" to parameter)
     }
 
     private fun removeAction(player: Player, region: RegionDefinition, value: String) {
@@ -235,7 +245,7 @@ class RegionChatEditor(
         val index = target.index
         if (region.events[type]?.actions?.getOrNull(index) == null && regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) == null) return
         input[player.uniqueId] = PendingInput(region.id, key, type, index, "__delete__", System.currentTimeMillis())
-        player.sendMessage(color("&c确认删除动作 $index？&7请在聊天栏输入 &f确认 &7，其他内容取消。"))
+        sendEditor(player, "delete-confirm", "&cDelete action %index%? &7Type &fconfirm &7in chat. Anything else cancels.", "index" to index)
     }
 
     @EventHandler
@@ -248,7 +258,7 @@ class RegionChatEditor(
             return
         }
         if (message.equals("取消", true)) {
-            event.player.sendMessage(color("&7已取消修改。"))
+            sendEditor(event.player, "edit-cancelled", "&7Edit cancelled.")
             return
         }
         val player = event.player
@@ -256,12 +266,12 @@ class RegionChatEditor(
             val region = regions.find(pending.regionId) ?: return@Runnable
             if (pending.parameter == "__delete__") {
                 if (!message.equals("确认", true)) {
-                    player.sendMessage(color("&7已取消删除。"))
+                    sendEditor(player, "delete-cancelled", "&7Deletion cancelled.")
                     return@Runnable
                 }
                 if (ensureLocalAction(region, pending.type, pending.index)) {
                     regions.removeAction(pending.regionId, pending.type, pending.index)
-                    player.sendMessage(color("&a动作已删除。"))
+                    sendEditor(player, "action-deleted", "&aAction deleted.")
                     open(player, pending.regionId, pending.eventKey)
                 }
                 return@Runnable
@@ -270,7 +280,7 @@ class RegionChatEditor(
             val action = regions.find(pending.regionId)?.events?.get(pending.type)?.actions?.getOrNull(pending.index) ?: return@Runnable
             val updated = if (pending.parameter == "value") action.copy(value = message) else action.copy(parameters = action.parameters + (pending.parameter to message))
             regions.updateAction(pending.regionId, pending.type, pending.index, updated)
-            player.sendMessage(color("&a参数已保存：&f${pending.parameter} &7= &f$message"))
+            sendEditor(player, "parameter-saved", "&aParameter saved: &f%parameter% &7= &f%value%", "parameter" to pending.parameter, "value" to message)
             open(player, pending.regionId, pending.eventKey)
         })
     }
@@ -279,7 +289,7 @@ class RegionChatEditor(
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         regions.toggleEvent(region.id, type)
         val enabled = regions.effective(region.id)?.events?.get(type)?.enabled != false
-        player.sendMessage(color("&a${plain(key)} &7已${if (enabled) "启用" else "关闭"}。&8 点击刷新查看完整页面。"))
+            sendEditor(player, "event-toggled", "&a%event% &7is now %state%.&8 Refresh to view the full page.", "event" to plain(key), "state" to if (enabled) "enabled" else "disabled")
     }
 
     private fun adjustCooldown(player: Player, region: RegionDefinition, value: String) {
@@ -288,7 +298,7 @@ class RegionChatEditor(
         val delta = parts.getOrNull(1)?.toLongOrNull() ?: return
         regions.updateEvent(region.id, type) { it.copy(cooldownSeconds = (it.cooldownSeconds + delta).coerceAtLeast(0)) }
         val cooldown = regions.effective(region.id)?.events?.get(type)?.cooldownSeconds ?: 0
-        player.sendMessage(color("&a冷却时间 &f${cooldown}s &7已保存。"))
+        sendEditor(player, "cooldown-saved", "&aCooldown &f%value%s &7saved.", "value" to cooldown)
     }
 
     private fun toggleMode(player: Player, region: RegionDefinition, value: String) {
@@ -302,7 +312,7 @@ class RegionChatEditor(
             }
         }
         val script = regions.effective(region.id)?.events?.get(type)
-        player.sendMessage(color("&a触发模式 &f${mode(script)} &7已保存。"))
+        sendEditor(player, "mode-saved", "&aTrigger mode &f%value% &7saved.", "value" to mode(script))
     }
 
     private fun mode(script: com.worldscript.foundation.model.ScriptDefinition?): String = when {
@@ -325,14 +335,14 @@ class RegionChatEditor(
                 val delta = if (target.arguments.first() == "next") 1 else -1
                 val selected = sounds[(currentIndex + delta + sounds.size) % sounds.size]
                 updateActionParameter(region, key, index, action.copy(parameters = action.parameters + ("sound" to selected)))
-                player.sendMessage(color("&a音效已切换为 &f$selected"))
+                sendEditor(player, "sound-selected", "&aSound changed to &f%value%", "value" to selected)
             }
             "play" -> {
                 val sound = resolveSound(current)
-                if (sound == null) player.sendMessage(color("&c当前服务器不支持音效：&f$current"))
+                if (sound == null) sendEditor(player, "sound-unsupported", "&cThis server does not support sound: &f%value%", "value" to current)
                 else {
                     player.playSound(player.location, sound, action.parameters["volume"]?.toFloatOrNull() ?: 1f, action.parameters["pitch"]?.toFloatOrNull() ?: 1f)
-                    player.sendMessage(color("&a已试听：&f$current"))
+                    sendEditor(player, "sound-preview", "&aPreviewed sound: &f%value%", "value" to current)
                 }
             }
             "volume-down", "volume-up", "pitch-down", "pitch-up" -> {
@@ -341,7 +351,7 @@ class RegionChatEditor(
                 val delta = if (operation.endsWith("up")) 0.1 else -0.1
                 val next = ((action.parameters[name]?.toDoubleOrNull() ?: 1.0) + delta).coerceIn(0.0, 2.0)
                 updateActionParameter(region, key, index, action.copy(parameters = action.parameters + (name to "%.1f".format(Locale.US, next))))
-                player.sendMessage(color("&a${if (name == "volume") "音量" else "音调"} &f${"%.1f".format(Locale.US, next)} &7已保存。"))
+                sendEditor(player, "number-saved", "&a%name% &f%value% &7saved.", "name" to parameterLabel(name), "value" to "%.1f".format(Locale.US, next))
             }
         }
     }
@@ -369,7 +379,7 @@ class RegionChatEditor(
         val delta = if (direction == "next") 1 else -1
         val selected = options[(current + delta + options.size) % options.size]
         updateActionParameter(region, key, index, action.copy(parameters = action.parameters + (parameter to selected)))
-        player.sendMessage(color("&a${parameterLabel(parameter)} &f$selected &7已保存。"))
+        sendEditor(player, "selection-saved", "&a%name% &f%value% &7saved.", "name" to parameterLabel(parameter), "value" to selected)
     }
 
     private fun updateActionParameter(region: RegionDefinition, key: String, index: Int, action: ActionDefinition) {
@@ -399,7 +409,7 @@ class RegionChatEditor(
         stepper(player, "&e[粒子数量]", particle.count.toString(), "&c[-1]", "/ws edit ${region.id} particle:count:-1", "&a[+1]", "/ws edit ${region.id} particle:count:1")
         stepper(player, "&e[生成间隔]", "${particle.intervalTicks} tick", "&c[-5]", "/ws edit ${region.id} particle:interval:-5", "&a[+5]", "/ws edit ${region.id} particle:interval:5")
         property(player, "&b[扩散范围]", "${particle.spreadX}, ${particle.spreadY}, ${particle.spreadZ}", "&8[配置文件]")
-        if (local == null && region.parentId != null) player.sendMessage(color("&8当前粒子继承自父区域；首次修改会在本区域写入覆盖配置。"))
+        if (local == null && region.parentId != null) sendEditor(player, "particle-inherited", "&8Particles are inherited from the parent; the first edit creates a local override.")
     }
 
     private fun particleControl(player: Player, region: RegionDefinition, value: String) {
@@ -429,17 +439,17 @@ class RegionChatEditor(
             "interval" -> "生成间隔已调整为 ${updated.intervalTicks} tick"
             else -> "粒子配置已保存"
         }
-        player.sendMessage(color("&a$message &8| &7点击刷新查看完整页面。"))
+        sendEditor(player, "particle-updated", "&a%value% &8| &7Refresh to view the full page.", "value" to message)
     }
 
     private fun previewParticle(player: Player, definition: RegionParticleDefinition) {
         val particle = runCatching { Particle.valueOf(definition.type.uppercase(Locale.ROOT)) }.getOrNull()
         if (particle == null) {
-            player.sendMessage(color("&c当前服务器不支持粒子：&f${definition.type}"))
+            sendEditor(player, "particle-unsupported", "&cThis server does not support particle: &f%value%", "value" to definition.type)
             return
         }
         player.spawnParticle(particle, player.location.clone().add(0.0, 1.0, 0.0), definition.count, definition.spreadX, definition.spreadY, definition.spreadZ, definition.speed)
-        player.sendMessage(color("&a已预览粒子：&f${definition.type}"))
+        sendEditor(player, "particle-preview", "&aPreviewed particle: &f%value%", "value" to definition.type)
     }
 
     private fun cycleStatus(player: Player, region: RegionDefinition) {
@@ -448,7 +458,7 @@ class RegionChatEditor(
         val next = statuses[(current + 1) % statuses.size]
         statuses.filter { it != next }.forEach { regions.setStatus(region.id, it, false) }
         regions.setStatus(region.id, next, true)
-        player.sendMessage(color("&a区域状态已切换为 &f${statusText(region.copy(statuses = setOf(next)))} &7。"))
+        sendEditor(player, "status-saved", "&aRegion status changed to &f%value% &7.", "value" to statusText(region.copy(statuses = setOf(next))))
     }
 
     private fun footer(player: Player, region: RegionDefinition, section: String) {
@@ -467,7 +477,7 @@ class RegionChatEditor(
             Button("&f[1 / 1]", "当前页面", "/ws edit ${region.id} $section"),
             Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} $section"),
         )
-        player.sendMessage(color("&8提示 &7点击彩色文字操作；文本参数会打开聊天输入。"))
+        sendEditor(player, "footer-hint", "&8Hint &7Click colored text to operate; text parameters open chat input.")
     }
 
     private fun group(player: Player, title: String) {
@@ -541,6 +551,9 @@ class RegionChatEditor(
         "amount" to "数量", "location" to "坐标", "key" to "变量名", "value" to "变量值",
     )[name.lowercase(Locale.ROOT)] ?: name
 
+    private fun eventLabel(menu: RegionEventMenu): String =
+        editorText("event-${menu.key}", plain(menu.label))
+
     private fun boundsText(region: RegionDefinition): String {
         val min = region.bounds.min
         val max = region.bounds.max
@@ -563,7 +576,7 @@ class RegionChatEditor(
         section == "particles" -> "区域氛围"
         section.startsWith("action:") -> "动作参数"
         section.startsWith("add:") -> "添加动作"
-        RegionEventMenu.entries.any { it.key == section } -> plain(RegionEventMenu.entries.first { it.key == section }.label)
+        RegionEventMenu.entries.any { it.key == section } -> eventLabel(RegionEventMenu.entries.first { it.key == section })
         else -> "区域编辑"
     }
 
