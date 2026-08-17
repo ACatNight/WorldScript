@@ -91,7 +91,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         row(player, Button(if (script?.enabled == false) "&8[关闭]" else "&a[启用]", "切换事件启用状态", "/ws edit ${region.id} ${menu.key} toggle"))
         row(player, Button("&e[冷却 ${script?.cooldownSeconds ?: 0}s]", "减少或增加冷却时间", "/ws edit ${region.id} ${menu.key} cooldown:5"), Button("&7[冷却 -5s]", "减少五秒冷却", "/ws edit ${region.id} ${menu.key} cooldown:-5"))
         row(player, Button("&b[模式: ${mode(script)}]", "切换总是、首次进入或重复进入", "/ws edit ${region.id} ${menu.key} mode:next"))
-        heading(player, "&f动作列表")
+        heading(player, "&f动作列表 &8(${script?.actions?.size ?: 0})")
         script?.actions?.forEachIndexed { index, action ->
             line(player, "&8${index + 1}. &f${action.preset ?: action.type.name.lowercase()}", "查看并编辑动作参数", "/ws edit ${region.id} ${menu.key} action:$index")
         }
@@ -108,13 +108,17 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
         val action = region.events[menu.type]?.actions?.getOrNull(index) ?: return open(player, region.id, key)
         player.sendMessage(color("&e动作 ${index + 1} &8| &f${action.preset ?: action.type.name.lowercase()}"))
-        heading(player, "&f参数")
+        heading(player, "&6动作设置")
+        property(player, "&7[动作类型]", action.preset ?: action.type.name.lowercase(), "&8[只读]")
         if (action.type == com.worldscript.foundation.model.ActionType.SOUND) {
+            heading(player, "&3音效选择")
             row(player, Button("&3[上一音效]", "选择上一个音效", "/ws edit ${region.id} $key sound:$index:prev"), Button("&3[下一音效]", "选择下一个音效", "/ws edit ${region.id} $key sound:$index:next"))
             row(player, Button("&3[试听]", "试听当前音效", "/ws edit ${region.id} $key sound:$index:play"))
+            heading(player, "&e音效微调")
             row(player, Button("&c[音量 -]", "音量减少 0.1", "/ws edit ${region.id} $key sound:$index:volume-down"), Button("&a[音量 +]", "音量增加 0.1", "/ws edit ${region.id} $key sound:$index:volume-up"))
             row(player, Button("&c[音调 -]", "音调减少 0.1", "/ws edit ${region.id} $key sound:$index:pitch-down"), Button("&a[音调 +]", "音调增加 0.1", "/ws edit ${region.id} $key sound:$index:pitch-up"))
         }
+        heading(player, "&b参数值")
         if (action.parameters.isEmpty()) line(player, "&7[value]", "当前值：${action.value}", "/ws edit ${region.id} $key set:$index:value")
         action.parameters.forEach { (name, current) ->
             line(player, "&b[$name] &f$current", "点击后在聊天栏输入新值", "/ws edit ${region.id} $key set:$index:$name")
@@ -286,9 +290,12 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         val particle = region.particle ?: regions.effective(region.id)?.particle ?: RegionParticleDefinition(enabled = false)
         heading(player, "&d区域粒子")
         player.sendMessage(color("&7状态 &f${particle.enabled} &8| &7类型 &b${particle.type} &8| &7预设 &d${particle.preset}"))
+        heading(player, "&d显示状态")
         row(player, Button("&d[立即预览]", "在当前位置显示一次粒子", "/ws edit ${region.id} particle:preview"))
+        heading(player, "&d粒子类型")
         row(player, Button("&a[启用/关闭]", "切换粒子显示", "/ws edit ${region.id} particle:toggle"))
         row(player, Button("&d[上一类型]", "选择上一个粒子", "/ws edit ${region.id} particle:prev"), Button("&d[下一类型]", "选择下一个粒子", "/ws edit ${region.id} particle:next"))
+        heading(player, "&e数量微调")
         row(player, Button("&e[数量 -]", "减少粒子数量", "/ws edit ${region.id} particle:count:-1"), Button("&e[数量 +]", "增加粒子数量", "/ws edit ${region.id} particle:count:1"))
         row(player, Button("&7[返回]", "返回区域总览", "/ws edit ${region.id} main"))
     }
