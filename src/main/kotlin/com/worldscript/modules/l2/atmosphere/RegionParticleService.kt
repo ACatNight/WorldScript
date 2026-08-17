@@ -29,7 +29,10 @@ class RegionParticleService(
         val definition = regions.effective(region.id)?.particle ?: return
         if (!definition.enabled) return
         if (tick % definition.intervalTicks != 0L) return
-        val particle = runCatching { Particle.valueOf(definition.type) }.getOrNull() ?: return
+        val particle = runCatching { Particle.valueOf(definition.type.uppercase()) }.getOrNull() ?: run {
+            plugin.logger.warning("Unsupported particle '${definition.type}' in region '${region.id}'.")
+            return
+        }
         effectLocations(region.bounds, player.location, definition.preset).forEach { location ->
             if (location.distanceSquared(player.location) <= 32.0 * 32.0) {
                 player.spawnParticle(particle, location, definition.count, definition.spreadX, definition.spreadY, definition.spreadZ, definition.speed)

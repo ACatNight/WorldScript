@@ -229,7 +229,15 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
                 val selected = sounds[(currentIndex + delta + sounds.size) % sounds.size]
                 updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + ("sound" to selected)))
             }
-            "play" -> runCatching { player.playSound(player.location, current, action.parameters["volume"]?.toFloatOrNull() ?: 1f, action.parameters["pitch"]?.toFloatOrNull() ?: 1f) }
+            "play" -> {
+                val sound = resolveSound(current)
+                if (sound == null) {
+                    player.sendMessage(color("&c当前服务器不支持音效：&f$current"))
+                } else {
+                    player.playSound(player.location, sound, action.parameters["volume"]?.toFloatOrNull() ?: 1f, action.parameters["pitch"]?.toFloatOrNull() ?: 1f)
+                    player.sendMessage(color("&a已试听：&f$current"))
+                }
+            }
             "volume-down", "volume-up", "pitch-down", "pitch-up" -> {
                 val name = if (parts[2].startsWith("volume")) "volume" else "pitch"
                 val delta = if (parts[2].endsWith("up")) 0.1 else -0.1
@@ -238,6 +246,15 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
             }
         }
         open(player, region.id, "action:$key:$index")
+    }
+
+    private fun resolveSound(value: String): Sound? {
+        val name = value.trim().uppercase()
+        return runCatching { Sound.valueOf(name) }.getOrNull() ?: when (name) {
+            "BLOCK_NOTE_BLOCK_PLING" -> runCatching { Sound.valueOf("BLOCK_NOTE_PLING") }.getOrNull()
+            "BLOCK_NOTE_PLING" -> runCatching { Sound.valueOf("BLOCK_NOTE_BLOCK_PLING") }.getOrNull()
+            else -> null
+        }
     }
 
     private fun selectParameter(player: Player, region: RegionDefinition, value: String) {
@@ -264,9 +281,10 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
     }
 
     private fun particles(player: Player, region: RegionDefinition) {
-        val particle = region.particle ?: RegionParticleDefinition()
+        val particle = region.particle ?: regions.effective(region.id)?.particle ?: RegionParticleDefinition(enabled = false)
         heading(player, "&d区域粒子")
         player.sendMessage(color("&7状态 &f${particle.enabled} &8| &7类型 &b${particle.type} &8| &7预设 &d${particle.preset}"))
+        row(player, Button("&d[立即预览]", "在当前位置显示一次粒子", "/ws edit ${region.id} particle:preview"))
         row(player, Button("&a[启用/关闭]", "切换粒子显示", "/ws edit ${region.id} particle:toggle"))
         row(player, Button("&d[上一类型]", "选择上一个粒子", "/ws edit ${region.id} particle:prev"), Button("&d[下一类型]", "选择下一个粒子", "/ws edit ${region.id} particle:next"))
         row(player, Button("&e[数量 -]", "减少粒子数量", "/ws edit ${region.id} particle:count:-1"), Button("&e[数量 +]", "增加粒子数量", "/ws edit ${region.id} particle:count:1"))
@@ -274,10 +292,14 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
     }
 
     private fun particleControl(player: Player, region: RegionDefinition, value: String) {
-        val current = region.particle ?: RegionParticleDefinition()
+        val current = region.particle ?: RegionParticleDefinition(enabled = false)
         val parts = value.split(':', limit = 2)
         val updated = when (parts[0]) {
             "toggle" -> current.copy(enabled = !current.enabled)
+            "preview" -> {
+                previewParticle(player, current)
+                current
+            }
             "prev", "next" -> {
                 val choices = PARTICLE_CHOICES.filter { runCatching { Particle.valueOf(it) }.isSuccess }.ifEmpty { listOf(current.type) }
                 val index = choices.indexOf(current.type).coerceAtLeast(0)
@@ -289,6 +311,16 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         }
         regions.updateParticle(region.id, updated)
         open(player, region.id, "particles")
+    }
+
+    private fun previewParticle(player: Player, definition: RegionParticleDefinition) {
+        val particle = runCatching { Particle.valueOf(definition.type.uppercase()) }.getOrNull()
+        if (particle == null) {
+            player.sendMessage(color("&c当前服务器不支持粒子：&f${definition.type}"))
+            return
+        }
+        player.spawnParticle(particle, player.location.clone().add(0.0, 1.0, 0.0), definition.count, definition.spreadX, definition.spreadY, definition.spreadZ, definition.speed)
+        player.sendMessage(color("&a已预览粒子：&f${definition.type}"))
     }
 
     private fun line(player: Player, label: String, hover: String, command: String) {
