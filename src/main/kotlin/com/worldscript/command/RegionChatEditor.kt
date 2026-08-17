@@ -67,10 +67,21 @@ class RegionChatEditor(
     }
 
     private fun header(player: Player, region: RegionDefinition, section: String) {
-        player.sendMessage(color("&8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
-        player.sendMessage(color("&6区域编辑 &8/ &e${region.displayName} &8/ &f${pageName(section)}"))
+        player.sendMessage(color("&6公共单位 &8> &e${region.id} &8> &f${region.displayName}"))
         player.sendMessage(color("&7ID &f${region.id} &8· &7世界 &f${region.worldName}"))
-        player.sendMessage(color("&8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+        player.sendMessage(color("&8观察者 &f(1) &8· &7编辑器 &f区域内容 &8· &7当前页 &f${pageName(section)}"))
+        operationRow(player,
+            Button("&e[公共特性]", "查看区域概览", "/ws edit ${region.id} main"),
+            Button("&e[公共数据]", "查看区域数据", "/ws edit ${region.id} main"),
+            Button("&b[区域变量]", "查看区域变量", "/ws edit ${region.id} main"),
+            Button("&a[事件]", "编辑区域事件", "/ws edit ${region.id} events"),
+            Button("&d[粒子]", "编辑区域氛围", "/ws edit ${region.id} particles"),
+        )
+        operationRow(player,
+            Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} $section"),
+            Button("&c[关闭]", "关闭聊天编辑器", "/ws edit close"),
+        )
+        player.sendMessage(color("&8&m----------------------------------------"))
     }
 
     private fun main(player: Player, region: RegionDefinition) {
@@ -388,23 +399,22 @@ class RegionChatEditor(
             RegionEventMenu.entries.any { it.key == section } -> "events"
             else -> "main"
         }
-        group(player, "&7操作")
+        player.sendMessage(color("&8&m----------------------------------------"))
         operationRow(player,
             Button("&7[返回]", "返回上一级", "/ws edit ${region.id} $back"),
             Button("&f[1 / 1]", "当前页面", "/ws edit ${region.id} $section"),
             Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} $section"),
         )
-        if (section == "main") operation(player, "&c[关闭]", "关闭聊天编辑器", "/ws edit close")
-        player.sendMessage(color("&8提示：点击彩色文字操作；文本参数使用聊天栏输入。"))
+        player.sendMessage(color("&8提示 &7点击彩色文字操作；文本参数会打开聊天输入。"))
     }
 
     private fun group(player: Player, title: String) {
-        player.sendMessage(color("$title &8&m------------------------------"))
+        player.sendMessage(color("$title"))
     }
 
     private fun property(player: Player, label: String, value: String, actionLabel: String, action: String? = null, extra: List<Button> = emptyList()) {
         val components = mutableListOf<BaseComponent>()
-        components += TextComponent(color("&8├─ $label &f$value"))
+        components += TextComponent(color("$label &f$value"))
         if (action == null) components += TextComponent(color(" &8$actionLabel"))
         else {
             components += TextComponent(" ")

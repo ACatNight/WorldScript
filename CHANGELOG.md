@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.60
+
+- Rebuilt the chat editor shell with Adyeshach-style archive header, tabs, toolbar, and footer navigation.
+- Removed dense tree prefixes and section separators from property rows.
+
 ## 0.1.59
 
 - Reworked the chat editor layout with a compact breadcrumb, friendly labels, and readable region bounds.
