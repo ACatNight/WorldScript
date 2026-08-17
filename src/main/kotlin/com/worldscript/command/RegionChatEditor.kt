@@ -3,6 +3,7 @@ package com.worldscript.command
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.model.ActionDefinition
+import com.worldscript.foundation.model.RegionParticleDefinition
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
@@ -10,6 +11,8 @@ import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.hover.content.Text
 import net.md_5.bungee.api.chat.BaseComponent
 import org.bukkit.ChatColor
+import org.bukkit.Sound
+import org.bukkit.Particle
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -31,8 +34,14 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
             "main" -> main(player, region)
             "events" -> events(player, region)
             else -> when {
+                section == "particles" -> particles(player, region)
+                section.startsWith("toggle:") -> toggleEvent(player, region, section.removePrefix("toggle:"))
+                section.startsWith("cooldown:") -> adjustCooldown(player, region, section.removePrefix("cooldown:"))
+                section.startsWith("mode:") -> toggleMode(player, region, section.removePrefix("mode:"))
                 section.startsWith("add:") -> addPreset(player, region, section.removePrefix("add:"))
                 section.startsWith("action:") -> action(player, region, section.removePrefix("action:"))
+                section.startsWith("sound:") -> soundControl(player, region, section.removePrefix("sound:"))
+                section.startsWith("particle:") -> particleControl(player, region, section.removePrefix("particle:"))
                 section.startsWith("set:") -> setInput(player, region, section.removePrefix("set:"))
                 section.startsWith("remove:") -> removeAction(player, region, section.removePrefix("remove:"))
                 else -> event(player, region, section)
@@ -53,7 +62,7 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         heading(player, "&a事件与反馈")
         row(player, Button("&a[事件编辑]", "打开进入、离开和交互事件", "/ws edit ${region.id} events"))
         heading(player, "&d区域氛围")
-        row(player, Button("&d[区域粒子]", "打开区域粒子设置", "/ws edit ${region.id} main"))
+        row(player, Button("&d[区域粒子]", "打开区域粒子设置", "/ws edit ${region.id} particles"))
         heading(player, "&7操作")
         row(player, Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} main"), Button("&c[关闭]", "关闭聊天编辑器", "/ws edit close"))
     }
@@ -74,6 +83,10 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         val script = region.events[menu.type]
         heading(player, "&e${menu.label}")
         player.sendMessage(color("&7启用状态 &f${script?.enabled ?: false} &8| &7动作数量 &f${script?.actions?.size ?: 0}"))
+        heading(player, "&6基础设置")
+        row(player, Button(if (script?.enabled == false) "&8[关闭]" else "&a[启用]", "切换事件启用状态", "/ws edit ${region.id} ${menu.key} toggle"))
+        row(player, Button("&e[冷却 ${script?.cooldownSeconds ?: 0}s]", "减少或增加冷却时间", "/ws edit ${region.id} ${menu.key} cooldown:5"), Button("&7[冷却 -5s]", "减少五秒冷却", "/ws edit ${region.id} ${menu.key} cooldown:-5"))
+        row(player, Button("&b[模式: ${mode(script)}]", "切换总是、首次进入或重复进入", "/ws edit ${region.id} ${menu.key} mode:next"))
         heading(player, "&f动作列表")
         script?.actions?.forEachIndexed { index, action ->
             line(player, "&8${index + 1}. &f${action.preset ?: action.type.name.lowercase()}", "查看并编辑动作参数", "/ws edit ${region.id} ${menu.key} action:$index")
@@ -92,6 +105,10 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
         val action = region.events[menu.type]?.actions?.getOrNull(index) ?: return open(player, region.id, key)
         player.sendMessage(color("&e动作 ${index + 1} &8| &f${action.preset ?: action.type.name.lowercase()}"))
         heading(player, "&f参数")
+        if (action.type == com.worldscript.foundation.model.ActionType.SOUND) {
+            row(player, Button("&3[上一音效]", "选择上一个音效", "/ws edit ${region.id} $key sound:$index:prev"), Button("&3[下一音效]", "选择下一个音效", "/ws edit ${region.id} $key sound:$index:next"))
+            row(player, Button("&3[试听]", "试听当前音效", "/ws edit ${region.id} $key sound:$index:play"))
+        }
         if (action.parameters.isEmpty()) line(player, "&7[value]", "当前值：${action.value}", "/ws edit ${region.id} $key set:$index:value")
         action.parameters.forEach { (name, current) ->
             line(player, "&b[$name] &f$current", "点击后在聊天栏输入新值", "/ws edit ${region.id} $key set:$index:$name")
@@ -160,6 +177,92 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
 
     private fun preset(id: String): ActionDefinition? = presets.create(id)
 
+    private fun toggleEvent(player: Player, region: RegionDefinition, key: String) {
+        val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
+        regions.toggleEvent(region.id, type)
+        open(player, region.id, key)
+    }
+
+    private fun adjustCooldown(player: Player, region: RegionDefinition, value: String) {
+        val parts = value.split(':', limit = 2)
+        val type = RegionEventMenu.entries.firstOrNull { it.key == parts[0] }?.type ?: return
+        val delta = parts.getOrNull(1)?.toLongOrNull() ?: return
+        regions.updateEvent(region.id, type) { it.copy(cooldownSeconds = (it.cooldownSeconds + delta).coerceAtLeast(0)) }
+        open(player, region.id, parts[0])
+    }
+
+    private fun toggleMode(player: Player, region: RegionDefinition, value: String) {
+        val parts = value.split(':', limit = 2)
+        val type = RegionEventMenu.entries.firstOrNull { it.key == parts[0] }?.type ?: return
+        regions.updateEvent(region.id, type) {
+            when {
+                !it.firstEntryOnly && !it.repeatEntryOnly -> it.copy(firstEntryOnly = true)
+                it.firstEntryOnly -> it.copy(firstEntryOnly = false, repeatEntryOnly = true)
+                else -> it.copy(repeatEntryOnly = false)
+            }
+        }
+        open(player, region.id, parts[0])
+    }
+
+    private fun mode(script: com.worldscript.foundation.model.ScriptDefinition?): String = when {
+        script?.firstEntryOnly == true -> "首次"
+        script?.repeatEntryOnly == true -> "重复"
+        else -> "总是"
+    }
+
+    private fun soundControl(player: Player, region: RegionDefinition, value: String) {
+        val parts = value.split(':', limit = 3)
+        val key = parts.getOrNull(0) ?: return
+        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
+        val action = region.events[RegionEventMenu.entries.firstOrNull { it.key == key }?.type]?.actions?.getOrNull(index) ?: return
+        val current = action.parameters["sound"] ?: action.value
+        val sounds = SOUND_CHOICES.filter { runCatching { Sound.valueOf(it) }.isSuccess }.ifEmpty { listOf(current) }
+        val currentIndex = sounds.indexOf(current).coerceAtLeast(0)
+        when (parts.getOrNull(2)) {
+            "prev", "next" -> {
+                val delta = if (parts[2] == "next") 1 else -1
+                val selected = sounds[(currentIndex + delta + sounds.size) % sounds.size]
+                updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + ("sound" to selected)))
+            }
+            "play" -> runCatching { player.playSound(player.location, current, 1f, 1f) }
+        }
+        open(player, region.id, "action:$key:$index")
+    }
+
+    private fun updateActionParameter(player: Player, region: RegionDefinition, key: String, index: Int, action: ActionDefinition) {
+        val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
+        regions.updateAction(region.id, type, index, action)
+        player.sendMessage(color("&a已保存参数。"))
+    }
+
+    private fun particles(player: Player, region: RegionDefinition) {
+        val particle = region.particle ?: RegionParticleDefinition()
+        heading(player, "&d区域粒子")
+        player.sendMessage(color("&7状态 &f${particle.enabled} &8| &7类型 &b${particle.type} &8| &7预设 &d${particle.preset}"))
+        row(player, Button("&a[启用/关闭]", "切换粒子显示", "/ws edit ${region.id} particle:toggle"))
+        row(player, Button("&d[上一类型]", "选择上一个粒子", "/ws edit ${region.id} particle:prev"), Button("&d[下一类型]", "选择下一个粒子", "/ws edit ${region.id} particle:next"))
+        row(player, Button("&e[数量 -]", "减少粒子数量", "/ws edit ${region.id} particle:count:-1"), Button("&e[数量 +]", "增加粒子数量", "/ws edit ${region.id} particle:count:1"))
+        row(player, Button("&7[返回]", "返回区域总览", "/ws edit ${region.id} main"))
+    }
+
+    private fun particleControl(player: Player, region: RegionDefinition, value: String) {
+        val current = region.particle ?: RegionParticleDefinition()
+        val parts = value.split(':', limit = 2)
+        val updated = when (parts[0]) {
+            "toggle" -> current.copy(enabled = !current.enabled)
+            "prev", "next" -> {
+                val choices = PARTICLE_CHOICES.filter { runCatching { Particle.valueOf(it) }.isSuccess }.ifEmpty { listOf(current.type) }
+                val index = choices.indexOf(current.type).coerceAtLeast(0)
+                val delta = if (parts[0] == "next") 1 else -1
+                current.copy(type = choices[(index + delta + choices.size) % choices.size])
+            }
+            "count" -> current.copy(count = (current.count + (parts.getOrNull(1)?.toIntOrNull() ?: 0)).coerceIn(1, 64))
+            else -> current
+        }
+        regions.updateParticle(region.id, updated)
+        open(player, region.id, "particles")
+    }
+
     private fun line(player: Player, label: String, hover: String, command: String) {
         player.spigot().sendMessage(*button(label, hover, command))
     }
@@ -186,6 +289,11 @@ class RegionChatEditor(private val plugin: JavaPlugin, private val regions: Regi
 
     private data class Button(val label: String, val hover: String, val command: String)
     private data class PendingInput(val regionId: String, val type: RegionEventType, val index: Int, val parameter: String)
+
+    private companion object {
+        val SOUND_CHOICES = listOf("BLOCK_PORTAL_TRIGGER", "BLOCK_NOTE_BLOCK_PLING", "ENTITY_PLAYER_LEVELUP", "ENTITY_VILLAGER_TRADE", "ENTITY_GENERIC_EXPLODE", "ENTITY_PLAYER_ATTACK_STRONG")
+        val PARTICLE_CHOICES = listOf("END_ROD", "FLAME", "ENCHANT", "PORTAL", "CLOUD", "SOUL_FIRE_FLAME", "HEART", "VILLAGER_HAPPY")
+    }
 
     private enum class RegionEventMenu(val key: String, val label: String, val type: RegionEventType) {
         ENTER("enter", "&a[进入区域]", RegionEventType.ENTER),

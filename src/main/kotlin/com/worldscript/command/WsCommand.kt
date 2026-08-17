@@ -60,9 +60,13 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         val section = when {
             eventKey == null -> "main"
             actionPage == null -> eventKey
+            actionPage == "toggle" -> "toggle:$eventKey"
+            actionPage.startsWith("cooldown:") -> "cooldown:$eventKey:${actionPage.removePrefix("cooldown:")}"
+            actionPage.startsWith("mode:") -> "mode:$eventKey:${actionPage.removePrefix("mode:")}"
             actionPage.startsWith("action:") -> "action:$eventKey:${actionPage.removePrefix("action:")}"
             actionPage.startsWith("set:") -> "set:$eventKey:${actionPage.removePrefix("set:")}"
             actionPage.startsWith("remove:") -> "remove:$eventKey:${actionPage.removePrefix("remove:")}"
+            actionPage.startsWith("sound:") -> "sound:$eventKey:${actionPage.removePrefix("sound:")}"
             else -> eventKey
         }
         chatEditor?.open(player, region, section)
