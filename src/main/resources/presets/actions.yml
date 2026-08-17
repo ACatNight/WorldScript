@@ -1,5 +1,4 @@
-# WorldScript action presets. Region files may use preset + values directly.
-# The preset name is intentionally stable; display text can be localized later.
+# Action presets used by region files and the chat editor.
 actions:
   text-display:
     name: "区域标题"

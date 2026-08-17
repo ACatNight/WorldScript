@@ -25,10 +25,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.util.Locale
 import java.util.UUID
 
-/**
- * Single-column property editor inspired by mature in-game administration tools.
- * Every page uses the same hierarchy: breadcrumb, grouped properties, operations, footer.
- */
+/** Text-based editor for region properties and event actions. */
 class RegionChatEditor(
     private val plugin: JavaPlugin,
     private val regions: RegionCoreServiceImpl,

@@ -1,5 +1,5 @@
-# WorldScript Schema 2 starter region.
-# Copy this file into plugins/WorldScript/regions/ and rename it as needed.
+# Schema 2 starter region.
+# Copy it to plugins/WorldScript/regions/ and rename it.
 schema: 2
 id: starter_valley
 identity:

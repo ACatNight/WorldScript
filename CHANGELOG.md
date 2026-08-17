@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.72
+
+- Cleaned configuration comments and example wording.
+- Replaced mixed simplified/traditional text in the Traditional Chinese language file.
+- Simplified the chat editor source comment.
+
 ## 0.1.71
 
 - Added a user-facing Chinese Wiki for installation, configuration, integrations, and troubleshooting.
