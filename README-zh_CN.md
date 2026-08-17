@@ -31,6 +31,14 @@ language: zh_CN
 
 修改后执行 `/ws reload`。语言文件位于 `plugins/WorldScript/lang/`；自定义语言文件名称只能使用英文、数字、`_` 和 `-`。
 
+区域进入和离开提示默认关闭，避免玩家在区域边界附近反复移动时刷屏。如需开启，在配置中设置：
+
+```yaml
+messages:
+  region-enter-enabled: true
+  region-leave-enabled: true
+```
+
 ## 管理命令
 
 ```text

@@ -3,6 +3,9 @@ language: en_US
 selection:
   tool: GOLD_AXE
 messages:
+  # System notifications are optional; region actions still run when disabled.
+  region-enter-enabled: false
+  region-leave-enabled: false
   enter: '&aEntering region: &f%region%'
   leave: '&7Leaving region: &f%region%'
 gui:

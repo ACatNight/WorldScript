@@ -121,11 +121,15 @@ class RegionEventServiceImpl(
 
     @EventHandler
     fun onEnter(event: RegionEnterEvent) {
-        Lang(plugin).send(event.player, "region-enter", "region" to event.regionId)
+        if (plugin.config.getBoolean("messages.region-enter-enabled", false)) {
+            Lang(plugin).send(event.player, "region-enter", "region" to event.regionId)
+        }
     }
 
     @EventHandler
     fun onLeave(event: RegionLeaveEvent) {
-        Lang(plugin).send(event.player, "region-leave", "region" to event.regionId)
+        if (plugin.config.getBoolean("messages.region-leave-enabled", false)) {
+            Lang(plugin).send(event.player, "region-leave", "region" to event.regionId)
+        }
     }
 }

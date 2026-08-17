@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.67
+
+- Made automatic region enter and leave notifications configurable and disabled them by default.
+
 ## 0.1.66
 
 - Changed editor micro-adjustments to use one-line feedback instead of full-page redraws.
