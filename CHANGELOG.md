@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.73
+
+- Editing an inherited action now creates a local child-region override first.
+- Added chat confirmation before deleting an action.
+- Removed duplicate feedback from sound and region parameter updates.
+
 ## 0.1.72
 
 - Cleaned configuration comments and example wording.

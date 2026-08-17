@@ -212,7 +212,7 @@ class RegionChatEditor(
         val index = parts.getOrNull(1)?.toIntOrNull() ?: return
         val parameter = parts.getOrNull(2) ?: return
         val type = RegionEventMenu.entries.firstOrNull { it.key == eventKey }?.type ?: return
-        if (region.events[type]?.actions?.getOrNull(index) == null) return
+        if (!ensureLocalAction(region, type, index)) return
         input[player.uniqueId] = PendingInput(region.id, eventKey, type, index, parameter)
         player.sendMessage(color("&6正在编辑 &f$parameter &8| &7请输入新值，输入 &c取消 &7放弃。"))
     }
@@ -222,25 +222,40 @@ class RegionChatEditor(
         val key = parts.firstOrNull() ?: return
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         val index = parts.getOrNull(1)?.toIntOrNull() ?: return
-        regions.removeAction(region.id, type, index)
-        player.sendMessage(color("&a动作已删除。"))
-        open(player, region.id, key)
+        if (region.events[type]?.actions?.getOrNull(index) == null && regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) == null) return
+        input[player.uniqueId] = PendingInput(region.id, key, type, index, "__delete__")
+        player.sendMessage(color("&c确认删除动作 $index？&7请在聊天栏输入 &f确认 &7，其他内容取消。"))
     }
 
     @EventHandler
     fun onChat(event: AsyncPlayerChatEvent) {
         val pending = input.remove(event.player.uniqueId) ?: return
         event.isCancelled = true
-        if (event.message.equals("取消", true)) {
+        val message = event.message
+        if (message.equals("取消", true)) {
             event.player.sendMessage(color("&7已取消修改。"))
             return
         }
         val player = event.player
         Bukkit.getScheduler().runTask(plugin, Runnable {
+            val region = regions.find(pending.regionId) ?: return@Runnable
+            if (pending.parameter == "__delete__") {
+                if (!message.equals("确认", true)) {
+                    player.sendMessage(color("&7已取消删除。"))
+                    return@Runnable
+                }
+                if (ensureLocalAction(region, pending.type, pending.index)) {
+                    regions.removeAction(pending.regionId, pending.type, pending.index)
+                    player.sendMessage(color("&a动作已删除。"))
+                    open(player, pending.regionId, pending.eventKey)
+                }
+                return@Runnable
+            }
+            if (!ensureLocalAction(region, pending.type, pending.index)) return@Runnable
             val action = regions.find(pending.regionId)?.events?.get(pending.type)?.actions?.getOrNull(pending.index) ?: return@Runnable
-            val updated = if (pending.parameter == "value") action.copy(value = event.message) else action.copy(parameters = action.parameters + (pending.parameter to event.message))
+            val updated = if (pending.parameter == "value") action.copy(value = message) else action.copy(parameters = action.parameters + (pending.parameter to message))
             regions.updateAction(pending.regionId, pending.type, pending.index, updated)
-            player.sendMessage(color("&a参数已保存：&f${pending.parameter} &7= &f${event.message}"))
+            player.sendMessage(color("&a参数已保存：&f${pending.parameter} &7= &f$message"))
             open(player, pending.regionId, pending.eventKey)
         })
     }
@@ -294,7 +309,7 @@ class RegionChatEditor(
             "prev", "next" -> {
                 val delta = if (parts[2] == "next") 1 else -1
                 val selected = sounds[(currentIndex + delta + sounds.size) % sounds.size]
-                updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + ("sound" to selected)))
+                updateActionParameter(region, key, index, action.copy(parameters = action.parameters + ("sound" to selected)))
                 player.sendMessage(color("&a音效已切换为 &f$selected"))
             }
             "play" -> {
@@ -309,7 +324,7 @@ class RegionChatEditor(
                 val name = if (parts[2].startsWith("volume")) "volume" else "pitch"
                 val delta = if (parts[2].endsWith("up")) 0.1 else -0.1
                 val next = ((action.parameters[name]?.toDoubleOrNull() ?: 1.0) + delta).coerceIn(0.0, 2.0)
-                updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + (name to "%.1f".format(Locale.US, next))))
+                updateActionParameter(region, key, index, action.copy(parameters = action.parameters + (name to "%.1f".format(Locale.US, next))))
                 player.sendMessage(color("&a${if (name == "volume") "音量" else "音调"} &f${"%.1f".format(Locale.US, next)} &7已保存。"))
             }
         }
@@ -337,14 +352,22 @@ class RegionChatEditor(
         val current = options.indexOf(action.parameters[parameter]).coerceAtLeast(0)
         val delta = if (direction == "next") 1 else -1
         val selected = options[(current + delta + options.size) % options.size]
-        updateActionParameter(player, region, key, index, action.copy(parameters = action.parameters + (parameter to selected)))
+        updateActionParameter(region, key, index, action.copy(parameters = action.parameters + (parameter to selected)))
         player.sendMessage(color("&a${parameterLabel(parameter)} &f$selected &7已保存。"))
     }
 
-    private fun updateActionParameter(player: Player, region: RegionDefinition, key: String, index: Int, action: ActionDefinition) {
+    private fun updateActionParameter(region: RegionDefinition, key: String, index: Int, action: ActionDefinition) {
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
+        if (!ensureLocalAction(region, type, index)) return
         regions.updateAction(region.id, type, index, action)
-        player.sendMessage(color("&a参数已保存。"))
+    }
+
+    private fun ensureLocalAction(region: RegionDefinition, type: RegionEventType, index: Int): Boolean {
+        if (region.events[type]?.actions?.getOrNull(index) != null) return true
+        val inheritedActions = regions.effective(region.id)?.events?.get(type)?.actions ?: return false
+        if (index !in inheritedActions.indices) return false
+        regions.updateEvent(region.id, type) { local -> local.copy(actions = inheritedActions) }
+        return true
     }
 
     private fun particles(player: Player, region: RegionDefinition) {
