@@ -23,10 +23,11 @@ WorldScript 是一个面向 Paper 1.12.2 至 1.21.8 的区域脚本插件，用�
 
 完整的五区域开放世界示例位于 [examples/regions](examples/regions)。
 
-默认语言为英文。若要切换中文消息，在 `plugins/WorldScript/config.yml` 中设置：
+默认语言为英文。若要切换简体中文或繁体中文，在 `plugins/WorldScript/config.yml` 中设置：
 
 ```yaml
 language: zh_CN
+# 或：zh_TW
 ```
 
 修改后执行 `/ws reload`。语言文件位于 `plugins/WorldScript/lang/`；自定义语言文件名称只能使用英文、数字、`_` 和 `-`。

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.69
+
+- Replaced the multi-page inventory editor with a compact region list.
+- Left-click a region to teleport; right-click it to open the chat editor.
+- Added pagination and hover details for role, status, parent, world, and content.
+
+## 0.1.68
+
+- Added the complete Traditional Chinese language pack (`zh_TW`).
+- Loads `zh_TW.yml` automatically on first startup.
+- Fixed right-click interaction fallback to respect inherited parent event settings.
+
 ## 0.1.67
 
 - Made automatic region enter and leave notifications configurable and disabled them by default.

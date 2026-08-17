@@ -107,7 +107,7 @@ class RegionEventServiceImpl(
             Action.RIGHT_CLICK_BLOCK -> {
                 val rightClick = regions.effective(region.id)?.events?.get(RegionEventType.RIGHT_CLICK)
                 if (rightClick?.enabled == true) dispatchBlockClick(event.player, region.id, RegionEventType.RIGHT_CLICK)
-                else if (region.events[RegionEventType.INTERACT]?.enabled != false) plugin.server.pluginManager.callEvent(RegionInteractEvent(event.player, region.id))
+                else if (regions.effective(region.id)?.events?.get(RegionEventType.INTERACT)?.enabled != false) plugin.server.pluginManager.callEvent(RegionInteractEvent(event.player, region.id))
             }
             else -> Unit
         }

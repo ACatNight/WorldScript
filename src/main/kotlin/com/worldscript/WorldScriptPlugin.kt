@@ -40,6 +40,7 @@ class WorldScriptPlugin : JavaPlugin() {
         }
         saveResource("lang/en_US.yml", false)
         saveResource("lang/zh_CN.yml", false)
+        saveResource("lang/zh_TW.yml", false)
         saveResource("presets/actions.yml", false)
         taboolib = TabooLibBridge(this)
         taboolib.report()
@@ -57,10 +58,11 @@ class WorldScriptPlugin : JavaPlugin() {
         val gui = RegionGuiService(this, regionCore)
         val selection = SelectionService(this)
         val command = WsCommand(this, regionCore, selection, playerVariables)
-        command.guiOpener = gui::openList
+        command.guiOpener = { player -> gui.openList(player) }
         val presets = ActionPresetCatalog(this)
         val chatEditor = RegionChatEditor(this, regionCore, presets)
         command.chatEditor = chatEditor
+        gui.editorOpener = { player, regionId -> chatEditor.open(player, regionId) }
         command.reloadHandler = {
             events.reset()
             actions.reset()

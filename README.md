@@ -64,7 +64,7 @@ With PlaceholderAPI: `%worldscript_region_name%`, `%worldscript_parent_name%`, `
 - PlaceholderAPI is optional
 - TabooLib and Kether are bundled in the WorldScript jar; no separate installation is required
 
-The default language is `en_US`. Set `language: zh_CN` in `plugins/WorldScript/config.yml` and run `/ws reload` to use Chinese messages.
+The default language is `en_US`. Set `language: zh_CN` or `language: zh_TW` in `plugins/WorldScript/config.yml` and run `/ws reload` to use Chinese messages.
 
 ## Build
 
