@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.58
+
+- Rebuilt the chat editor around one consistent property-panel layout.
+- Separated mutation commands from page rendering to prevent duplicate editor output.
+- Added aligned sound, particle, event, action, and navigation controls.
+- Fixed chat parameter editing returning to the wrong event page.
+
 ## 0.1.51
 
 - Refined the chat editor into a breadcrumb-based region property panel with separated groups and full-width dividers.
