@@ -60,6 +60,8 @@ class RegionChatEditor(
         header(player, region, section)
         when {
             section == "main" -> main(player, region)
+            section == "data" -> data(player, region)
+            section == "variables" -> variables(player, region)
             section == "events" -> events(player, region)
             section == "particles" -> particles(player, region)
             section.startsWith("add:") -> addPreset(player, region, section.removePrefix("add:"))
@@ -77,8 +79,8 @@ class RegionChatEditor(
         spacer(player)
         operationRow(player,
             Button(editorText("tab-identity", "&e[公共特性]"), editorText("hint-identity", "查看区域概览"), "/ws edit ${region.id} main"),
-            Button(editorText("tab-data", "&e[公共数据]"), editorText("hint-data", "查看区域数据"), "/ws edit ${region.id} main"),
-            Button(editorText("tab-variables", "&b[区域变量]"), editorText("hint-variables", "查看区域变量"), "/ws edit ${region.id} main"),
+            Button(editorText("tab-data", "&e[公共数据]"), editorText("hint-data", "查看区域数据"), "/ws edit ${region.id} data"),
+            Button(editorText("tab-variables", "&b[区域变量]"), editorText("hint-variables", "查看区域变量"), "/ws edit ${region.id} variables"),
             Button(editorText("tab-events", "&a[事件]"), editorText("hint-events", "编辑区域事件"), "/ws edit ${region.id} events"),
             Button(editorText("tab-particles", "&d[粒子]"), editorText("hint-particles", "编辑区域氛围"), "/ws edit ${region.id} particles"),
         )
@@ -97,23 +99,25 @@ class RegionChatEditor(
         property(player, "&e子区域", "${childCount(region)} 个", "&8—")
         property(player, "&e继承关系", if (region.inheritParent) "继承父区域" else "独立配置", "&8—")
 
+    }
+
+    private fun data(player: Player, region: RegionDefinition) {
         group(player, "&e公共数据")
         property(player, "&f坐标范围", boundsText(region), "&8—")
         property(player, "&f内容 ID", region.contentId.ifBlank { "未设置" }, "&8—")
         property(player, "&f优先级", region.priority.toString(), "&8—")
+        property(player, "&f世界", region.worldName, "&8—")
+        property(player, "&f区域角色", region.role.name.lowercase(Locale.ROOT), "&8—")
+    }
 
+    private fun variables(player: Player, region: RegionDefinition) {
         group(player, "&b区域变量")
         property(player, "&b变量数量", "${region.variables.size} 个", "&8—")
         property(player, "&b父区域名称", region.parentId?.let { regions.find(it)?.displayName } ?: "无", "&8HUD")
         property(player, "&b当前区域名称", region.displayName, "&8HUD")
-
-        group(player, "&a事件与反馈")
-        property(player, "&a事件编辑", "${region.events.values.count { it.enabled }} 个启用", "&a[打开]", "/ws edit ${region.id} events")
-
-        group(player, "&d区域氛围")
-        val particle = region.particle ?: regions.effective(region.id)?.particle
-        property(player, "&d区域粒子", particle?.takeIf { it.enabled }?.type ?: "关闭", "&d[打开]", "/ws edit ${region.id} particles")
-
+        region.variables.toSortedMap().forEach { (key, value) ->
+            property(player, "&b$key", value.ifBlank { "未设置" }, "&8配置")
+        }
     }
 
     private fun events(player: Player, region: RegionDefinition) {
@@ -400,7 +404,7 @@ class RegionChatEditor(
     private fun footer(player: Player, region: RegionDefinition, section: String) {
         val back = when {
             section == "main" -> "main"
-            section == "events" || section == "particles" -> "main"
+            section == "data" || section == "variables" || section == "events" || section == "particles" -> "main"
             section.startsWith("action:") -> section.removePrefix("action:").substringBefore(':')
             section.startsWith("add:") -> section.removePrefix("add:").substringBefore(':')
             RegionEventMenu.entries.any { it.key == section } -> "events"
@@ -451,7 +455,7 @@ class RegionChatEditor(
     private fun operationRow(player: Player, vararg buttons: Button) {
         val components = mutableListOf<BaseComponent>()
         buttons.forEachIndexed { index, button ->
-            if (index > 0) components += TextComponent(color(" &8| "))
+            if (index > 0) components += TextComponent("  ")
             components += button(button.label, button.hover, button.command).toList()
         }
         player.spigot().sendMessage(*components.toTypedArray())
@@ -503,6 +507,8 @@ class RegionChatEditor(
 
     private fun pageName(section: String): String = when {
         section == "main" -> "公共特性"
+        section == "data" -> "公共数据"
+        section == "variables" -> "区域变量"
         section == "events" -> "事件列表"
         section == "particles" -> "区域氛围"
         section.startsWith("action:") -> "动作参数"

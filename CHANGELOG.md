@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.64
+
+- Made the properties, data, and variables tabs open separate editor pages.
+- Replaced dense toolbar separators with intentional spacing.
+
 ## 0.1.63
 
 - Added deliberate spacing between the archive header, context, tabs, groups, and footer in the chat editor.
