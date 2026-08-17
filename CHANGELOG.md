@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.61
+
+- Moved the chat editor shell, tabs, toolbar, action labels, and colors into language files.
+- Added a persistent `+ Add action` entry so events can contain multiple actions.
+- Shows inherited parent actions in the event editor.
+
 ## 0.1.60
 
 - Rebuilt the chat editor shell with Adyeshach-style archive header, tabs, toolbar, and footer navigation.

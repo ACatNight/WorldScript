@@ -35,6 +35,9 @@ class RegionChatEditor(
     private val presets: ActionPresetCatalog,
 ): Listener {
     private val input = mutableMapOf<UUID, PendingInput>()
+    private val lang = com.worldscript.foundation.Lang(plugin)
+
+    private fun editorText(key: String, fallback: String): String = lang.text("editor-$key", fallback)
 
     fun open(player: Player, regionId: String, section: String = "main") {
         val region = regions.find(regionId) ?: run {
@@ -67,19 +70,19 @@ class RegionChatEditor(
     }
 
     private fun header(player: Player, region: RegionDefinition, section: String) {
-        player.sendMessage(color("&6公共单位 &8> &e${region.id} &8> &f${region.displayName}"))
-        player.sendMessage(color("&7ID &f${region.id} &8· &7世界 &f${region.worldName}"))
-        player.sendMessage(color("&8观察者 &f(1) &8· &7编辑器 &f区域内容 &8· &7当前页 &f${pageName(section)}"))
+        player.sendMessage(color(editorText("header", "&6公共单位 &8> &e%id% &8> &f%name%").replace("%id%", region.id).replace("%name%", region.displayName)))
+        player.sendMessage(color(editorText("meta", "&7ID &f%id% &8· &7世界 &f%world%").replace("%id%", region.id).replace("%world%", region.worldName)))
+        player.sendMessage(color(editorText("context", "&8观察者 &f(1) &8· &7编辑器 &f区域内容 &8· &7当前页 &f%page%").replace("%page%", pageName(section))))
         operationRow(player,
-            Button("&e[公共特性]", "查看区域概览", "/ws edit ${region.id} main"),
-            Button("&e[公共数据]", "查看区域数据", "/ws edit ${region.id} main"),
-            Button("&b[区域变量]", "查看区域变量", "/ws edit ${region.id} main"),
-            Button("&a[事件]", "编辑区域事件", "/ws edit ${region.id} events"),
-            Button("&d[粒子]", "编辑区域氛围", "/ws edit ${region.id} particles"),
+            Button(editorText("tab-identity", "&e[公共特性]"), editorText("hint-identity", "查看区域概览"), "/ws edit ${region.id} main"),
+            Button(editorText("tab-data", "&e[公共数据]"), editorText("hint-data", "查看区域数据"), "/ws edit ${region.id} main"),
+            Button(editorText("tab-variables", "&b[区域变量]"), editorText("hint-variables", "查看区域变量"), "/ws edit ${region.id} main"),
+            Button(editorText("tab-events", "&a[事件]"), editorText("hint-events", "编辑区域事件"), "/ws edit ${region.id} events"),
+            Button(editorText("tab-particles", "&d[粒子]"), editorText("hint-particles", "编辑区域氛围"), "/ws edit ${region.id} particles"),
         )
         operationRow(player,
-            Button("&7[刷新]", "重新读取当前页面", "/ws edit ${region.id} $section"),
-            Button("&c[关闭]", "关闭聊天编辑器", "/ws edit close"),
+            Button(editorText("refresh", "&7[刷新]"), editorText("hint-refresh", "重新读取当前页面"), "/ws edit ${region.id} $section"),
+            Button(editorText("close", "&c[关闭]"), editorText("hint-close", "关闭聊天编辑器"), "/ws edit close"),
         )
         player.sendMessage(color("&8&m----------------------------------------"))
     }
@@ -113,7 +116,7 @@ class RegionChatEditor(
     private fun events(player: Player, region: RegionDefinition) {
         group(player, "&a事件与反馈")
         RegionEventMenu.entries.forEach { menu ->
-            val script = region.events[menu.type]
+            val script = regions.effective(region.id)?.events?.get(menu.type)
             val status = if (script?.enabled == false) "关闭" else "启用"
             property(player, menu.label, "$status &8| &f${script?.actions?.size ?: 0} 个动作", "&a[打开]", "/ws edit ${region.id} ${menu.key}")
         }
@@ -121,15 +124,16 @@ class RegionChatEditor(
 
     private fun event(player: Player, region: RegionDefinition, key: String) {
         val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
-        val script = region.events[menu.type]
+        val script = regions.effective(region.id)?.events?.get(menu.type)
         group(player, "&e${plain(menu.label)}")
         property(player, "&e[启用状态]", if (script?.enabled == false) "关闭" else "启用", if (script?.enabled == false) "&a[打开]" else "&c[关闭]", "/ws edit ${region.id} ${menu.key} toggle")
         property(player, "&b[触发模式]", mode(script), "&b[切换]", "/ws edit ${region.id} ${menu.key} mode:next")
         stepper(player, "&e[冷却时间]", "${script?.cooldownSeconds ?: 0}s", "&c[-5]", "/ws edit ${region.id} ${menu.key} cooldown:-5", "&a[+5]", "/ws edit ${region.id} ${menu.key} cooldown:5")
 
-        group(player, "&6动作列表")
+        group(player, editorText("action-list", "&6动作列表"))
+        operation(player, editorText("add-action", "&a[+ 添加动作]"), editorText("hint-add-action", "添加一个动作，不会覆盖已有动作"), "/ws edit ${region.id} add:$key")
         if (script?.actions.isNullOrEmpty()) {
-            property(player, "&8[动作]", "尚未配置", "&a[添加]", "/ws edit ${region.id} add:$key")
+            property(player, "&8动作", editorText("empty-actions", "尚未配置"), "&8—")
         } else {
             script?.actions?.forEachIndexed { index, action ->
                 property(player, "&f[${index + 1}]", actionLabel(action), "&e[编辑]", "/ws edit ${region.id} ${menu.key} action:$index")
@@ -164,7 +168,7 @@ class RegionChatEditor(
         val key = parts.firstOrNull() ?: return open(player, region.id, "events")
         val index = parts.getOrNull(1)?.toIntOrNull() ?: return open(player, region.id, key)
         val menu = RegionEventMenu.entries.firstOrNull { it.key == key } ?: return open(player, region.id, "events")
-        val action = region.events[menu.type]?.actions?.getOrNull(index) ?: return open(player, region.id, key)
+        val action = regions.effective(region.id)?.events?.get(menu.type)?.actions?.getOrNull(index) ?: return open(player, region.id, key)
 
         group(player, "&6动作档案")
         property(player, "&7所属事件", plain(menu.label), "&8—")
@@ -459,7 +463,8 @@ class RegionChatEditor(
         ActionType.GIVE_MONEY to "给予金钱",
         ActionType.UNLOCK_REGION to "解锁区域",
         ActionType.COMPLETE_REGION to "完成区域",
-    )[action.type] ?: action.type.name.lowercase(Locale.ROOT).replace('_', ' ')
+    )[action.type]?.let { editorText("action-${action.type.name.lowercase(Locale.ROOT)}", it) }
+        ?: action.type.name.lowercase(Locale.ROOT).replace('_', ' ')
 
     private fun parameterLabel(name: String): String = mapOf(
         "sound" to "音效", "volume" to "音量", "pitch" to "音调",
