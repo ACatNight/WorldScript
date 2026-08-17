@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.62
+
+- Uses configured preset display names instead of exposing internal preset IDs in the editor.
+
 ## 0.1.61
 
 - Moved the chat editor shell, tabs, toolbar, action labels, and colors into language files.

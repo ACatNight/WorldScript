@@ -448,7 +448,11 @@ class RegionChatEditor(
         player.spigot().sendMessage(*components.toTypedArray())
     }
 
-    private fun actionLabel(action: ActionDefinition): String = action.preset ?: mapOf(
+    private fun actionLabel(action: ActionDefinition): String {
+        action.preset?.let { presetId ->
+            presets.all().firstOrNull { it.id.equals(presetId, true) }?.name?.let { return it }
+        }
+        return mapOf(
         ActionType.TEXT_DISPLAY to "标题显示",
         ActionType.SOUND to "音效",
         ActionType.MESSAGE to "聊天消息",
@@ -463,8 +467,9 @@ class RegionChatEditor(
         ActionType.GIVE_MONEY to "给予金钱",
         ActionType.UNLOCK_REGION to "解锁区域",
         ActionType.COMPLETE_REGION to "完成区域",
-    )[action.type]?.let { editorText("action-${action.type.name.lowercase(Locale.ROOT)}", it) }
-        ?: action.type.name.lowercase(Locale.ROOT).replace('_', ' ')
+        )[action.type]?.let { editorText("action-${action.type.name.lowercase(Locale.ROOT)}", it) }
+            ?: action.type.name.lowercase(Locale.ROOT).replace('_', ' ')
+    }
 
     private fun parameterLabel(name: String): String = mapOf(
         "sound" to "音效", "volume" to "音量", "pitch" to "音调",
