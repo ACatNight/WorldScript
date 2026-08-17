@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.65
+
+- Keeps editor fallback text in the selected language when upgrading from an older language file.
+
 ## 0.1.64
 
 - Made the properties, data, and variables tabs open separate editor pages.

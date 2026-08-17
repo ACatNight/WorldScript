@@ -37,7 +37,7 @@ class RegionChatEditor(
     private val input = mutableMapOf<UUID, PendingInput>()
     private val lang = com.worldscript.foundation.Lang(plugin)
 
-    private fun editorText(key: String, fallback: String): String = lang.text("editor-$key", fallback)
+    private fun editorText(key: String, fallback: String): String = lang.textWithLocalFallback("editor-$key", fallback)
 
     fun open(player: Player, regionId: String, section: String = "main") {
         val region = regions.find(regionId) ?: run {

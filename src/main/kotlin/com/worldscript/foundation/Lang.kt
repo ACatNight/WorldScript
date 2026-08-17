@@ -14,6 +14,10 @@ class Lang(private val plugin: JavaPlugin) {
     fun text(key: String, fallback: String = key): String =
         selectedLanguageFile().getString(key) ?: fallbackFile.getString(key) ?: fallback
 
+    /** Lets feature-specific defaults keep the selected language during upgrades. */
+    fun textWithLocalFallback(key: String, fallback: String): String =
+        selectedLanguageFile().getString(key) ?: fallback
+
     fun send(sender: CommandSender, key: String, vararg replacements: Pair<String, Any?>) =
         send(sender, key, true, *replacements)
 
