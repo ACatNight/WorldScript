@@ -28,7 +28,20 @@ class WorldScriptPlaceholderExpansion(
         val parent = current?.parentId?.let { regions.effective(it) }
         val currentId = current?.id ?: ""
 
-        return when (params.lowercase()) {
+        val key = params.trim().lowercase()
+        val variableKey = when {
+            key.startsWith("region_var_") -> params.trim().substring(11)
+            key.startsWith("var_") -> params.trim().substring(4)
+            else -> null
+        }
+        if (variableKey != null) return effective?.variables?.get(variableKey) ?: ""
+
+        val parentVariableKey = key.takeIf { it.startsWith("parent_var_") }?.let {
+            params.trim().substring(11)
+        }
+        if (parentVariableKey != null) return parent?.variables?.get(parentVariableKey) ?: ""
+
+        return when (key) {
             "region_id" -> currentId
             "region_name" -> effective?.displayName ?: ""
             "region_role" -> effective?.role?.name?.lowercase() ?: ""

@@ -1,22 +1,10 @@
 # WorldScript Wiki
 
-WorldScript 是一个免费、MIT 开源的 Paper 区域编排插件。它适合开放世界 RPG，用区域来承载地点身份、世界状态、进入反馈和外部内容连接。
+WorldScript 用来给 Paper 服务器配置区域。一个区域就是一块范围，可以有名称、父区域、状态、变量、粒子和事件动作。
 
-## 1. 插件定位
+它不创建任务，也不负责怪物、战斗或经济。Chemdah 等任务插件负责任务流程，WorldScript 负责地点事件和玩家区域进度。
 
-WorldScript 只处理“玩家在哪里、这个地点是什么状态、进入后发生什么”。任务过程由 Chemdah 或其他任务插件负责，经济由经济插件负责，HUD 可以通过 PlaceholderAPI 读取区域变量。
-
-推荐的职责分工如下：
-
-| 内容 | 负责插件 |
-| --- | --- |
-| 区域范围、父子区域、区域状态 | WorldScript |
-| 任务目标、任务步骤、对话 | 外部任务插件 |
-| 金钱余额 | 经济插件 |
-| HUD 显示 | PlaceholderAPI + HUD 插件 |
-| 战斗、怪物和掉落 | 对应战斗插件 |
-
-## 2. 安装
+## 1. 安装
 
 1. 将 `WorldScript-<version>.jar` 放入服务器的 `plugins/`。
 2. 启动服务器一次，生成 `plugins/WorldScript/`。
@@ -124,11 +112,14 @@ WorldScript 不创建任务，也不维护任务步骤。外部任务插件完�
 安装 PlaceholderAPI 后可使用：
 
 ```text
+%worldscript_region_id%
 %worldscript_region_name%
-%worldscript_parent_name%
-%worldscript_child_name%
 %worldscript_region_role%
 %worldscript_region_content_id%
+%worldscript_parent_id%
+%worldscript_parent_name%
+%worldscript_child_id%
+%worldscript_child_name%
 %worldscript_region_depth%
 %worldscript_region_unlocked%
 %worldscript_region_entered%
@@ -136,7 +127,15 @@ WorldScript 不创建任务，也不维护任务步骤。外部任务插件完�
 %worldscript_region_world%
 ```
 
-区域变量建议使用稳定的英文标识，例如 `chapter`、`short_name`、`biome`。
+`variables:` 下的自定义变量也可以直接给 HUD 使用：
+
+```text
+%worldscript_var_short_name%
+%worldscript_region_var_short_name%
+%worldscript_parent_var_biome%
+```
+
+把 `short_name` 和 `biome` 换成配置中的实际键名。当前区域变量使用 `var_` 或 `region_var_`，父区域变量使用 `parent_var_`；不存在的变量返回空字符串。
 
 ## 8. 粒子氛围
 

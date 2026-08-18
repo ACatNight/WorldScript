@@ -1,58 +1,36 @@
 # WorldScript Wiki
 
-WorldScript is a free, MIT-licensed Paper plugin for authoring open-world RPG locations. It handles where players are, what a location means, which feedback it plays, and how region progress changes. It deliberately does not replace a quest, combat, economy, or HUD plugin.
+WorldScript adds named regions to a Paper server. A region is a box with a name, optional parent, state, variables, particles, and event actions. It is not a quest or combat plugin.
 
-## 1. Scope
+## Install
 
-Use WorldScript for region bounds, parent-child relationships, world states, player progress, location feedback, and connections to other plugins.
+1. Put `WorldScript-<version>.jar` in `plugins/`.
+2. Start the server once.
+3. Put region files in `plugins/WorldScript/regions/`.
+4. Run `/ws validate` and fix any reported path.
+5. Run `/ws reload` after editing a file.
 
-| Concern | Recommended owner |
-| --- | --- |
-| Region bounds, hierarchy, and state | WorldScript |
-| Quest objectives, steps, and dialogue | An external quest plugin |
-| Balances and payments | An economy plugin |
-| HUD presentation | PlaceholderAPI and a HUD plugin |
-| Mobs, combat, and drops | The relevant combat plugin |
+TabooLib and Kether are included in the jar. PlaceholderAPI is optional and is only needed for HUD placeholders.
 
-This boundary keeps a region focused on a clear gameplay purpose instead of turning it into a second quest system.
+## Create A Region
 
-## 2. Installation
-
-1. Place `WorldScript-<version>.jar` in the server `plugins/` directory.
-2. Start the server once to create `plugins/WorldScript/`.
-3. Copy an example from `examples/` into `plugins/WorldScript/regions/`.
-4. Update the world name, bounds, content ID, and external commands.
-5. Run `/ws validate`, then `/ws reload`.
-
-TabooLib and Kether are bundled into the WorldScript jar. PlaceholderAPI is optional.
-
-## 3. Creating a Region
-
-Use the selection tool to mark two corners:
+In game, get the selection tool and mark two corners:
 
 ```text
 /ws wand
 ```
 
-Left-click and right-click blocks with the tool, then create the region:
+Left-click one block, right-click the other, then run:
 
 ```text
-/ws create starter_valley
+/ws create forest_entrance
 ```
 
-Useful follow-up commands:
+The selection tool uses `selection.tool` from `config.yml`. The plugin automatically assigns the smallest containing region as the parent when a new region is created.
 
-```text
-/ws list
-/ws info starter_valley
-/ws gui
-```
+## Region File
 
-The region list is intentionally small: left-click an entry to teleport to its center, or right-click it to open the chat editor.
-
-## 4. Region Format
-
-Schema 2 is the recommended format:
+This is the format used by the examples:
 
 ```yaml
 schema: 2
@@ -76,21 +54,25 @@ variables:
 events: {}
 ```
 
-Available roles are `hub`, `open_zone`, `point_of_interest`, `danger_zone`, and `gate`.
+The `id` is used by commands and other plugins. `identity.name` is shown to players. `content-id` is only an identifier for an external content plugin; WorldScript does not create content from it.
 
-Set a parent with `identity.parent`. Parent regions are best for shared environmental feedback and rules; keep important story moments in a specific child region. A child value overrides the matching inherited value when it is configured locally.
+Roles are labels used by the editor and placeholders: `hub`, `open_zone`, `point_of_interest`, `danger_zone`, and `gate`.
 
-## 5. Events and Actions
+`identity.parent` makes the region a child. Parent variables, states, particles, and events can be inherited. A value written in the child takes priority over the inherited value. Put shared ambience in the parent and specific interactions in the child.
 
-Built-in event keys:
+## Events
 
-- `enter`: the player enters a region
-- `leave`: the player leaves a region
-- `interact`: the player right-clicks a block with their main hand
-- `left-click`: the player left-clicks a block
-- `right-click`: the player right-clicks a block
+Available event keys:
 
-Event modes are `always`, `first`, and `repeat`.
+```text
+enter       player enters the region
+leave       player leaves the region
+interact    main-hand right-click on a block
+left-click  left-click on a block
+right-click right-click on a block
+```
+
+For enter events, `mode` can be `always`, `first`, or `repeat`.
 
 ```yaml
 events:
@@ -99,36 +81,32 @@ events:
     mode: first
     actions:
       - type: message
-        value: "&6You discovered the forest entrance."
+        value: "&6You found the forest entrance."
       - type: sound
         sound: BLOCK_PORTAL_TRIGGER
         volume: 1.0
         pitch: 0.9
 ```
 
-Built-in actions cover messages, sounds, player and console commands, teleportation, variables, region states, items, experience, money, unlocking, and completion. Prefer these actions for simple feedback. Use Kether only for branching, waiting, or longer sequences.
+Actions can send a message, play a sound, show a title, run a player or console command, teleport, set a variable, change a region state, give an item/experience/money, unlock a region, or complete a region. Kether is available for sequences and logic that do not fit one action.
 
-## 6. External Quest Callbacks
+Quest steps belong in Chemdah or another quest plugin. WorldScript supplies the location event and progress storage.
 
-WorldScript does not create or track quest steps. When an external plugin finishes a quest, it can update a player's location progress with:
+## PlaceholderAPI
 
-```text
-/ws progress <player> <region> unlock
-/ws progress <player> <region> complete
-```
+Install PlaceholderAPI and reload WorldScript. The current region is the deepest accessible region containing the player.
 
-External API callbacks must be moved back to the server thread before calling WorldScript.
-
-## 7. HUD Placeholders
-
-With PlaceholderAPI installed, these placeholders are available:
+Fixed placeholders:
 
 ```text
+%worldscript_region_id%
 %worldscript_region_name%
-%worldscript_parent_name%
-%worldscript_child_name%
 %worldscript_region_role%
 %worldscript_region_content_id%
+%worldscript_parent_id%
+%worldscript_parent_name%
+%worldscript_child_id%
+%worldscript_child_name%
 %worldscript_region_depth%
 %worldscript_region_unlocked%
 %worldscript_region_entered%
@@ -136,11 +114,24 @@ With PlaceholderAPI installed, these placeholders are available:
 %worldscript_region_world%
 ```
 
-Use stable English keys such as `chapter`, `short_name`, and `biome` for region variables.
+Variables from the current effective region:
 
-## 8. Region Atmosphere
+```text
+%worldscript_var_short_name%
+%worldscript_region_var_short_name%
+```
 
-Particles provide location atmosphere, not constant notifications. Keep normal areas subtle, then use stronger effects for portals, entrances, and major points of interest.
+Variables from the effective parent region:
+
+```text
+%worldscript_parent_var_biome%
+```
+
+Replace `short_name` and `biome` with the exact keys under `variables:`. Missing variables return an empty string.
+
+## Particles
+
+Particles are optional and run on a timer. They are useful for portals, borders, and points of interest, but a large count with a short interval can be expensive.
 
 ```yaml
 particle:
@@ -153,9 +144,9 @@ particle:
   speed: 0.0
 ```
 
-Only the deepest region containing a player displays its particle effect. A child can override its parent, preventing duplicate effects in nested regions.
+Only the deepest active region displays particles. A child particle setting overrides its parent.
 
-## 9. Commands
+## Commands
 
 ```text
 /ws help
@@ -171,19 +162,19 @@ Only the deepest region containing a player displays its particle effect. A chil
 /ws progress <player> <region-id> <unlock|complete>
 ```
 
-## 10. Troubleshooting
+`/ws progress` is intended for external plugins. It does not define quests or objectives.
 
-1. Run `/ws validate [region-id]` first.
-2. Confirm the file is in `plugins/WorldScript/regions/`.
-3. Check the world name, `world-id`, and bounds.
-4. Confirm a parent and child are in the same world and the parent contains the child.
-5. Check `enabled`, event mode, and cooldown.
-6. Test external commands from the console before adding them to an action.
-7. For Kether, start with one simple `message` action, then add complexity gradually.
+## Troubleshooting
 
-## 11. Compatibility and Build
+- If a region does not load, run `/ws validate` and use the file path in the error.
+- If an event does not run, check its `enabled`, `mode`, cooldown, and parent override.
+- If a child does not inherit anything, check `identity.parent`, `state.inherit`, and that both regions use the same world.
+- If a sound or particle is skipped, check the Bukkit name for the server version.
+- If Kether fails, test a simple message first, then add one operation at a time.
 
-WorldScript targets Paper 1.12.2 through 1.21.8. Use Java 8 for 1.12.2-1.16.x, Java 17 for 1.17-1.20.4, and Java 21 for 1.20.5-1.21.8. Test the exact target server version before production use.
+## Language And Build
+
+The bundled language files are in `plugins/WorldScript/lang/`: `en_US.yml`, `zh_CN.yml`, and `zh_TW.yml`. Set `language` in `config.yml`, then run `/ws reload`.
 
 Build from source with:
 
@@ -191,12 +182,4 @@ Build from source with:
 gradlew.bat clean build
 ```
 
-## 12. Languages
-
-Language files are located in the plugin `lang/` directory:
-
-- `en_US.yml`: default language
-- `zh_CN.yml`: Simplified Chinese
-- `zh_TW.yml`: Traditional Chinese
-
-Set `language` in `config.yml`, then run `/ws reload`. To customize a language, copy `en_US.yml` and edit only the value after each key. Do not rename keys, placeholders, or color codes. Missing keys fall back to the default language after an upgrade.
+The target is Paper 1.12.2 through 1.21.8. Test the exact server version before using the plugin in production.

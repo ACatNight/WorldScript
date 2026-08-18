@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.82
+
+- Added working PlaceholderAPI access for `variables` with `var_<key>`, `region_var_<key>`, and `parent_var_<key>`.
+- Replaced the English Wiki with shorter, task-focused installation and configuration notes.
+- Corrected the documented placeholder list to match the implementation.
+
 ## 0.1.81
 
 - Moved region configuration validation into a dedicated validator with parent-boundary coverage.

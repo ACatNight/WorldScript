@@ -49,7 +49,7 @@ The complete five-region sample is available in [examples/regions](examples/regi
 
 ## Placeholders
 
-With PlaceholderAPI: `%worldscript_region_name%`, `%worldscript_parent_name%`, `%worldscript_child_name%`, `%worldscript_region_role%`, `%worldscript_region_content_id%`, `%worldscript_region_depth%`, `%worldscript_region_unlocked%`, `%worldscript_region_entered%`, `%worldscript_region_completed%`, and `%worldscript_region_world%`.
+With PlaceholderAPI: `%worldscript_region_id%`, `%worldscript_region_name%`, `%worldscript_region_role%`, `%worldscript_region_content_id%`, `%worldscript_parent_id%`, `%worldscript_parent_name%`, `%worldscript_child_id%`, `%worldscript_child_name%`, `%worldscript_region_depth%`, `%worldscript_region_unlocked%`, `%worldscript_region_entered%`, `%worldscript_region_completed%`, and `%worldscript_region_world%`. Custom region variables are available as `%worldscript_var_<key>%`.
 
 ## Documentation
 
