@@ -13,7 +13,6 @@ import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.TextComponent
-import net.md_5.bungee.api.chat.hover.content.Text
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
@@ -554,7 +553,8 @@ class RegionChatEditor(
 
     private fun button(label: String, hover: String, command: String): Array<BaseComponent> = ComponentBuilder(color(label))
         .event(ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
-        .event(HoverEvent(HoverEvent.Action.SHOW_TEXT, Text(hover)))
+        // Use the legacy Bungee chat API available in Spigot 1.12.2.
+        .event(HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(color(hover))))
         .create()
 
     private fun color(value: String): String = ChatColor.translateAlternateColorCodes('&', value)

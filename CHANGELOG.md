@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.85
+
+- Fixed the chat editor crashing on Spigot 1.12.2 when opening `/ws edit`.
+- Replaced the newer Bungee hover-text type with the legacy-compatible component API.
+
 ## 0.1.84
 
 - Added a ready-to-paste Modrinth project description and linked it from the README.
