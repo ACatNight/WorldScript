@@ -30,7 +30,7 @@ class RegionChatEditor(
     private val regions: RegionCoreServiceImpl,
     private val presets: ActionPresetCatalog,
 ): Listener {
-    private val input = mutableMapOf<UUID, PendingInput>()
+    private val input = mutableMapOf<UUID, EditorPendingInput>()
     private val lang = com.worldscript.foundation.Lang(plugin)
     private val inputTimeoutMillis: Long
         get() = plugin.config.getLong("editor.input-timeout-seconds", 120).coerceIn(15, 600) * 1000
@@ -95,15 +95,15 @@ class RegionChatEditor(
         player.sendMessage(color(editorText("context", "&8Observer &f(1) &8· &7Editor &fRegion content &8· &7Page &f%page%").replace("%page%", pageName(section))))
         spacer(player)
         operationRow(player,
-            Button(editorText("tab-identity", "&e[Properties]"), editorText("hint-identity", "&7View region overview"), "/ws edit ${region.id} main"),
-            Button(editorText("tab-data", "&e[Data]"), editorText("hint-data", "&7View region data"), "/ws edit ${region.id} data"),
-            Button(editorText("tab-variables", "&b[Variables]"), editorText("hint-variables", "&7View region variables"), "/ws edit ${region.id} variables"),
-            Button(editorText("tab-events", "&a[Events]"), editorText("hint-events", "&7Edit region events"), "/ws edit ${region.id} events"),
-            Button(editorText("tab-particles", "&d[Particles]"), editorText("hint-particles", "&7Edit region atmosphere"), "/ws edit ${region.id} particles"),
+            ChatEditorButton(editorText("tab-identity", "&e[Properties]"), editorText("hint-identity", "&7View region overview"), "/ws edit ${region.id} main"),
+            ChatEditorButton(editorText("tab-data", "&e[Data]"), editorText("hint-data", "&7View region data"), "/ws edit ${region.id} data"),
+            ChatEditorButton(editorText("tab-variables", "&b[Variables]"), editorText("hint-variables", "&7View region variables"), "/ws edit ${region.id} variables"),
+            ChatEditorButton(editorText("tab-events", "&a[Events]"), editorText("hint-events", "&7Edit region events"), "/ws edit ${region.id} events"),
+            ChatEditorButton(editorText("tab-particles", "&d[Particles]"), editorText("hint-particles", "&7Edit region atmosphere"), "/ws edit ${region.id} particles"),
         )
         operationRow(player,
-            Button(editorText("refresh", "&7[Refresh]"), editorText("hint-refresh", "&7Reload this page"), "/ws edit ${region.id} $section"),
-            Button(editorText("close", "&c[Close]"), editorText("hint-close", "&7Close the chat editor"), "/ws edit close"),
+            ChatEditorButton(editorText("refresh", "&7[Refresh]"), editorText("hint-refresh", "&7Reload this page"), "/ws edit ${region.id} $section"),
+            ChatEditorButton(editorText("close", "&c[Close]"), editorText("hint-close", "&7Close the chat editor"), "/ws edit close"),
         )
         spacer(player)
         player.sendMessage(color("&8&m----------------------------------------"))
@@ -206,8 +206,8 @@ class RegionChatEditor(
         } else {
             action.parameters.toSortedMap().forEach { (name, current) ->
                 val extra = if (name == "region") listOf(
-                    Button(editorText("button-previous", "&e[Previous]"), editorText("hint-previous-region", "&7Select the previous region"), "/ws edit ${region.id} $key select:$index:region:prev"),
-                    Button(editorText("button-next", "&e[Next]"), editorText("hint-next-region", "&7Select the next region"), "/ws edit ${region.id} $key select:$index:region:next"),
+                    ChatEditorButton(editorText("button-previous", "&e[Previous]"), editorText("hint-previous-region", "&7Select the previous region"), "/ws edit ${region.id} $key select:$index:region:prev"),
+                    ChatEditorButton(editorText("button-next", "&e[Next]"), editorText("hint-next-region", "&7Select the next region"), "/ws edit ${region.id} $key select:$index:region:next"),
                 ) else emptyList()
                 property(player, "&b${parameterLabel(name)}", current.ifBlank { editorText("value-unset", "Not set") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:$name", extra)
             }
@@ -220,8 +220,8 @@ class RegionChatEditor(
         val sound = action.parameters["sound"] ?: action.value
         group(player, editorText("group-sound", "&3Sound"))
         property(player, editorText("label-sound", "&3[Sound]"), sound.ifBlank { editorText("value-unset", "Not set") }, editorText("button-listen", "&3[Listen]"), "/ws edit ${region.id} $key sound:$index:play", listOf(
-            Button(editorText("button-previous", "&e[Previous]"), editorText("hint-previous-sound", "&7Select the previous sound"), "/ws edit ${region.id} $key sound:$index:prev"),
-            Button(editorText("button-next", "&e[Next]"), editorText("hint-next-sound", "&7Select the next sound"), "/ws edit ${region.id} $key sound:$index:next"),
+            ChatEditorButton(editorText("button-previous", "&e[Previous]"), editorText("hint-previous-sound", "&7Select the previous sound"), "/ws edit ${region.id} $key sound:$index:prev"),
+            ChatEditorButton(editorText("button-next", "&e[Next]"), editorText("hint-next-sound", "&7Select the next sound"), "/ws edit ${region.id} $key sound:$index:next"),
         ))
         stepper(player, editorText("label-volume", "&e[Volume]"), action.parameters["volume"] ?: "1.0", "&c[-0.1]", "/ws edit ${region.id} $key sound:$index:volume-down", "&a[+0.1]", "/ws edit ${region.id} $key sound:$index:volume-up")
         stepper(player, editorText("label-pitch", "&e[Pitch]"), action.parameters["pitch"] ?: "1.0", "&c[-0.1]", "/ws edit ${region.id} $key sound:$index:pitch-down", "&a[+0.1]", "/ws edit ${region.id} $key sound:$index:pitch-up")
@@ -234,7 +234,7 @@ class RegionChatEditor(
         val parameter = target.arguments.firstOrNull() ?: return
         val type = RegionEventMenu.entries.firstOrNull { it.key == eventKey }?.type ?: return
         if (!ensureLocalAction(region, type, index)) return
-        input[player.uniqueId] = PendingInput(region.id, eventKey, type, index, parameter, System.currentTimeMillis())
+        input[player.uniqueId] = EditorPendingInput(region.id, eventKey, type, index, parameter, System.currentTimeMillis())
         sendEditor(player, "input-prompt", "&6Editing &f%parameter% &8| &7Enter a value or type &ccancel &7to stop.", "parameter" to parameterLabel(parameter))
     }
 
@@ -244,7 +244,7 @@ class RegionChatEditor(
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         val index = target.index
         if (region.events[type]?.actions?.getOrNull(index) == null && regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) == null) return
-        input[player.uniqueId] = PendingInput(region.id, key, type, index, "__delete__", System.currentTimeMillis())
+        input[player.uniqueId] = EditorPendingInput(region.id, key, type, index, "__delete__", System.currentTimeMillis())
         sendEditor(player, "delete-confirm", "&cDelete action %index%? &7Type &fconfirm &7in chat. Anything else cancels.", "index" to index)
     }
 
@@ -328,7 +328,7 @@ class RegionChatEditor(
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         val action = regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) ?: return
         val current = action.parameters["sound"] ?: action.value
-        val sounds = SOUND_CHOICES.filter { BukkitCompatibility.resolveSound(it) != null }.ifEmpty { listOf(current) }
+        val sounds = EditorCatalog.soundChoices.filter { BukkitCompatibility.resolveSound(it) != null }.ifEmpty { listOf(current) }
         val currentIndex = sounds.indexOf(current).coerceAtLeast(0)
         when (target.arguments.firstOrNull()) {
             "prev", "next" -> {
@@ -394,8 +394,8 @@ class RegionChatEditor(
         property(player, editorText("label-particle-state", "&d[Display state]"), if (particle.enabled) editorText("value-enabled", "Enabled") else editorText("value-disabled", "Disabled"), if (particle.enabled) editorText("button-close", "&c[Close]") else editorText("button-open", "&a[Open]"), "/ws edit ${region.id} particle:toggle")
         property(player, editorText("label-preset", "&d[Visual style]"), particle.preset, editorText("button-readonly", "&8[Read-only]"))
         property(player, editorText("label-particle-type", "&d[Particle type]"), particle.type, editorText("button-preview", "&d[Preview]"), "/ws edit ${region.id} particle:preview", listOf(
-            Button(editorText("button-previous", "&e[Previous]"), editorText("hint-previous-particle", "&7Select the previous particle"), "/ws edit ${region.id} particle:prev"),
-            Button(editorText("button-next", "&e[Next]"), editorText("hint-next-particle", "&7Select the next particle"), "/ws edit ${region.id} particle:next"),
+            ChatEditorButton(editorText("button-previous", "&e[Previous]"), editorText("hint-previous-particle", "&7Select the previous particle"), "/ws edit ${region.id} particle:prev"),
+            ChatEditorButton(editorText("button-next", "&e[Next]"), editorText("hint-next-particle", "&7Select the next particle"), "/ws edit ${region.id} particle:next"),
         ))
         stepper(player, editorText("label-particle-count", "&e[Particle count]"), particle.count.toString(), "&c[-1]", "/ws edit ${region.id} particle:count:-1", "&a[+1]", "/ws edit ${region.id} particle:count:1")
         stepper(player, editorText("label-particle-interval", "&e[Spawn interval]"), "${particle.intervalTicks} tick", "&c[-5]", "/ws edit ${region.id} particle:interval:-5", "&a[+5]", "/ws edit ${region.id} particle:interval:5")
@@ -413,7 +413,7 @@ class RegionChatEditor(
         val updated = when (parts[0]) {
             "toggle" -> current.copy(enabled = !current.enabled)
             "prev", "next" -> {
-                val choices = PARTICLE_CHOICES.filter { BukkitCompatibility.resolveParticle(it) != null }.ifEmpty { listOf(current.type) }
+                val choices = EditorCatalog.particleChoices.filter { BukkitCompatibility.resolveParticle(it) != null }.ifEmpty { listOf(current.type) }
                 val index = choices.indexOf(current.type).coerceAtLeast(0)
                 val delta = if (parts[0] == "next") 1 else -1
                 current.copy(type = choices[(index + delta + choices.size) % choices.size])
@@ -464,9 +464,9 @@ class RegionChatEditor(
         spacer(player)
         player.sendMessage(color("&8&m----------------------------------------"))
         operationRow(player,
-            Button(editorText("button-back", "&7[Back]"), editorText("hint-back", "&7Return to the previous page"), "/ws edit ${region.id} $back"),
-            Button(editorText("button-page", "&f[1 / 1]"), editorText("hint-current-page", "&7Current page"), "/ws edit ${region.id} $section"),
-            Button(editorText("refresh", "&7[Refresh]"), editorText("hint-refresh", "&7Reload this page"), "/ws edit ${region.id} $section"),
+            ChatEditorButton(editorText("button-back", "&7[Back]"), editorText("hint-back", "&7Return to the previous page"), "/ws edit ${region.id} $back"),
+            ChatEditorButton(editorText("button-page", "&f[1 / 1]"), editorText("hint-current-page", "&7Current page"), "/ws edit ${region.id} $section"),
+            ChatEditorButton(editorText("refresh", "&7[Refresh]"), editorText("hint-refresh", "&7Reload this page"), "/ws edit ${region.id} $section"),
         )
         sendEditor(player, "footer-hint", "&8Hint &7Click colored text to operate; text parameters open chat input.")
     }
@@ -480,7 +480,7 @@ class RegionChatEditor(
         player.sendMessage("")
     }
 
-    private fun property(player: Player, label: String, value: String, actionLabel: String, action: String? = null, extra: List<Button> = emptyList()) {
+    private fun property(player: Player, label: String, value: String, actionLabel: String, action: String? = null, extra: List<ChatEditorButton> = emptyList()) {
         val components = mutableListOf<BaseComponent>()
         components += TextComponent(color("$label &f$value"))
         if (action == null) components += TextComponent(color(" &8$actionLabel"))
@@ -496,14 +496,14 @@ class RegionChatEditor(
     }
 
     private fun stepper(player: Player, label: String, value: String, decreaseLabel: String, decrease: String, increaseLabel: String, increase: String) {
-        property(player, label, value, decreaseLabel, decrease, listOf(Button(increaseLabel, editorText("hint-increase-value", "&7Increase value"), increase)))
+        property(player, label, value, decreaseLabel, decrease, listOf(ChatEditorButton(increaseLabel, editorText("hint-increase-value", "&7Increase value"), increase)))
     }
 
     private fun operation(player: Player, label: String, hover: String, command: String) {
         player.spigot().sendMessage(*button(label, hover, command))
     }
 
-    private fun operationRow(player: Player, vararg buttons: Button) {
+    private fun operationRow(player: Player, vararg buttons: ChatEditorButton) {
         val components = mutableListOf<BaseComponent>()
         buttons.forEachIndexed { index, button ->
             if (index > 0) components += TextComponent("  ")
@@ -516,22 +516,7 @@ class RegionChatEditor(
         action.preset?.let { presetId ->
             presets.all().firstOrNull { it.id.equals(presetId, true) }?.name?.let { return it }
         }
-        return mapOf(
-        ActionType.TEXT_DISPLAY to "Title display",
-        ActionType.SOUND to "Sound",
-        ActionType.MESSAGE to "Chat message",
-        ActionType.PLAYER_COMMAND to "Player command",
-        ActionType.CONSOLE_COMMAND to "Console command",
-        ActionType.TELEPORT to "Teleport",
-        ActionType.KETHER to "Kether script",
-        ActionType.SET_VARIABLE to "Set variable",
-        ActionType.SET_REGION_STATUS to "Set region status",
-        ActionType.GIVE_ITEM to "Give item",
-        ActionType.GIVE_EXPERIENCE to "Give experience",
-        ActionType.GIVE_MONEY to "Give money",
-        ActionType.UNLOCK_REGION to "Unlock region",
-        ActionType.COMPLETE_REGION to "Complete region",
-        )[action.type]?.let { editorText("action-${action.type.name.lowercase(Locale.ROOT)}", it) }
+        return EditorCatalog.actionFallbacks[action.type]?.let { editorText("action-${action.type.name.lowercase(Locale.ROOT)}", it) }
             ?: action.type.name.lowercase(Locale.ROOT).replace('_', ' ')
     }
 
@@ -580,26 +565,4 @@ class RegionChatEditor(
         input.remove(event.player.uniqueId)
     }
 
-    private data class Button(val label: String, val hover: String, val command: String)
-    private data class PendingInput(
-        val regionId: String,
-        val eventKey: String,
-        val type: RegionEventType,
-        val index: Int,
-        val parameter: String,
-        val createdAt: Long,
-    )
-
-    private companion object {
-        val SOUND_CHOICES = listOf("BLOCK_PORTAL_TRIGGER", "BLOCK_NOTE_BLOCK_PLING", "ENTITY_PLAYER_LEVELUP", "ENTITY_VILLAGER_TRADE", "ENTITY_GENERIC_EXPLODE", "ENTITY_PLAYER_ATTACK_STRONG")
-        val PARTICLE_CHOICES = listOf("END_ROD", "FLAME", "ENCHANT", "PORTAL", "CLOUD", "SOUL_FIRE_FLAME", "HEART", "VILLAGER_HAPPY")
-    }
-
-    private enum class RegionEventMenu(val key: String, val type: RegionEventType) {
-        ENTER("enter", RegionEventType.ENTER),
-        LEAVE("leave", RegionEventType.LEAVE),
-        LEFT("left-click", RegionEventType.LEFT_CLICK),
-        RIGHT("right-click", RegionEventType.RIGHT_CLICK),
-        INTERACT("interact", RegionEventType.INTERACT),
-    }
 }

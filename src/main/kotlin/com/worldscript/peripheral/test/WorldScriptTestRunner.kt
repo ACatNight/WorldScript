@@ -2,10 +2,13 @@ package com.worldscript.peripheral.test
 
 import com.worldscript.foundation.model.BlockPosition
 import com.worldscript.foundation.model.GlobalRegionStatus
+import com.worldscript.foundation.model.RegionBounds
+import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.command.EditorOperation
 import com.worldscript.command.EditorActionRef
 import com.worldscript.command.EditorRoute
 import com.worldscript.modules.l1.region_core.RegionGeometry
+import com.worldscript.modules.l1.region_core.RegionConfigurationValidator
 import com.worldscript.modules.l1.region_events.RegionInteractionPolicy
 import com.worldscript.modules.l2.rpg.PlayerRegionProgress
 
@@ -47,6 +50,13 @@ object WorldScriptTestRunner {
         check(EditorActionRef.parse("enter:-1:value") == null) { "negative action indexes must be rejected" }
         check(EditorActionRef.parse("enter:value") == null) { "missing numeric action indexes must be rejected" }
         println("[TEST] PASS editor.action-ref: action targets are parsed consistently")
-        println("[TEST] SUMMARY region-core: passed=5 failed=0 total=5")
+
+        val parent = RegionDefinition("parent", "Parent", "world", "world", RegionBounds(BlockPosition(0, 64, 0), BlockPosition(10, 80, 10)))
+        val child = RegionDefinition("child", "Child", "world", "world", RegionBounds(BlockPosition(9, 64, 9), BlockPosition(20, 80, 20)), parentId = "parent")
+        val regions = mapOf(parent.id to parent, child.id to child)
+        val validationIssues = RegionConfigurationValidator({ id -> regions[id.lowercase()] }, { false }).validate(regions.values, emptyList())
+        check(validationIssues.any { it.contains("bounds are not fully inside parent") }) { "child bounds outside the parent must be rejected" }
+        println("[TEST] PASS region-validation: parent bounds are validated independently from storage")
+        println("[TEST] SUMMARY region-core: passed=6 failed=0 total=6")
     }
 }

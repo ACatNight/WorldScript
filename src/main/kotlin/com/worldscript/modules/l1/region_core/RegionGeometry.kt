@@ -13,4 +13,7 @@ object RegionGeometry {
         position.x in bounds.min.x..bounds.max.x &&
             position.y in bounds.min.y..bounds.max.y &&
             position.z in bounds.min.z..bounds.max.z
+
+    fun encloses(outer: RegionBounds, inner: RegionBounds): Boolean =
+        contains(outer, inner.min) && contains(outer, inner.max)
 }

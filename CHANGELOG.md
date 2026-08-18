@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.81
+
+- Moved region configuration validation into a dedicated validator with parent-boundary coverage.
+- Moved chat editor menus, action labels, candidates, and session records into a dedicated editor catalog.
+
 ## 0.1.80
 
 - Centralized Bukkit sound and particle compatibility lookups used by the editor, runtime actions, and region validation.
