@@ -57,7 +57,7 @@ class RegionEventServiceImpl(
 
     @EventHandler
     fun onMove(event: PlayerMoveEvent) {
-        val to = event.to ?: return
+        val to = event.to
         val sameWorld = event.from.world?.uid == to.world?.uid
         if (sameWorld && event.from.blockX == to.blockX && event.from.blockY == to.blockY && event.from.blockZ == to.blockZ) return
         updateRegions(event.player, to)

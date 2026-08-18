@@ -1,6 +1,7 @@
 package com.worldscript.modules.l1.region_core
 
 import com.worldscript.foundation.api.RegionCoreService
+import com.worldscript.foundation.BukkitCompatibility
 import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
 import com.worldscript.foundation.model.BlockPosition
@@ -419,7 +420,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         if (!section.isConfigurationSection("particle")) return null
         val enabled = section.getBoolean("particle.enabled", true)
         val type = section.getString("particle.type", "END_ROD") ?: "END_ROD"
-        if (enabled && runCatching { org.bukkit.Particle.valueOf(type.uppercase()) }.isFailure) {
+        if (enabled && BukkitCompatibility.resolveParticle(type) == null) {
             loadIssue(source, "particle.type", "unknown particle '$type'")
             return null
         }

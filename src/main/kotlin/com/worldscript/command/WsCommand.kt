@@ -45,7 +45,9 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         if (player == null) { reply(sender, "only-player"); return }
         val points = selection.get(player)
         if (args.size < 2 || points == null || points.any { it == null }) { reply(player, "need-selection"); return }
-        if (regions.create(args[1], args[1], points[0]!!, points[1]!!)) {
+        val first = points[0] ?: return
+        val second = points[1] ?: return
+        if (regions.create(args[1], args[1], first, second)) {
             selection.clear(player)
             reply(player, "region-created", args[1])
             regions.find(args[1])?.parentId?.let { parent -> lang.send(player, "region-parent-assigned", "region" to args[1], "parent" to parent) }

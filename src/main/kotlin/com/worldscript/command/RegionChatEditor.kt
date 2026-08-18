@@ -6,6 +6,7 @@ import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.model.RegionParticleDefinition
+import com.worldscript.foundation.BukkitCompatibility
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import net.md_5.bungee.api.chat.BaseComponent
 import net.md_5.bungee.api.chat.ClickEvent
@@ -15,8 +16,6 @@ import net.md_5.bungee.api.chat.TextComponent
 import net.md_5.bungee.api.chat.hover.content.Text
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
-import org.bukkit.Particle
-import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -329,7 +328,7 @@ class RegionChatEditor(
         val type = RegionEventMenu.entries.firstOrNull { it.key == key }?.type ?: return
         val action = regions.effective(region.id)?.events?.get(type)?.actions?.getOrNull(index) ?: return
         val current = action.parameters["sound"] ?: action.value
-        val sounds = SOUND_CHOICES.filter { resolveSound(it) != null }.ifEmpty { listOf(current) }
+        val sounds = SOUND_CHOICES.filter { BukkitCompatibility.resolveSound(it) != null }.ifEmpty { listOf(current) }
         val currentIndex = sounds.indexOf(current).coerceAtLeast(0)
         when (target.arguments.firstOrNull()) {
             "prev", "next" -> {
@@ -339,7 +338,7 @@ class RegionChatEditor(
                 sendEditor(player, "sound-selected", "&aSound changed to &f%value%", "value" to selected)
             }
             "play" -> {
-                val sound = resolveSound(current)
+                val sound = BukkitCompatibility.resolveSound(current)
                 if (sound == null) sendEditor(player, "sound-unsupported", "&cThis server does not support sound: &f%value%", "value" to current)
                 else {
                     player.playSound(player.location, sound, action.parameters["volume"]?.toFloatOrNull() ?: 1f, action.parameters["pitch"]?.toFloatOrNull() ?: 1f)
@@ -354,15 +353,6 @@ class RegionChatEditor(
                 updateActionParameter(region, key, index, action.copy(parameters = action.parameters + (name to "%.1f".format(Locale.US, next))))
                 sendEditor(player, "number-saved", "&a%name% &f%value% &7saved.", "name" to parameterLabel(name), "value" to "%.1f".format(Locale.US, next))
             }
-        }
-    }
-
-    private fun resolveSound(value: String): Sound? {
-        val name = value.trim().uppercase(Locale.ROOT)
-        return runCatching { Sound.valueOf(name) }.getOrNull() ?: when (name) {
-            "BLOCK_NOTE_BLOCK_PLING" -> runCatching { Sound.valueOf("BLOCK_NOTE_PLING") }.getOrNull()
-            "BLOCK_NOTE_PLING" -> runCatching { Sound.valueOf("BLOCK_NOTE_BLOCK_PLING") }.getOrNull()
-            else -> null
         }
     }
 
@@ -423,7 +413,7 @@ class RegionChatEditor(
         val updated = when (parts[0]) {
             "toggle" -> current.copy(enabled = !current.enabled)
             "prev", "next" -> {
-                val choices = PARTICLE_CHOICES.filter { runCatching { Particle.valueOf(it) }.isSuccess }.ifEmpty { listOf(current.type) }
+                val choices = PARTICLE_CHOICES.filter { BukkitCompatibility.resolveParticle(it) != null }.ifEmpty { listOf(current.type) }
                 val index = choices.indexOf(current.type).coerceAtLeast(0)
                 val delta = if (parts[0] == "next") 1 else -1
                 current.copy(type = choices[(index + delta + choices.size) % choices.size])
@@ -444,7 +434,7 @@ class RegionChatEditor(
     }
 
     private fun previewParticle(player: Player, definition: RegionParticleDefinition) {
-        val particle = runCatching { Particle.valueOf(definition.type.uppercase(Locale.ROOT)) }.getOrNull()
+        val particle = BukkitCompatibility.resolveParticle(definition.type)
         if (particle == null) {
             sendEditor(player, "particle-unsupported", "&cThis server does not support particle: &f%value%", "value" to definition.type)
             return

@@ -1,6 +1,7 @@
 package com.worldscript.modules.l2.script_actions
 
 import com.worldscript.foundation.api.ScriptActionService
+import com.worldscript.foundation.BukkitCompatibility
 import com.worldscript.foundation.Lang
 import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
@@ -18,7 +19,6 @@ import com.worldscript.modules.l2.rpg.RewardService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import org.bukkit.Bukkit
 import org.bukkit.Location
-import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -66,18 +66,6 @@ class ScriptActionServiceImpl(
         actions.forEach { action ->
             val values = action.parameters.mapValues { (_, raw) -> expand(raw, player, regionId) }
             val value = expand(action.value, player, regionId)
-                .replace("%player%", player.name)
-                .replace("%player_name%", player.name)
-                .replace("%uuid%", player.uniqueId.toString())
-                .replace("%region%", regionId)
-                .replace("%world%", player.world.name)
-                .replace("%region_role%", regions.effective(regionId)?.role?.name?.lowercase() ?: "")
-                .replace("%content_id%", regions.effective(regionId)?.contentId ?: "")
-                .let { expanded ->
-                    regions.effective(regionId)?.variables?.entries?.fold(expanded) { text, (key, variable) ->
-                        text.replace("%var.$key%", variable)
-                    } ?: expanded
-                }
             runCatching {
                 when (action.type) {
                     ActionType.KETHER -> executeKether(player, regionId, value)
@@ -101,7 +89,7 @@ class ScriptActionServiceImpl(
                     }
                     ActionType.SET_REGION_STATUS -> {
                         val status = values["region"]?.let { "$it,${values["status"].orEmpty()}" } ?: value
-                        setRegionStatus(player, status)
+                        setRegionStatus(status)
                     }
                     ActionType.GIVE_ITEM -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.ITEM, values["material"] ?: value, values["amount"]?.toDoubleOrNull() ?: 1.0)))
                     ActionType.GIVE_EXPERIENCE -> rewards.grant(player, regionId, listOf(RewardDefinition(RewardType.EXPERIENCE, values["amount"] ?: value)))
@@ -172,20 +160,11 @@ class ScriptActionServiceImpl(
     private fun color(value: String): String = org.bukkit.ChatColor.translateAlternateColorCodes('&', value)
 
     private fun playSound(player: Player, name: String, volume: Float, pitch: Float) {
-        val sound = resolveSound(name) ?: run {
+        val sound = BukkitCompatibility.resolveSound(name) ?: run {
             plugin.logger.warning("Unsupported sound '$name'; action was skipped.")
             return
         }
         player.playSound(player.location, sound, volume, pitch)
-    }
-
-    private fun resolveSound(value: String): Sound? {
-        val name = value.trim().uppercase()
-        return runCatching { Sound.valueOf(name) }.getOrNull() ?: when (name) {
-            "BLOCK_NOTE_BLOCK_PLING" -> runCatching { Sound.valueOf("BLOCK_NOTE_PLING") }.getOrNull()
-            "BLOCK_NOTE_PLING" -> runCatching { Sound.valueOf("BLOCK_NOTE_BLOCK_PLING") }.getOrNull()
-            else -> null
-        }
     }
 
     private fun setPlayerVariable(player: Player, value: String) {
@@ -193,7 +172,7 @@ class ScriptActionServiceImpl(
         if (parts.size == 2) state.setVariable(player, parts[0].trim(), parts[1])
     }
 
-    private fun setRegionStatus(player: Player, value: String) {
+    private fun setRegionStatus(value: String) {
         val parts = value.split(',', limit = 2)
         if (parts.size != 2) return
         val status = GlobalRegionStatus.parse(parts[1]) ?: return

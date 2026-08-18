@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.80
+
+- Centralized Bukkit sound and particle compatibility lookups used by the editor, runtime actions, and region validation.
+- Removed duplicate action placeholder expansion and unnecessary non-null assertions.
+- Ignored local Adyeshach reference jars so they cannot be added to releases accidentally.
+
 ## 0.1.79
 
 - Moved the remaining chat-editor controls, hover text, page names, parameter labels, and particle feedback into language files.

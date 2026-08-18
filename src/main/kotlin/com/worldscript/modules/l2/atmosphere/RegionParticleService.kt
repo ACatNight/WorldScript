@@ -2,7 +2,7 @@ package com.worldscript.modules.l2.atmosphere
 
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l2.rpg.PlayerVariableService
-import org.bukkit.Particle
+import com.worldscript.foundation.BukkitCompatibility
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
@@ -29,7 +29,7 @@ class RegionParticleService(
         val definition = regions.effective(region.id)?.particle ?: return
         if (!definition.enabled) return
         if (tick % definition.intervalTicks != 0L) return
-        val particle = runCatching { Particle.valueOf(definition.type.uppercase()) }.getOrNull() ?: run {
+        val particle = BukkitCompatibility.resolveParticle(definition.type) ?: run {
             plugin.logger.warning("Unsupported particle '${definition.type}' in region '${region.id}'.")
             return
         }

@@ -36,6 +36,6 @@ class Lang(private val plugin: JavaPlugin) {
             loadedLanguage = language
             languageFile = YamlConfiguration.loadConfiguration(File(plugin.dataFolder, "lang/$language.yml"))
         }
-        return languageFile!!
+        return requireNotNull(languageFile) { "Language file was not initialized." }
     }
 }
