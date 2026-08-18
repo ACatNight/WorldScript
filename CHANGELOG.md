@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.83
+
+- Localized action preset names in the chat editor instead of displaying the YAML name directly.
+- Kept custom preset names as fallbacks and kept machine-readable action IDs visible.
+
 ## 0.1.82
 
 - Added working PlaceholderAPI access for `variables` with `var_<key>`, `region_var_<key>`, and `parent_var_<key>`.

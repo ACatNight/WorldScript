@@ -181,7 +181,7 @@ class RegionChatEditor(
             property(player, editorText("label-preset-library", "&8[Preset library]"), editorText("empty-actions", "Not configured"), editorText("button-back", "&7[Back]"), "/ws edit ${region.id} $key")
         } else {
             presets.all().forEach { preset ->
-                property(player, "&b[${preset.name}]", preset.type.name.lowercase(Locale.ROOT), editorText("button-add", "&a[Add]"), "/ws edit ${region.id} add:$key:${preset.id}")
+                property(player, "&b[${presetLabel(preset)}]", preset.type.name.lowercase(Locale.ROOT), editorText("button-add", "&a[Add]"), "/ws edit ${region.id} add:$key:${preset.id}")
             }
         }
         group(player, editorText("group-operations", "&7Operations"))
@@ -514,13 +514,15 @@ class RegionChatEditor(
 
     private fun actionLabel(action: ActionDefinition): String {
         action.preset?.let { presetId ->
-            presets.all().firstOrNull { it.id.equals(presetId, true) }?.name?.let { return it }
+            presets.all().firstOrNull { it.id.equals(presetId, true) }?.let { return presetLabel(it) }
         }
         return EditorCatalog.actionFallbacks[action.type]?.let { editorText("action-${action.type.name.lowercase(Locale.ROOT)}", it) }
             ?: action.type.name.lowercase(Locale.ROOT).replace('_', ' ')
     }
 
     private fun parameterLabel(name: String): String = editorText("parameter-${name.lowercase(Locale.ROOT)}", name)
+
+    private fun presetLabel(preset: ActionPreset): String = editorText("preset-${preset.id}", preset.name)
 
     private fun eventLabel(menu: RegionEventMenu): String = editorText("event-${menu.key}", menu.key)
 
