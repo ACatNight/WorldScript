@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.79
+
+- Moved the remaining chat-editor controls, hover text, page names, parameter labels, and particle feedback into language files.
+- Added English `cancel` and `confirm` input aliases while preserving the Chinese aliases.
+- Added an English Wiki covering installation, configuration, events, integrations, HUD placeholders, and troubleshooting.
+
 ## 0.1.78
 
 - Moved editor page groups, property labels, buttons, statuses, and modes into language files.

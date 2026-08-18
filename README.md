@@ -54,6 +54,7 @@ With PlaceholderAPI: `%worldscript_region_name%`, `%worldscript_parent_name%`, `
 ## Documentation
 
 - [Chinese Wiki](docs/wiki-zh_CN.md)
+- [English Wiki](docs/wiki.md)
 - [Chinese configuration reference](docs/config-reference-zh_CN.md)
 - [Chinese integration guide](docs/integration-zh_CN.md)
 - [Chinese README](README-zh_CN.md)
