@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.84
+
+- Added a ready-to-paste Modrinth project description and linked it from the README.
+
 ## 0.1.83
 
 - Localized action preset names in the chat editor instead of displaying the YAML name directly.
