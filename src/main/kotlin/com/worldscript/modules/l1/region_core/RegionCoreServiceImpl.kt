@@ -373,10 +373,11 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             val parameters = raw.entries
                 .filter { it.key.toString() !in setOf("type", "preset", "value") }
                 .associate { it.key.toString() to (it.value?.toString() ?: "") }
+            val cleanedParameters = cleanPresetExamples(preset, parameters)
             if (actionType == ActionType.SET_REGION_STATUS && legacyCompletionRegion(value) != null) {
                 ActionDefinition(ActionType.COMPLETE_REGION, legacyCompletionRegion(value)!!)
             } else {
-                ActionDefinition(actionType, value, parameters, preset)
+                ActionDefinition(actionType, value, cleanedParameters, preset)
             }
         }
         return ScriptDefinition(
@@ -431,6 +432,19 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         else put("type", action.type.name.lowercase().replace('_', '-'))
         if (action.value.isNotBlank()) put("value", action.value)
         putAll(action.parameters)
+    }
+
+    private fun cleanPresetExamples(preset: String?, parameters: Map<String, String>): Map<String, String> {
+        if (preset == "text-display" || preset == "title") {
+            return parameters.mapValues { (key, value) ->
+                if ((key == "title" && value == "&b区域标题") ||
+                    (key == "subtitle" && value == "&f区域副标题")) "" else value
+            }
+        }
+        if (preset == "message" && parameters["text"] == "&7区域消息") {
+            return parameters + ("text" to "")
+        }
+        return parameters
     }
 
     private fun rewardMap(reward: RewardDefinition) = mapOf(

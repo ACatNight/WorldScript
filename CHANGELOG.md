@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.88
+
+- Removed built-in Chinese example text from new title and message actions.
+- Added compatibility cleanup for the previous example values when loading existing region files.
+
 ## 0.1.87
 
 - Added localized editor labels for title fade-in, stay, and fade-out parameters.

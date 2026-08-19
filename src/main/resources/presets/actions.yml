@@ -4,8 +4,8 @@ actions:
     name: "区域标题"
     type: text-display
     defaults:
-      title: "&b区域标题"
-      subtitle: "&f区域副标题"
+      title: ""
+      subtitle: ""
       fade-in: "20"
       stay: "100"
       fade-out: "20"
@@ -13,7 +13,7 @@ actions:
     name: "聊天消息"
     type: message
     defaults:
-      text: "&7区域消息"
+      text: ""
   sound:
     name: "播放音效"
     type: sound
