@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.worldscript"
-version = "0.1.90"
+version = "0.1.91"
 
 repositories {
     mavenLocal()
@@ -36,6 +36,7 @@ dependencies {
 }
 
 taboolib {
+    relocate("org.bstats", "com.worldscript.libs.bstats")
     env {
         install(
             "platform-bukkit",

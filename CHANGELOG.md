@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.91
+
+- Fixed bStats startup failure by relocating the bundled bStats classes through TabooLib.
+
 ## 0.1.90
 
 - Added bStats metrics with plugin ID `33524`.
