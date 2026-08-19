@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.86
+
+- Added a complete SpigotMC resource description with installation, commands, actions, placeholders, and compatibility details.
+- Linked the SpigotMC description from the README.
+
 ## 0.1.85
 
 - Fixed the chat editor crashing on Spigot 1.12.2 when opening `/ws edit`.
