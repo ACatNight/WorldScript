@@ -19,6 +19,7 @@ import com.worldscript.integration.taboolib.TabooLibBridge
 import com.worldscript.foundation.MaterialResolver
 import com.worldscript.foundation.api.PlayerRegionProgressService
 import org.bukkit.Material
+import org.bstats.bukkit.Metrics
 
 class WorldScriptPlugin : JavaPlugin() {
     lateinit var lang: com.worldscript.foundation.Lang
@@ -33,6 +34,7 @@ class WorldScriptPlugin : JavaPlugin() {
     private lateinit var particles: RegionParticleService
 
     override fun onEnable() {
+        Metrics(this, 33524)
         saveDefaultConfig()
         if (!config.isString("language")) {
             config.set("language", "en_US")

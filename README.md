@@ -18,6 +18,7 @@ WorldScript is currently fully free and available under the [MIT License](LICENS
 - Selection tool, region list, chat editor, and configuration validation
 - Embedded TabooLib 6.3.0 runtime with Kether script actions
 - Kether context variables for player and region data
+- Anonymous server metrics through bStats (can be disabled in `plugins/bStats/config.yml`)
 
 ## Install
 
@@ -67,6 +68,7 @@ With PlaceholderAPI: `%worldscript_region_id%`, `%worldscript_region_name%`, `%w
 - Java 8 for 1.12.2-1.16.x, Java 17 for 1.17-1.20.4, and Java 21 for 1.20.5-1.21.8
 - PlaceholderAPI is optional
 - TabooLib and Kether are bundled in the WorldScript jar; no separate installation is required
+- bStats collects anonymous plugin and server statistics. Its opt-out setting is available in `plugins/bStats/config.yml`.
 
 The default language is `en_US`. Set `language: zh_CN` or `language: zh_TW` in `plugins/WorldScript/config.yml` and run `/ws reload` to use Chinese messages.
 

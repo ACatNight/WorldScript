@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.90
+
+- Added bStats metrics with plugin ID `33524`.
+- Documented the bStats opt-out configuration.
+
 ## 0.1.89
 
 - Added explicit Chinese image placement comments and BBCode placeholders to the SpigotMC description.

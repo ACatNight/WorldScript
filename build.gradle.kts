@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.worldscript"
-version = "0.1.89"
+version = "0.1.90"
 
 repositories {
     mavenLocal()
@@ -17,6 +17,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.6")
+    implementation("org.bstats:bstats-bukkit:3.2.1")
     taboo("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
     taboo("io.izzel.taboolib:common-env:6.3.0")
     taboo("io.izzel.taboolib:common-platform-api:6.3.0")
@@ -29,6 +30,7 @@ dependencies {
     taboo("io.izzel.taboolib:minecraft-i18n:6.3.0")
     taboo("io.izzel.taboolib:platform-bukkit-impl:6.3.0")
     taboo("io.izzel.taboolib:minecraft-kether:6.3.0")
+    taboo("org.bstats:bstats-bukkit:3.2.1")
     implementation("io.izzel.taboolib:platform-bukkit-impl:6.3.0")
     implementation("io.izzel.taboolib:minecraft-kether:6.3.0")
 }
