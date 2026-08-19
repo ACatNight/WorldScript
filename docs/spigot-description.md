@@ -1,33 +1,63 @@
-# WorldScript | RPG Regions
+# WorldScript | RPG Region Events
 
-WorldScript is a region scripting plugin for Paper servers.
+**Open-world RPG region editor, events, particles, and external progression for Paper servers.**
 
-It is designed for open-world RPG servers. Regions can respond to player movement, block interaction, and external plugin callbacks.
+WorldScript turns a location into a reusable gameplay unit. Create a region, add events and actions, and let the world respond when a player enters, leaves, or interacts with a block.
 
-WorldScript handles locations, region states, events, actions, and player region progress. Quest definitions, combat, levels, reputation, and economy can remain managed by other plugins.
+It is built for servers that already have their own quest, combat, economy, NPC, or HUD plugins. WorldScript manages the region layer instead of replacing those systems.
+
+## Screenshots
+
+The in-game editor uses a chat-based layout with clear sections, clickable values, previews, and chat input as a fallback.
+
+Suggested image order for the resource page:
+
+1. Editor overview: region properties, parent region, child count, and inherited settings.
+2. Events page: enter, leave, left-click, right-click, and interaction events.
+3. Particle page: enable atmosphere, change particle type, preview, and adjust values.
+4. Sound and action page: preview sounds, change volume and pitch, and manage action parameters.
+5. Title action page: edit title, subtitle, fade-in, stay, and fade-out values.
 
 ## Features
 
-- Parent and child regions
-- Region variables and inherited settings
-- Open, locked, dangerous, and peaceful region states
-- Enter and leave events
-- Block interaction events
-- Messages and titles
-- Sounds and particles
+- Parent and child regions for large open-world maps
+- Inherited variables, statuses, events, and particle atmosphere
+- Region statuses: open, locked, dangerous, and peaceful
+- Enter, leave, left-click, right-click, and block interaction events
+- Multiple actions in one event
+- Messages, titles, sounds, and particles
+- Sound preview and volume/pitch adjustment
+- Particle preview, count, interval, and spread adjustment
 - Player and console commands
 - Teleport actions
-- Item and experience rewards
-- Player unlock, entry, and completion progress
-- PlaceholderAPI support
-- Kether script actions
-- In-game chat editor
-- Configuration validation
-- English, Simplified Chinese, and Traditional Chinese language files
+- Item, experience, and money rewards
+- Player-specific unlock, entry, and completion progress
+- PlaceholderAPI values for region and HUD displays
+- Kether script actions through bundled TabooLib modules
+- In-game chat editor with English, Simplified Chinese, and Traditional Chinese
+- YAML validation with `/ws validate`
 
-## Region Structure
+## How It Works
 
-Regions can be organised into parent and child locations:
+```text
+Region
+|- Properties and status
+|- Variables
+|- Events
+|  |- Enter
+|  |- Leave
+|  |- Left click
+|  |- Right click
+|  `- Interaction
+|- Actions
+`- Particle atmosphere
+```
+
+An event can contain more than one action. For example, entering a region can send a message, show a title, play a sound, spawn particles, and call an external command in sequence.
+
+## Parent and Child Regions
+
+Use a parent region for a large area and child regions for individual locations:
 
 ```text
 forest
@@ -37,7 +67,28 @@ forest
 `- hidden-cave
 ```
 
-Parent regions are useful for shared variables, status, atmosphere, and common settings. Child regions can override inherited values when needed.
+The parent can provide shared atmosphere, variables, status, and event behaviour. A child region inherits those settings and can override them when it needs different content.
+
+## In-game Editor
+
+Open the editor with:
+
+```text
+/ws edit <region-id>
+```
+
+The editor provides:
+
+- Breadcrumb-style region and page context
+- Separate sections for properties, data, variables, events, and particles
+- Clickable buttons for toggles, selection, preview, and value changes
+- Sound selection with listen, previous, and next controls
+- Particle selection with preview, previous, and next controls
+- Numeric steppers for volume, pitch, count, and interval
+- Chat input for text, commands, Kether, and custom values
+- Multiple actions per event
+
+The editor changes the same YAML data used by the plugin. YAML remains available for advanced configuration and version control.
 
 ## Events
 
@@ -45,26 +96,65 @@ Supported event types:
 
 - Enter a region
 - Leave a region
+- Left-click a block inside a region
+- Right-click a block inside a region
 - Interact with a block inside a region
 
-Each event can contain multiple actions.
+Events can be enabled or disabled and can contain multiple actions.
 
 ## Actions
 
-Available actions include:
+Available action types include:
 
-- Send a message
-- Show a title
-- Play a sound
-- Spawn particles
-- Execute a player command
-- Execute a console command
-- Teleport a player
-- Give items
-- Give experience
-- Change a region state
-- Set player variables
-- Run Kether scripts
+- Chat message
+- Title and subtitle
+- Sound
+- Particles
+- Player command
+- Console command
+- Teleport
+- Item reward
+- Experience reward
+- Money reward
+- Player variable
+- Region status
+- Unlock region
+- Complete region
+- Kether script
+
+## External Plugins
+
+WorldScript does not create quest definitions or quest steps. Use your existing quest or content plugin for the gameplay process, then call WorldScript when a milestone is reached:
+
+```text
+/ws progress <player> <region-id> unlock
+/ws progress <player> <region-id> complete
+```
+
+This keeps region feedback and player progress separate from quest, combat, level, reputation, and economy systems.
+
+## PlaceholderAPI
+
+With PlaceholderAPI installed, these values can be used in HUDs, scoreboards, tab lists, and other supported plugins:
+
+```text
+%worldscript_region_id%
+%worldscript_region_name%
+%worldscript_region_role%
+%worldscript_region_content_id%
+%worldscript_parent_id%
+%worldscript_parent_name%
+%worldscript_child_id%
+%worldscript_child_name%
+%worldscript_region_depth%
+%worldscript_region_unlocked%
+%worldscript_region_entered%
+%worldscript_region_completed%
+%worldscript_region_world%
+%worldscript_var_<key>%
+%worldscript_region_var_<key>%
+%worldscript_parent_var_<key>%
+```
 
 ## Commands
 
@@ -78,6 +168,7 @@ Available actions include:
 /ws gui
 /ws validate
 /ws reload
+/ws progress <player> <region-id> <unlock|complete>
 ```
 
 Permission:
@@ -86,44 +177,16 @@ Permission:
 worldscript.admin
 ```
 
-## External Plugin Progress
-
-WorldScript does not manage quest definitions or quest steps. External plugins can update a player's region progress with:
-
-```text
-/ws progress <player> <region-id> unlock
-/ws progress <player> <region-id> complete
-```
-
-This can be used by quest, dungeon, NPC, and adventure plugins.
-
-## PlaceholderAPI
-
-With PlaceholderAPI installed, the following placeholders are available:
-
-```text
-%worldscript_region_id%
-%worldscript_region_name%
-%worldscript_parent_id%
-%worldscript_parent_name%
-%worldscript_child_id%
-%worldscript_child_name%
-%worldscript_region_depth%
-%worldscript_region_unlocked%
-%worldscript_region_entered%
-%worldscript_region_completed%
-%worldscript_region_world%
-%worldscript_var_<key>%
-```
-
 ## Installation
 
-1. Download the latest jar.
-2. Put it into the server's `plugins` folder.
+1. Download the latest WorldScript jar.
+2. Put it in the server's `plugins` folder.
 3. Start the server once.
-4. Edit the files in `plugins/WorldScript/`.
+4. Configure `plugins/WorldScript/config.yml` and the region files.
 5. Run `/ws validate`.
 6. Run `/ws reload`.
+
+PlaceholderAPI is optional. TabooLib and Kether are included in the WorldScript jar and do not need a separate installation.
 
 ## Compatibility
 
@@ -132,7 +195,8 @@ With PlaceholderAPI installed, the following placeholders are available:
 - Java 17 for Minecraft 1.17 to 1.20.4
 - Java 21 for Minecraft 1.20.5 and newer
 - PlaceholderAPI is optional
-- TabooLib and Kether are included in the plugin jar
+
+The compatibility target is broad, but server owners should test their exact Paper build before using the plugin in production.
 
 ## Links
 
@@ -142,4 +206,4 @@ With PlaceholderAPI installed, the following placeholders are available:
 
 ## License
 
-WorldScript is released under the MIT License.
+WorldScript is free and open source under the MIT License.

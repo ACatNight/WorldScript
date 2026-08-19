@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.87
+
+- Added localized editor labels for title fade-in, stay, and fade-out parameters.
+- Removed the remaining raw animation parameter names from the normal chat editor display.
+- Reworked the SpigotMC description around the in-game editor, region events, and prepared screenshot order.
+
 ## 0.1.86
 
 - Added a complete SpigotMC resource description with installation, commands, actions, placeholders, and compatibility details.
