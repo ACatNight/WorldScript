@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.89
+
+- Added explicit Chinese image placement comments and BBCode placeholders to the SpigotMC description.
+
 ## 0.1.88
 
 - Removed built-in Chinese example text from new title and message actions.

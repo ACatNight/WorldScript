@@ -10,6 +10,15 @@ It is built for servers that already have their own quest, combat, economy, NPC,
 
 The in-game editor uses a chat-based layout with clear sections, clickable values, previews, and chat input as a fallback.
 
+<!-- 中文注释：这是给你编辑文档时看的提示。发布到 SpigotMC 前，请把下面 5 个图片链接替换成实际网络图片链接，并删除所有“中文注释”和“请替换”文字。 -->
+
+<!-- 中文注释：图片 1 放在最顶部，展示玩家进入区域后看到的标题效果，作为资源页主视觉图。 -->
+<!-- 中文注释：将“图片 1 的网络链接”替换成你上传后的图片地址。 -->
+[IMG]图片 1 的网络链接[/IMG]
+
+<!-- 中文注释：图片 3 放在这里，展示区域编辑首页，包括区域状态、父区域、子区域和继承信息。 -->
+[IMG]图片 3 的网络链接[/IMG]
+
 Suggested image order for the resource page:
 
 1. Editor overview: region properties, parent region, child count, and inherited settings.
@@ -71,6 +80,8 @@ The parent can provide shared atmosphere, variables, status, and event behaviour
 
 ## In-game Editor
 
+<!-- 中文注释：如果上面的图片 3 没有放在截图总览区域，也可以把图片 3 放在本章节标题下面。不要重复插入。 -->
+
 Open the editor with:
 
 ```text
@@ -92,6 +103,9 @@ The editor changes the same YAML data used by the plugin. YAML remains available
 
 ## Events
 
+<!-- 中文注释：图片 5 放在这里，展示 Enter、Leave、Left-click、Right-click 和 Interaction 事件列表。 -->
+[IMG]图片 5 的网络链接[/IMG]
+
 Supported event types:
 
 - Enter a region
@@ -103,6 +117,12 @@ Supported event types:
 Events can be enabled or disabled and can contain multiple actions.
 
 ## Actions
+
+<!-- 中文注释：图片 2 放在这里，展示音效试听、Previous、Next、Volume 和 Pitch 参数。 -->
+[IMG]图片 2 的网络链接[/IMG]
+
+<!-- 中文注释：图片 4 放在粒子章节位置；如果你希望按功能顺序展示，可将图片 4 移到下方的 Particle Atmosphere 小节。 -->
+[IMG]图片 4 的网络链接[/IMG]
 
 Available action types include:
 
