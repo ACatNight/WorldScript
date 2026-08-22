@@ -133,6 +133,27 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         return true
     }
 
+    fun removeVariable(id: String, key: String): Boolean {
+        val region = find(id) ?: return false
+        val existing = region.variables.keys.firstOrNull { it.equals(key.trim(), true) } ?: return false
+        val updated = region.copy(variables = region.variables.filterKeys { !it.equals(existing, true) })
+        regions[region.id.lowercase()] = updated
+        save(updated)
+        return true
+    }
+
+    fun variableSource(id: String, key: String): String? {
+        var current = find(id)
+        val visited = mutableSetOf<String>()
+        while (current != null && visited.add(current.id.lowercase())) {
+            if (current.variables.keys.any { it.equals(key, true) }) return current.id
+            current = if (current.inheritParent) current.parentId?.let(::find) else null
+        }
+        return null
+    }
+
+    fun isValidRegionId(id: String): Boolean = isValidId(id.trim())
+
     override fun setStatus(id: String, status: GlobalRegionStatus, enabled: Boolean): Boolean {
         val region = find(id) ?: return false
         val statuses = region.statuses.toMutableSet()

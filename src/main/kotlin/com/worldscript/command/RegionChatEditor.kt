@@ -57,6 +57,7 @@ class RegionChatEditor(
             return when (mutation.operation) {
                 EditorOperation.STATUS -> cycleStatus(player, region)
                 EditorOperation.NAME -> nameInput(player, region)
+                EditorOperation.VARIABLE -> variableControl(player, region, mutation.payload)
                 EditorOperation.TOGGLE -> toggleEvent(player, region, mutation.payload)
                 EditorOperation.COOLDOWN -> adjustCooldown(player, region, mutation.payload)
                 EditorOperation.MODE -> toggleMode(player, region, mutation.payload)
@@ -130,11 +131,15 @@ class RegionChatEditor(
 
     private fun variables(player: Player, region: RegionDefinition) {
         group(player, editorText("group-variables", "&bVariables"))
-        property(player, editorText("label-variable-count", "&bVariables"), region.variables.size.toString(), "&8—")
+        val effective = regions.effective(region.id)
+        val inheritedCount = (effective?.variables?.keys.orEmpty() - region.variables.keys).size
+        property(player, editorText("label-variable-count", "&bVariables"), "${region.variables.size} &8local, $inheritedCount inherited", editorText("button-add", "&a[Add]"), "/ws edit ${region.id} variable add")
         property(player, editorText("label-parent-name", "&bParent name"), region.parentId?.let { regions.find(it)?.displayName } ?: editorText("value-none", "None"), editorText("value-hud", "&8HUD"))
         property(player, editorText("label-current-name", "&bCurrent name"), region.displayName, editorText("value-hud", "&8HUD"))
-        region.variables.toSortedMap().forEach { (key, value) ->
-            property(player, "&b$key", value.ifBlank { editorText("value-unset", "Not set") }, editorText("button-config", "&8[Config]"))
+        effective?.variables?.toSortedMap(String.CASE_INSENSITIVE_ORDER)?.forEach { (key, value) ->
+            val source = regions.variableSource(region.id, key)
+            val sourceText = if (source.equals(region.id, true)) editorText("value-local", "local") else editorMessage("value-inherited-from", "inherited from %source%", "source" to (source ?: "parent"))
+            property(player, "&b$key", "$value &8($sourceText)", if (source.equals(region.id, true)) editorText("button-edit", "&e[Edit]") else editorText("button-readonly", "&8[Inherited]"), if (source.equals(region.id, true)) "/ws edit ${region.id} variable edit:$key" else null, if (source.equals(region.id, true)) listOf(ChatEditorButton(editorText("button-delete", "&c[Delete]"), editorText("hint-delete-variable", "&cRemove local override"), "/ws edit ${region.id} variable remove:$key")) else emptyList())
         }
     }
 
@@ -244,6 +249,26 @@ class RegionChatEditor(
         sendEditor(player, "name-input-prompt", "&6Editing display name &8| &7Enter a new name, or type &ccancel &7to stop.")
     }
 
+    private fun variableControl(player: Player, region: RegionDefinition, payload: String) {
+        val parts = payload.split(':', limit = 2)
+        when (parts.firstOrNull()?.lowercase(Locale.ROOT)) {
+            "add" -> {
+                input[player.uniqueId] = EditorPendingInput(region.id, "variables", RegionEventType.ENTER, -1, "__variable_add__", System.currentTimeMillis())
+                sendEditor(player, "variable-add-prompt", "&6Add variable &8| &7Enter key=value, or type &ccancel &7to stop.")
+            }
+            "edit" -> {
+                val key = parts.getOrNull(1)?.takeIf { it.isNotBlank() } ?: return
+                input[player.uniqueId] = EditorPendingInput(region.id, key, RegionEventType.ENTER, -1, "__variable_value__", System.currentTimeMillis())
+                sendEditor(player, "variable-edit-prompt", "&6Editing variable &f%key% &8| &7Enter a new value, or type &ccancel &7to stop.", "key" to key)
+            }
+            "remove" -> {
+                val key = parts.getOrNull(1)?.takeIf { it.isNotBlank() } ?: return
+                input[player.uniqueId] = EditorPendingInput(region.id, key, RegionEventType.ENTER, -1, "__variable_delete__", System.currentTimeMillis())
+                sendEditor(player, "variable-delete-confirm", "&cRemove local variable %key%? &7Type &fconfirm &7in chat. Anything else cancels.", "key" to key)
+            }
+        }
+    }
+
     private fun removeAction(player: Player, region: RegionDefinition, value: String) {
         val target = EditorActionRef.parse(value) ?: return
         val key = target.eventKey
@@ -282,12 +307,42 @@ class RegionChatEditor(
                 }
                 return@Runnable
             }
+            if (pending.parameter == "__variable_delete__") {
+                if (!isConfirmation(message)) {
+                    sendEditor(player, "variable-delete-cancelled", "&7Variable removal cancelled.")
+                    return@Runnable
+                }
+                if (regions.removeVariable(pending.regionId, pending.eventKey)) {
+                    sendEditor(player, "variable-removed", "&aRemoved local variable: &f%key%", "key" to pending.eventKey)
+                    open(player, pending.regionId, "variables")
+                }
+                return@Runnable
+            }
             if (pending.parameter == "__region_name__") {
                 if (regions.setDisplayName(pending.regionId, message)) {
                     sendEditor(player, "name-saved", "&aDisplay name saved: &f%value%", "value" to message)
                     open(player, pending.regionId, "main")
                 } else {
                     sendEditor(player, "name-invalid", "&cDisplay name cannot be empty.")
+                }
+                return@Runnable
+            }
+            if (pending.parameter == "__variable_add__") {
+                val parts = message.split('=', limit = 2)
+                val key = parts.firstOrNull()?.trim().orEmpty()
+                val value = parts.getOrNull(1)?.trim()
+                if (key.isBlank() || value == null || !regions.setVariable(pending.regionId, key, value)) {
+                    sendEditor(player, "variable-invalid", "&cUse the format key=value; the key cannot be empty.")
+                } else {
+                    sendEditor(player, "variable-saved", "&aVariable saved: &f%key% &7= &f%value%", "key" to key, "value" to value)
+                    open(player, pending.regionId, "variables")
+                }
+                return@Runnable
+            }
+            if (pending.parameter == "__variable_value__") {
+                if (regions.setVariable(pending.regionId, pending.eventKey, message)) {
+                    sendEditor(player, "variable-saved", "&aVariable saved: &f%key% &7= &f%value%", "key" to pending.eventKey, "value" to message)
+                    open(player, pending.regionId, "variables")
                 }
                 return@Runnable
             }

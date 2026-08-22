@@ -1,0 +1,13 @@
+schema: 2
+id: forest_entrance
+identity:
+  name: 森林入口
+  role: point_of_interest
+  parent: whispering_forest
+location:
+  world: world
+  min: {x: 10, y: 60, z: 10}
+  max: {x: 30, y: 100, z: 30}
+variables:
+  short_name: 入口
+  danger_level: 1

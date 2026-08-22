@@ -8,7 +8,7 @@ WorldScript 用来给 Paper 服务器配置区域。一个区域就是一块范�
 
 1. 将 `WorldScript-<version>.jar` 放入服务器的 `plugins/`。
 2. 启动服务器一次，生成 `plugins/WorldScript/`。
-3. 将 `examples/region-progression-template.yml` 或 `examples/regions/` 中的示例复制到 `plugins/WorldScript/regions/`。
+3. 将项目 `examples/` 中的示例复制到 `plugins/WorldScript/regions/`。
 4. 修改世界名称、坐标、内容 ID 和外部插件命令。
 5. 执行 `/ws validate`，没有错误后执行 `/ws reload`。
 
@@ -167,7 +167,7 @@ particle:
 ```text
 /ws help
 /ws wand
-/ws create <区域ID>
+/ws create <区域ID> [显示名称]
 /ws delete <区域ID>
 /ws list
 /ws info <区域ID>

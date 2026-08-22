@@ -1,0 +1,12 @@
+schema: 2
+id: whispering_forest
+identity:
+  name: 低语森林
+  role: open_zone
+location:
+  world: world
+  min: {x: 0, y: 50, z: 0}
+  max: {x: 100, y: 120, z: 100}
+variables:
+  biome: forest
+  danger_level: 2

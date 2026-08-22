@@ -4,6 +4,7 @@ internal object EditorRoute {
     fun fromCommand(eventKey: String?, actionPage: String?): String = when {
         eventKey == null -> "main"
         eventKey.equals("name", true) -> "name:"
+        eventKey.equals("variable", true) -> "variable:${actionPage ?: ""}"
         actionPage == null -> eventKey
         actionPage == "toggle" -> "toggle:$eventKey"
         actionPage.startsWith("cooldown:") -> "cooldown:$eventKey:${actionPage.removePrefix("cooldown:")}"
@@ -29,6 +30,7 @@ internal data class EditorMutation(
 internal enum class EditorOperation(val prefix: String) {
     STATUS("status:"),
     NAME("name:"),
+    VARIABLE("variable:"),
     TOGGLE("toggle:"),
     COOLDOWN("cooldown:"),
     MODE("mode:"),

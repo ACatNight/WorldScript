@@ -47,12 +47,15 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         if (args.size < 2 || points == null || points.any { it == null }) { reply(player, "need-selection"); return }
         val first = points[0] ?: return
         val second = points[1] ?: return
+        if (!regions.isValidRegionId(args[1])) { reply(player, "region-invalid-id", args[1]); return }
+        if (regions.find(args[1]) != null) { reply(player, "region-exists", args[1]); return }
+        if (first.world?.uid != second.world?.uid) { reply(player, "region-world-mismatch"); return }
         val displayName = args.drop(2).joinToString(" ").ifBlank { args[1] }
         if (regions.create(args[1], displayName, first, second)) {
             selection.clear(player)
             reply(player, "region-created", args[1])
             regions.find(args[1])?.parentId?.let { parent -> lang.send(player, "region-parent-assigned", "region" to args[1], "parent" to parent) }
-        } else reply(player, "region-exists", args[1])
+        } else reply(player, "region-create-failed", args[1])
     }
 
     private fun edit(sender: CommandSender, args: Array<out String>) {

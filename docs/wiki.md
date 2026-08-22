@@ -23,10 +23,10 @@ In game, get the selection tool and mark two corners:
 Left-click one block, right-click the other, then run:
 
 ```text
-/ws create forest_entrance
+/ws create forest_entrance Forest Entrance
 ```
 
-The selection tool uses `selection.tool` from `config.yml`. The plugin automatically assigns the smallest containing region as the parent when a new region is created.
+The first argument is the internal ID and the optional remaining text is the player-facing display name. The selection tool uses `selection.tool` from `config.yml`. The plugin automatically assigns the smallest containing region as the parent when a new region is created.
 
 ## Region File
 
@@ -157,7 +157,7 @@ Only the deepest active region displays particles. A child particle setting over
 ```text
 /ws help
 /ws wand
-/ws create <region-id>
+/ws create <region-id> [display name]
 /ws delete <region-id>
 /ws list
 /ws info <region-id>

@@ -45,6 +45,8 @@ object WorldScriptTestRunner {
         check(EditorRoute.mutation("particle:count:1")?.operation == EditorOperation.PARTICLE) { "particle mutation should be recognized" }
         check(EditorRoute.fromCommand("name", null) == "name:") { "display name editing route should be recognized" }
         check(EditorRoute.mutation("name:")?.operation == EditorOperation.NAME) { "display name mutation should be recognized" }
+        check(EditorRoute.fromCommand("variable", "add") == "variable:add") { "variable add route should be recognized" }
+        check(EditorRoute.mutation("variable:edit:level")?.operation == EditorOperation.VARIABLE) { "variable edit mutation should be recognized" }
         check(EditorRoute.mutation("events") == null) { "page names must not be treated as mutations" }
         println("[TEST] PASS editor.route: command and mutation routes are parsed consistently")
 

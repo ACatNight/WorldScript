@@ -1,0 +1,17 @@
+schema: 2
+id: starter_valley
+identity:
+  name: 初始山谷
+  role: open_zone
+location:
+  world: world
+  min: {x: 0, y: 60, z: 0}
+  max: {x: 20, y: 100, z: 20}
+variables:
+  short_name: 山谷
+events:
+  enter:
+    enabled: true
+    actions:
+      - type: message
+        value: '&a欢迎来到 %worldscript_region_name%'

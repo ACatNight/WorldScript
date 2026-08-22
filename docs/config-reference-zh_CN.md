@@ -2,6 +2,8 @@
 
 区域文件位于 `plugins/WorldScript/regions/`。一个文件对应一个区域；修改后执行 `/ws validate`，确认无错误后再执行 `/ws reload`。
 
+新手可以先复制项目中的 `examples/01-simple-region.yml`。配置页面中的变量会显示“本区域”或“继承自父区域”，避免把继承值误认为本地值；变量也可以直接在 `/ws edit <区域ID> variables` 中添加、修改和移除本地覆盖。
+
 ## Schema 2
 
 新区域推荐使用 `schema: 2`。文件按身份、位置、状态、变量和事件组织；旧的平铺字段仍可读取。
