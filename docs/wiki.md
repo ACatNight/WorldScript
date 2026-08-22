@@ -12,6 +12,8 @@ WorldScript adds named regions to a Paper server. A region is a box with a name,
 
 TabooLib and Kether are included in the jar. PlaceholderAPI is optional and is only needed for HUD placeholders.
 
+This page describes WorldScript `0.1.92`.
+
 ## Create A Region
 
 In game, get the selection tool and mark two corners:
@@ -27,6 +29,8 @@ Left-click one block, right-click the other, then run:
 ```
 
 The first argument is the internal ID and the optional remaining text is the player-facing display name. The selection tool uses `selection.tool` from `config.yml`. The plugin automatically assigns the smallest containing region as the parent when a new region is created.
+
+The chat editor supports editing the player-facing name without changing the internal ID, adding and editing local variables, showing whether a variable is local or inherited, and confirming removal of local overrides.
 
 ## Region File
 
@@ -143,6 +147,25 @@ placeholders:
 ```
 
 Available tokens are `{parent}`, `{current}`, `{child}`, `{id}`, and `{path}`. When there is no parent, the default parent separator is removed automatically.
+
+### Testing placeholders
+
+Stand inside the target region and run:
+
+```text
+/papi parse me %worldscript_region_name%
+/papi parse me %worldscript_region_path%
+/papi parse me %worldscript_short_name%
+/papi parse me %worldscript_parent_biome%
+```
+
+With a parent named `Whispering Forest` and a child named `Forest Entrance`, the default combined result is:
+
+```text
+Whispering Forest / Forest Entrance
+```
+
+If the placeholder is returned unchanged, confirm that PlaceholderAPI is installed and that the HUD, tab, scoreboard, or chat plugin performing the parse supports PlaceholderAPI.
 
 ## Particles
 

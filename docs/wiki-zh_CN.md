@@ -14,6 +14,8 @@ WorldScript 用来给 Paper 服务器配置区域。一个区域就是一块范�
 
 TabooLib 和 Kether 已包含在 WorldScript JAR 中，不需要另外安装 TabooLib。PlaceholderAPI 是可选依赖。
 
+本文档按 `0.1.92` 编写。
+
 ## 3. 第一个区域
 
 先用选区工具确定两个角点：
@@ -37,6 +39,13 @@ TabooLib 和 Kether 已包含在 WorldScript JAR 中，不需要另外安装 Tab
 ```
 
 在区域列表中，左键传送到区域中心，右键打开聊天编辑器。
+
+聊天编辑器支持：
+
+- 修改玩家看到的显示名称，不会改变内部区域 ID。
+- 在“区域变量”页面添加和修改本区域变量。
+- 查看变量是“本区域”还是“继承自父区域”。
+- 删除本地变量覆盖时要求输入“确认”。
 
 ## 4. 区域结构
 
@@ -153,6 +162,25 @@ placeholders:
 ```
 
 可用变量为 `{parent}`、`{current}`、`{child}`、`{id}` 和 `{path}`。没有父区域时，默认的父级分隔符会自动去除。
+
+### 占位符测试
+
+玩家站在目标区域内执行：
+
+```text
+/papi parse me %worldscript_region_name%
+/papi parse me %worldscript_region_path%
+/papi parse me %worldscript_short_name%
+/papi parse me %worldscript_parent_biome%
+```
+
+如果父区域是“低语森林”、子区域是“森林入口”，默认结果为：
+
+```text
+低语森林 / 森林入口
+```
+
+如果显示占位符原文，请确认 PlaceholderAPI 已安装，并检查 HUD、Tab、计分板或聊天插件是否支持 PlaceholderAPI。
 
 ## 8. 粒子氛围
 
