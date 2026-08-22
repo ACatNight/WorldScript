@@ -94,7 +94,9 @@ Quest steps belong in Chemdah or another quest plugin. WorldScript supplies the 
 
 ## PlaceholderAPI
 
-Install PlaceholderAPI and reload WorldScript. The current region is the deepest accessible region containing the player.
+Install and enable PlaceholderAPI, then run `/ws reload` if it was added or enabled after WorldScript. WorldScript also registers automatically when PlaceholderAPI is already enabled at startup. The current region is the deepest accessible region containing the player.
+
+If a placeholder remains unchanged, verify that the target scoreboard, tab, chat, or HUD plugin supports PlaceholderAPI and that `/papi parse me %worldscript_region_id%` returns a value. WorldScript logs whether its expansion was registered; a duplicate `worldscript` identifier from another expansion will be reported as a registration warning.
 
 Fixed placeholders:
 

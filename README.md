@@ -50,6 +50,8 @@ The complete five-region sample is available in [examples/regions](examples/regi
 
 ## Placeholders
 
+Install and enable PlaceholderAPI before testing. WorldScript registers its expansion automatically when both plugins start; if PlaceholderAPI is installed or enabled later, run `/ws reload` after enabling it. A consuming plugin must itself support PlaceholderAPI parsing (for example, a PlaceholderAPI-enabled scoreboard or tab plugin).
+
 With PlaceholderAPI: `%worldscript_region_id%`, `%worldscript_region_name%`, `%worldscript_region_role%`, `%worldscript_region_content_id%`, `%worldscript_parent_id%`, `%worldscript_parent_name%`, `%worldscript_child_id%`, `%worldscript_child_name%`, `%worldscript_region_depth%`, `%worldscript_region_unlocked%`, `%worldscript_region_entered%`, `%worldscript_region_completed%`, and `%worldscript_region_world%`. Custom region variables are available as `%worldscript_var_<key>%`.
 
 ## Documentation

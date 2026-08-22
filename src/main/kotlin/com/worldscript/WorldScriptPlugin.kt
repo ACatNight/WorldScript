@@ -19,9 +19,13 @@ import com.worldscript.integration.taboolib.TabooLibBridge
 import com.worldscript.foundation.MaterialResolver
 import com.worldscript.foundation.api.PlayerRegionProgressService
 import org.bukkit.Material
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.server.PluginDisableEvent
+import org.bukkit.event.server.PluginEnableEvent
 import org.bstats.bukkit.Metrics
 
-class WorldScriptPlugin : JavaPlugin() {
+class WorldScriptPlugin : JavaPlugin(), Listener {
     lateinit var lang: com.worldscript.foundation.Lang
         private set
     lateinit var regionCore: RegionCoreServiceImpl
@@ -32,8 +36,10 @@ class WorldScriptPlugin : JavaPlugin() {
     lateinit var taboolib: TabooLibBridge
         private set
     private lateinit var particles: RegionParticleService
+    private var placeholderExpansion: WorldScriptPlaceholderExpansion? = null
 
     override fun onEnable() {
+        server.pluginManager.registerEvents(this, this)
         Metrics(this, 33524)
         saveDefaultConfig()
         if (!config.isString("language")) {
@@ -70,6 +76,7 @@ class WorldScriptPlugin : JavaPlugin() {
             actions.reset()
             chatEditor.reset()
             presets.reload()
+            registerPlaceholderExpansion()
         }
         command.playerRefresh = events::refresh
         getCommand("ws")?.apply {
@@ -82,17 +89,47 @@ class WorldScriptPlugin : JavaPlugin() {
         server.pluginManager.registerEvents(gui, this)
         server.pluginManager.registerEvents(chatEditor, this)
         server.pluginManager.registerEvents(RegionSelectionListener(this, selection), this)
-        if (server.pluginManager.isPluginEnabled("PlaceholderAPI")) {
-            WorldScriptPlaceholderExpansion(this, regionCore, playerVariables).register()
-            logger.info("Registered WorldScript PlaceholderAPI variables.")
-        }
+        registerPlaceholderExpansion()
         logger.info("WorldScript enabled with ${regionCore.all().size} regions.")
     }
 
     override fun onDisable() {
+        placeholderExpansion?.unregister()
+        placeholderExpansion = null
         if (::particles.isInitialized) particles.close()
         if (::playerVariables.isInitialized) playerVariables.saveAll()
         logger.info("WorldScript disabled.")
+    }
+
+    @EventHandler
+    fun onPluginEnable(event: PluginEnableEvent) {
+        if (event.plugin.name.equals("PlaceholderAPI", ignoreCase = true)) {
+            registerPlaceholderExpansion()
+        }
+    }
+
+    @EventHandler
+    fun onPluginDisable(event: PluginDisableEvent) {
+        if (event.plugin.name.equals("PlaceholderAPI", ignoreCase = true)) {
+            placeholderExpansion?.unregister()
+            placeholderExpansion = null
+        }
+    }
+
+    private fun registerPlaceholderExpansion() {
+        if (!server.pluginManager.isPluginEnabled("PlaceholderAPI")) {
+            logger.info("PlaceholderAPI not found; WorldScript placeholders are disabled until PlaceholderAPI is enabled.")
+            return
+        }
+        val expansion = placeholderExpansion ?: WorldScriptPlaceholderExpansion(this, regionCore, playerVariables).also {
+            placeholderExpansion = it
+        }
+        if (expansion.isRegistered) return
+        if (expansion.register()) {
+            logger.info("Registered WorldScript PlaceholderAPI variables.")
+        } else {
+            logger.warning("Could not register WorldScript PlaceholderAPI variables. Check for another expansion using the 'worldscript' identifier.")
+        }
     }
 
     private fun validateMaterialConfig() {

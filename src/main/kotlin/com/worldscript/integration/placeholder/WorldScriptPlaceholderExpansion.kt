@@ -28,20 +28,10 @@ class WorldScriptPlaceholderExpansion(
         val parent = current?.parentId?.let { regions.effective(it) }
         val currentId = current?.id ?: ""
 
-        val key = params.trim().lowercase()
-        val variableKey = when {
-            key.startsWith("region_var_") -> params.trim().substring(11)
-            key.startsWith("var_") -> params.trim().substring(4)
-            else -> null
-        }
-        if (variableKey != null) return effective?.variables?.get(variableKey) ?: ""
-
-        val parentVariableKey = key.takeIf { it.startsWith("parent_var_") }?.let {
-            params.trim().substring(11)
-        }
-        if (parentVariableKey != null) return parent?.variables?.get(parentVariableKey) ?: ""
-
-        return when (key) {
+        return when (val request = PlaceholderRequest.parse(params)) {
+            is PlaceholderRequest.RegionVariable -> effective?.variables?.get(request.key) ?: ""
+            is PlaceholderRequest.ParentVariable -> parent?.variables?.get(request.key) ?: ""
+            is PlaceholderRequest.Fixed -> when (request.key) {
             "region_id" -> currentId
             "region_name" -> effective?.displayName ?: ""
             "region_role" -> effective?.role?.name?.lowercase() ?: ""
@@ -56,6 +46,30 @@ class WorldScriptPlaceholderExpansion(
             "region_completed" -> current?.let { state.isRegionCompleted(player, it.id).toString() } ?: "false"
             "region_world" -> player.world.name
             else -> ""
+            }
+            PlaceholderRequest.Unknown -> ""
+        }
+    }
+}
+
+/** Normalizes PlaceholderAPI parameters without touching Bukkit state. */
+internal sealed class PlaceholderRequest {
+    data class Fixed(val key: String) : PlaceholderRequest()
+    data class RegionVariable(val key: String) : PlaceholderRequest()
+    data class ParentVariable(val key: String) : PlaceholderRequest()
+    data object Unknown : PlaceholderRequest()
+
+    companion object {
+        fun parse(params: String): PlaceholderRequest {
+            val trimmed = params.trim()
+            val normalized = trimmed.lowercase()
+            return when {
+                normalized.startsWith("parent_var_") -> ParentVariable(trimmed.substring("parent_var_".length))
+                normalized.startsWith("region_var_") -> RegionVariable(trimmed.substring("region_var_".length))
+                normalized.startsWith("var_") -> RegionVariable(trimmed.substring("var_".length))
+                normalized.isBlank() -> Unknown
+                else -> Fixed(normalized)
+            }
         }
     }
 }

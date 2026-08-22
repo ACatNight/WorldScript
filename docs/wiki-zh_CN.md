@@ -109,6 +109,10 @@ WorldScript 不创建任务，也不维护任务步骤。外部任务插件完�
 
 ## 7. HUD 变量
 
+安装并启用 PlaceholderAPI 后可使用。若 PlaceholderAPI 是在 WorldScript 之后才安装或启用的，请启用后执行 `/ws reload`；如果两者同时启动，WorldScript 会自动注册扩展。
+
+如果占位符仍原样显示，请确认承载它的计分板、Tab、聊天或 HUD 插件本身支持 PlaceholderAPI，并用 `/papi parse me %worldscript_region_id%` 检查。WorldScript 会在日志中记录扩展是否注册；如果存在重复的 `worldscript` 标识符，也会输出注册警告。
+
 安装 PlaceholderAPI 后可使用：
 
 ```text

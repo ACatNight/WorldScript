@@ -11,6 +11,7 @@ import com.worldscript.modules.l1.region_core.RegionGeometry
 import com.worldscript.modules.l1.region_core.RegionConfigurationValidator
 import com.worldscript.modules.l1.region_events.RegionInteractionPolicy
 import com.worldscript.modules.l2.rpg.PlayerRegionProgress
+import com.worldscript.integration.placeholder.PlaceholderRequest
 
 object WorldScriptTestRunner {
     @JvmStatic
@@ -57,6 +58,14 @@ object WorldScriptTestRunner {
         val validationIssues = RegionConfigurationValidator({ id -> regions[id.lowercase()] }, { false }).validate(regions.values, emptyList())
         check(validationIssues.any { it.contains("bounds are not fully inside parent") }) { "child bounds outside the parent must be rejected" }
         println("[TEST] PASS region-validation: parent bounds are validated independently from storage")
-        println("[TEST] SUMMARY region-core: passed=6 failed=0 total=6")
+
+        check(PlaceholderRequest.parse(" REGION_ID ") == PlaceholderRequest.Fixed("region_id")) { "fixed placeholders should be trimmed and normalized" }
+        check(PlaceholderRequest.parse("var_short_name") == PlaceholderRequest.RegionVariable("short_name")) { "var_ prefix should resolve region variables" }
+        check(PlaceholderRequest.parse("region_var_short_name") == PlaceholderRequest.RegionVariable("short_name")) { "region_var_ prefix should resolve region variables" }
+        check(PlaceholderRequest.parse("parent_var_biome") == PlaceholderRequest.ParentVariable("biome")) { "parent_var_ prefix should resolve parent variables" }
+        check(PlaceholderRequest.parse("unknown_placeholder") == PlaceholderRequest.Fixed("unknown_placeholder")) { "unknown non-empty parameters should remain fixed requests" }
+        check(PlaceholderRequest.parse("   ") == PlaceholderRequest.Unknown) { "blank parameters should be rejected" }
+        println("[TEST] PASS placeholder.request: fixed and variable parameters are parsed consistently")
+        println("[TEST] SUMMARY region-core: passed=7 failed=0 total=7")
     }
 }
