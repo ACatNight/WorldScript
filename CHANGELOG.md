@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.92
+
+- Added automatically discovered region variables with `%worldscript_<key>%`.
+- Added readable parent and child variable forms: `%worldscript_parent_<key>%` and `%worldscript_child_<key>%`.
+- Added separate parent, child, and combined display-name placeholders, including `%worldscript_region_path%`.
+- Added configurable combined region-name formatting through `placeholders.region-name-format` with `{parent}`, `{current}`, `{child}`, `{id}`, and `{path}` tokens.
+- Added display-name editing and local variable add, edit, inheritance-source display, and confirmed removal in the chat editor.
+- Added clearer region creation errors, optional display names in `/ws create <id> [display name]`, and starter region examples.
+- Updated Chinese and English documentation and expanded placeholder tests.
+
 ## 0.1.91
 
 - Fixed bStats startup failure by relocating the bundled bStats classes through TabooLib.
