@@ -109,6 +109,7 @@ Fixed placeholders:
 %worldscript_parent_name%
 %worldscript_child_id%
 %worldscript_child_name%
+%worldscript_region_path%
 %worldscript_region_depth%
 %worldscript_region_unlocked%
 %worldscript_region_entered%
@@ -116,11 +117,12 @@ Fixed placeholders:
 %worldscript_region_world%
 ```
 
-Variables from the current effective region:
+Variables from the current effective region (automatically discovered):
 
 ```text
 %worldscript_var_short_name%
 %worldscript_region_var_short_name%
+%worldscript_short_name%
 ```
 
 Variables from the effective parent region:

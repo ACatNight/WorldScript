@@ -29,8 +29,9 @@ class WorldScriptPlaceholderExpansion(
         val currentId = current?.id ?: ""
 
         return when (val request = PlaceholderRequest.parse(params)) {
-            is PlaceholderRequest.RegionVariable -> effective?.variables?.get(request.key) ?: ""
-            is PlaceholderRequest.ParentVariable -> parent?.variables?.get(request.key) ?: ""
+            is PlaceholderRequest.RegionVariable -> variableValue(effective?.variables, request.key)
+            is PlaceholderRequest.ParentVariable -> variableValue(parent?.variables, request.key)
+            is PlaceholderRequest.DynamicVariable -> variableValue(effective?.variables, request.key)
             is PlaceholderRequest.Fixed -> when (request.key) {
             "region_id" -> currentId
             "region_name" -> effective?.displayName ?: ""
@@ -40,6 +41,7 @@ class WorldScriptPlaceholderExpansion(
             "parent_name" -> parent?.displayName ?: ""
             "child_id" -> current?.takeIf { it.parentId != null }?.id ?: ""
             "child_name" -> effective?.takeIf { it.parentId != null }?.displayName ?: ""
+            "region_path" -> current?.let { regions.displayPath(it.id) } ?: ""
             "region_depth" -> current?.let { regions.depth(it.id).toString() } ?: "0"
             "region_unlocked" -> current?.let { regions.isAccessible(it.id, state.isRegionUnlocked(player, it.id)).toString() } ?: "false"
             "region_entered" -> current?.let { state.hasEnteredRegion(player, it.id).toString() } ?: "false"
@@ -50,6 +52,9 @@ class WorldScriptPlaceholderExpansion(
             PlaceholderRequest.Unknown -> ""
         }
     }
+
+    private fun variableValue(variables: Map<String, String>?, key: String): String =
+        variables?.entries?.firstOrNull { it.key.equals(key, true) }?.value ?: ""
 }
 
 /** Normalizes PlaceholderAPI parameters without touching Bukkit state. */
@@ -57,6 +62,7 @@ internal sealed class PlaceholderRequest {
     data class Fixed(val key: String) : PlaceholderRequest()
     data class RegionVariable(val key: String) : PlaceholderRequest()
     data class ParentVariable(val key: String) : PlaceholderRequest()
+    data class DynamicVariable(val key: String) : PlaceholderRequest()
     data object Unknown : PlaceholderRequest()
 
     companion object {
@@ -68,8 +74,15 @@ internal sealed class PlaceholderRequest {
                 normalized.startsWith("region_var_") -> RegionVariable(trimmed.substring("region_var_".length))
                 normalized.startsWith("var_") -> RegionVariable(trimmed.substring("var_".length))
                 normalized.isBlank() -> Unknown
-                else -> Fixed(normalized)
+                normalized in fixedKeys -> Fixed(normalized)
+                else -> DynamicVariable(trimmed)
             }
         }
+
+        private val fixedKeys = setOf(
+            "region_id", "region_name", "region_role", "region_content_id", "parent_id", "parent_name",
+            "child_id", "child_name", "region_path", "region_depth", "region_unlocked", "region_entered",
+            "region_completed", "region_world",
+        )
     }
 }

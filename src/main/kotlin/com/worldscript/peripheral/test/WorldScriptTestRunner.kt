@@ -43,6 +43,8 @@ object WorldScriptTestRunner {
 
         check(EditorRoute.fromCommand("enter", "sound:1:play") == "sound:enter:1:play") { "command route should preserve the event key" }
         check(EditorRoute.mutation("particle:count:1")?.operation == EditorOperation.PARTICLE) { "particle mutation should be recognized" }
+        check(EditorRoute.fromCommand("name", null) == "name:") { "display name editing route should be recognized" }
+        check(EditorRoute.mutation("name:")?.operation == EditorOperation.NAME) { "display name mutation should be recognized" }
         check(EditorRoute.mutation("events") == null) { "page names must not be treated as mutations" }
         println("[TEST] PASS editor.route: command and mutation routes are parsed consistently")
 
@@ -63,7 +65,8 @@ object WorldScriptTestRunner {
         check(PlaceholderRequest.parse("var_short_name") == PlaceholderRequest.RegionVariable("short_name")) { "var_ prefix should resolve region variables" }
         check(PlaceholderRequest.parse("region_var_short_name") == PlaceholderRequest.RegionVariable("short_name")) { "region_var_ prefix should resolve region variables" }
         check(PlaceholderRequest.parse("parent_var_biome") == PlaceholderRequest.ParentVariable("biome")) { "parent_var_ prefix should resolve parent variables" }
-        check(PlaceholderRequest.parse("unknown_placeholder") == PlaceholderRequest.Fixed("unknown_placeholder")) { "unknown non-empty parameters should remain fixed requests" }
+        check(PlaceholderRequest.parse("short_name") == PlaceholderRequest.DynamicVariable("short_name")) { "unprefixed parameters should resolve dynamic region variables" }
+        check(PlaceholderRequest.parse("REGION_NAME") == PlaceholderRequest.Fixed("region_name")) { "fixed placeholders must take precedence over dynamic variables" }
         check(PlaceholderRequest.parse("   ") == PlaceholderRequest.Unknown) { "blank parameters should be rejected" }
         println("[TEST] PASS placeholder.request: fixed and variable parameters are parsed consistently")
         println("[TEST] SUMMARY region-core: passed=7 failed=0 total=7")

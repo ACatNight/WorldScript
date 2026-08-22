@@ -124,6 +124,7 @@ WorldScript 不创建任务，也不维护任务步骤。外部任务插件完�
 %worldscript_parent_name%
 %worldscript_child_id%
 %worldscript_child_name%
+%worldscript_region_path%
 %worldscript_region_depth%
 %worldscript_region_unlocked%
 %worldscript_region_entered%
@@ -131,15 +132,16 @@ WorldScript 不创建任务，也不维护任务步骤。外部任务插件完�
 %worldscript_region_world%
 ```
 
-`variables:` 下的自定义变量也可以直接给 HUD 使用：
+`variables:` 下的自定义变量会被自动识别，不需要预先注册：
 
 ```text
 %worldscript_var_short_name%
 %worldscript_region_var_short_name%
 %worldscript_parent_var_biome%
+%worldscript_short_name%
 ```
 
-把 `short_name` 和 `biome` 换成配置中的实际键名。当前区域变量使用 `var_` 或 `region_var_`，父区域变量使用 `parent_var_`；不存在的变量返回空字符串。
+把 `short_name` 和 `biome` 换成配置中的实际键名。当前区域变量也可以直接使用 `%worldscript_<key>%`；子区域覆盖父区域同名变量，父区域变量使用 `parent_var_`。不存在的变量返回空字符串。`region_path` 会按“父区域 / 子区域”返回显示名称路径。
 
 ## 8. 粒子氛围
 

@@ -56,6 +56,7 @@ class RegionChatEditor(
         EditorRoute.mutation(section)?.let { mutation ->
             return when (mutation.operation) {
                 EditorOperation.STATUS -> cycleStatus(player, region)
+                EditorOperation.NAME -> nameInput(player, region)
                 EditorOperation.TOGGLE -> toggleEvent(player, region, mutation.payload)
                 EditorOperation.COOLDOWN -> adjustCooldown(player, region, mutation.payload)
                 EditorOperation.MODE -> toggleMode(player, region, mutation.payload)
@@ -111,6 +112,7 @@ class RegionChatEditor(
     private fun main(player: Player, region: RegionDefinition) {
         group(player, editorText("group-identity", "&6Properties"))
         property(player, editorText("label-status", "&e[Region status]"), statusText(region), editorText("button-cycle", "&e[Cycle]"), "/ws edit ${region.id} status:next")
+        property(player, editorText("label-display-name", "&eDisplay name"), region.displayName, editorText("button-input", "&e[Edit]"), "/ws edit ${region.id} name")
         property(player, editorText("label-parent", "&eParent region"), region.parentId?.let { regions.find(it)?.displayName ?: it } ?: editorText("value-none", "None"), "&8—")
         property(player, editorText("label-children", "&eChild regions"), "${childCount(region)}", "&8—")
         property(player, editorText("label-inheritance", "&eInheritance"), if (region.inheritParent) editorText("value-inherited", "Inherited from parent") else editorText("value-independent", "Local configuration"), "&8—")
@@ -237,6 +239,11 @@ class RegionChatEditor(
         sendEditor(player, "input-prompt", "&6Editing &f%parameter% &8| &7Enter a value or type &ccancel &7to stop.", "parameter" to parameterLabel(parameter))
     }
 
+    private fun nameInput(player: Player, region: RegionDefinition) {
+        input[player.uniqueId] = EditorPendingInput(region.id, "main", RegionEventType.ENTER, -1, "__region_name__", System.currentTimeMillis())
+        sendEditor(player, "name-input-prompt", "&6Editing display name &8| &7Enter a new name, or type &ccancel &7to stop.")
+    }
+
     private fun removeAction(player: Player, region: RegionDefinition, value: String) {
         val target = EditorActionRef.parse(value) ?: return
         val key = target.eventKey
@@ -272,6 +279,15 @@ class RegionChatEditor(
                     regions.removeAction(pending.regionId, pending.type, pending.index)
                     sendEditor(player, "action-deleted", "&aAction deleted.")
                     open(player, pending.regionId, pending.eventKey)
+                }
+                return@Runnable
+            }
+            if (pending.parameter == "__region_name__") {
+                if (regions.setDisplayName(pending.regionId, message)) {
+                    sendEditor(player, "name-saved", "&aDisplay name saved: &f%value%", "value" to message)
+                    open(player, pending.regionId, "main")
+                } else {
+                    sendEditor(player, "name-invalid", "&cDisplay name cannot be empty.")
                 }
                 return@Runnable
             }

@@ -214,6 +214,27 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     fun variable(id: String, key: String): String? = effective(id)?.variables?.get(key)
 
+    fun setDisplayName(id: String, displayName: String): Boolean {
+        val region = find(id) ?: return false
+        val cleanName = displayName.trim()
+        if (cleanName.isBlank()) return false
+        regions[region.id.lowercase()] = region.copy(displayName = cleanName)
+        save(regions[region.id.lowercase()]!!)
+        return true
+    }
+
+    /** Builds the configured display-name hierarchy from the outermost parent to this region. */
+    fun displayPath(id: String): String {
+        val chain = mutableListOf<RegionDefinition>()
+        var current = find(id)
+        val visited = mutableSetOf<String>()
+        while (current != null && visited.add(current.id.lowercase())) {
+            chain += current
+            current = current.parentId?.let(::find)
+        }
+        return chain.asReversed().joinToString(" / ") { it.displayName.ifBlank { it.id } }
+    }
+
     fun create(id: String, displayName: String, first: Location, second: Location): Boolean {
         val cleanId = id.trim()
         val firstWorld = first.world ?: return false
