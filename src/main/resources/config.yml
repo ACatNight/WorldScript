@@ -10,5 +10,8 @@ messages:
   leave: '&7Leaving region: &f%region%'
 gui:
   event-icon: PAPER
+placeholders:
+  # Tokens: {parent}, {current}, {child}, {id}, {path}
+  region-name-format: '{parent} / {current}'
 editor:
   input-timeout-seconds: 120

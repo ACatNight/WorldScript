@@ -12,6 +12,7 @@ import com.worldscript.modules.l1.region_core.RegionConfigurationValidator
 import com.worldscript.modules.l1.region_events.RegionInteractionPolicy
 import com.worldscript.modules.l2.rpg.PlayerRegionProgress
 import com.worldscript.integration.placeholder.PlaceholderRequest
+import com.worldscript.integration.placeholder.RegionNameFormatter
 
 object WorldScriptTestRunner {
     @JvmStatic
@@ -72,6 +73,9 @@ object WorldScriptTestRunner {
         check(PlaceholderRequest.parse("short_name") == PlaceholderRequest.DynamicVariable("short_name")) { "unprefixed parameters should resolve dynamic region variables" }
         check(PlaceholderRequest.parse("REGION_NAME") == PlaceholderRequest.Fixed("region_name")) { "fixed placeholders must take precedence over dynamic variables" }
         check(PlaceholderRequest.parse("   ") == PlaceholderRequest.Unknown) { "blank parameters should be rejected" }
+        check(RegionNameFormatter.format("{parent} / {current}", "低语森林", "森林入口", "forest_entrance", "低语森林 / 森林入口") == "低语森林 / 森林入口") { "custom region path format failed" }
+        check(RegionNameFormatter.format("当前位置：{parent} / {current}", "", "初始山谷", "starter_valley", "初始山谷") == "当前位置：初始山谷") { "root region path should not keep an empty parent separator" }
+        check(RegionNameFormatter.format("{path} · {id}", "低语森林", "森林入口", "forest_entrance", "低语森林 / 森林入口") == "低语森林 / 森林入口 · forest_entrance") { "path and id tokens failed" }
         println("[TEST] PASS placeholder.request: fixed and variable parameters are parsed consistently")
         println("[TEST] SUMMARY region-core: passed=7 failed=0 total=7")
     }

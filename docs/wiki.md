@@ -135,6 +135,15 @@ For a shorter, more readable form, use `%worldscript_parent_<key>%` and `%worlds
 
 Replace `short_name` and `biome` with the exact keys under `variables:`. Missing variables return an empty string.
 
+The combined display name is configurable in `config.yml`:
+
+```yaml
+placeholders:
+  region-name-format: '{parent} / {current}'
+```
+
+Available tokens are `{parent}`, `{current}`, `{child}`, `{id}`, and `{path}`. When there is no parent, the default parent separator is removed automatically.
+
 ## Particles
 
 Particles are optional and run on a timer. They are useful for portals, borders, and points of interest, but a large count with a short interval can be expensive.

@@ -42,7 +42,7 @@ class WorldScriptPlaceholderExpansion(
             "parent_name" -> parent?.displayName ?: ""
             "child_id" -> current?.takeIf { it.parentId != null }?.id ?: ""
             "child_name" -> effective?.takeIf { it.parentId != null }?.displayName ?: ""
-            "region_path" -> current?.let { regions.displayPath(it.id) } ?: ""
+            "region_path" -> current?.let { regionPath(it.id, it.displayName, parent) } ?: ""
             "region_depth" -> current?.let { regions.depth(it.id).toString() } ?: "0"
             "region_unlocked" -> current?.let { regions.isAccessible(it.id, state.isRegionUnlocked(player, it.id)).toString() } ?: "false"
             "region_entered" -> current?.let { state.hasEnteredRegion(player, it.id).toString() } ?: "false"
@@ -56,6 +56,36 @@ class WorldScriptPlaceholderExpansion(
 
     private fun variableValue(variables: Map<String, String>?, key: String): String =
         variables?.entries?.firstOrNull { it.key.equals(key, true) }?.value ?: ""
+
+    private fun regionPath(id: String, currentName: String, parent: com.worldscript.foundation.model.RegionDefinition?): String {
+        val path = regions.displayPath(id)
+        val parentPath = parent?.let { regions.displayPath(it.id) }.orEmpty()
+        return RegionNameFormatter.format(
+            plugin.config.getString("placeholders.region-name-format", "{parent} / {current}") ?: "{parent} / {current}",
+            parentPath,
+            currentName,
+            id,
+            path,
+        )
+    }
+}
+
+/** Applies the administrator-facing region name template without recursive placeholder parsing. */
+internal object RegionNameFormatter {
+    fun format(template: String, parent: String, current: String, id: String, path: String): String {
+        var result = template.trim()
+        if (parent.isBlank()) {
+            result = result.replace(Regex("\\{parent\\}\\s*(/|›|>|»|-)\\s*"), "")
+        }
+        return result
+            .replace("{parent}", parent)
+            .replace("{current}", current)
+            .replace("{child}", current)
+            .replace("{id}", id)
+            .replace("{path}", path)
+            .replace(Regex("\\s{2,}"), " ")
+            .trim()
+    }
 }
 
 /** Normalizes PlaceholderAPI parameters without touching Bukkit state. */
