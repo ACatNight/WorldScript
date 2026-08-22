@@ -131,6 +131,8 @@ Variables from the effective parent region:
 %worldscript_parent_var_biome%
 ```
 
+For a shorter, more readable form, use `%worldscript_parent_<key>%` and `%worldscript_child_<key>%`. The child form means the deepest current region; it is useful when the same layout is shared by parent and child regions.
+
 Replace `short_name` and `biome` with the exact keys under `variables:`. Missing variables return an empty string.
 
 ## Particles

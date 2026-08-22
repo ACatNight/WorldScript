@@ -141,6 +141,8 @@ WorldScript 不创建任务，也不维护任务步骤。外部任务插件完�
 %worldscript_short_name%
 ```
 
+为了让 HUD 配置更简洁，也可以使用 `%worldscript_parent_<key>%` 和 `%worldscript_child_<key>%`。其中 `child` 表示玩家当前所在的最深层区域。
+
 把 `short_name` 和 `biome` 换成配置中的实际键名。当前区域变量也可以直接使用 `%worldscript_<key>%`；子区域覆盖父区域同名变量，父区域变量使用 `parent_var_`。不存在的变量返回空字符串。`region_path` 会按“父区域 / 子区域”返回显示名称路径。
 
 ## 8. 粒子氛围

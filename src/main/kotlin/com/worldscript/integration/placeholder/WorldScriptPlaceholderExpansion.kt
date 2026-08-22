@@ -31,6 +31,7 @@ class WorldScriptPlaceholderExpansion(
         return when (val request = PlaceholderRequest.parse(params)) {
             is PlaceholderRequest.RegionVariable -> variableValue(effective?.variables, request.key)
             is PlaceholderRequest.ParentVariable -> variableValue(parent?.variables, request.key)
+            is PlaceholderRequest.ChildVariable -> variableValue(effective?.variables, request.key)
             is PlaceholderRequest.DynamicVariable -> variableValue(effective?.variables, request.key)
             is PlaceholderRequest.Fixed -> when (request.key) {
             "region_id" -> currentId
@@ -62,6 +63,7 @@ internal sealed class PlaceholderRequest {
     data class Fixed(val key: String) : PlaceholderRequest()
     data class RegionVariable(val key: String) : PlaceholderRequest()
     data class ParentVariable(val key: String) : PlaceholderRequest()
+    data class ChildVariable(val key: String) : PlaceholderRequest()
     data class DynamicVariable(val key: String) : PlaceholderRequest()
     data object Unknown : PlaceholderRequest()
 
@@ -70,11 +72,14 @@ internal sealed class PlaceholderRequest {
             val trimmed = params.trim()
             val normalized = trimmed.lowercase()
             return when {
-                normalized.startsWith("parent_var_") -> ParentVariable(trimmed.substring("parent_var_".length))
-                normalized.startsWith("region_var_") -> RegionVariable(trimmed.substring("region_var_".length))
-                normalized.startsWith("var_") -> RegionVariable(trimmed.substring("var_".length))
                 normalized.isBlank() -> Unknown
                 normalized in fixedKeys -> Fixed(normalized)
+                normalized.startsWith("parent_var_") -> ParentVariable(trimmed.substring("parent_var_".length))
+                normalized.startsWith("parent_") -> ParentVariable(trimmed.substring("parent_".length))
+                normalized.startsWith("child_var_") -> ChildVariable(trimmed.substring("child_var_".length))
+                normalized.startsWith("child_") -> ChildVariable(trimmed.substring("child_".length))
+                normalized.startsWith("region_var_") -> RegionVariable(trimmed.substring("region_var_".length))
+                normalized.startsWith("var_") -> RegionVariable(trimmed.substring("var_".length))
                 else -> DynamicVariable(trimmed)
             }
         }

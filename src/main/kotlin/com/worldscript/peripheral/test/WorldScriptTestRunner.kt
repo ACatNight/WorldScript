@@ -65,6 +65,8 @@ object WorldScriptTestRunner {
         check(PlaceholderRequest.parse("var_short_name") == PlaceholderRequest.RegionVariable("short_name")) { "var_ prefix should resolve region variables" }
         check(PlaceholderRequest.parse("region_var_short_name") == PlaceholderRequest.RegionVariable("short_name")) { "region_var_ prefix should resolve region variables" }
         check(PlaceholderRequest.parse("parent_var_biome") == PlaceholderRequest.ParentVariable("biome")) { "parent_var_ prefix should resolve parent variables" }
+        check(PlaceholderRequest.parse("parent_biome") == PlaceholderRequest.ParentVariable("biome")) { "parent_ prefix should resolve parent variables" }
+        check(PlaceholderRequest.parse("child_short_name") == PlaceholderRequest.ChildVariable("short_name")) { "child_ prefix should resolve current child variables" }
         check(PlaceholderRequest.parse("short_name") == PlaceholderRequest.DynamicVariable("short_name")) { "unprefixed parameters should resolve dynamic region variables" }
         check(PlaceholderRequest.parse("REGION_NAME") == PlaceholderRequest.Fixed("region_name")) { "fixed placeholders must take precedence over dynamic variables" }
         check(PlaceholderRequest.parse("   ") == PlaceholderRequest.Unknown) { "blank parameters should be rejected" }
