@@ -1,10 +1,13 @@
 package com.worldscript.command
 
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /** Owns one pending chat edit per player. */
 internal class EditorSessionStore {
-    private val sessions = mutableMapOf<UUID, EditorPendingInput>()
+    // Chat input is received asynchronously while editor navigation and
+    // lifecycle callbacks run on the server thread.
+    private val sessions = ConcurrentHashMap<UUID, EditorPendingInput>()
 
     fun begin(playerId: UUID, pending: EditorPendingInput) {
         sessions[playerId] = pending

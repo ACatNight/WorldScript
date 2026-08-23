@@ -12,6 +12,7 @@
 - Normalized kebab-case and underscore ActionType YAML parsing across discovery, event, and condition-failure actions, with round-trip regression coverage.
 - Discovery writes now migrate legacy `discovery.reward.actions` data to the canonical action list so removed actions cannot return after reload.
 - Extended configuration validation to discovery and condition-failure actions.
+- Made pending chat-editor sessions safe across asynchronous chat and server-thread navigation.
 - Kept block-click and generic interaction events independent.
 - Centralized runtime language loading for region event messages.
 - Localized condition failure details instead of hardcoding English explanations.
