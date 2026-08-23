@@ -20,7 +20,7 @@ class ActionPresetCatalog(private val plugin: JavaPlugin) {
         entries = config.getConfigurationSection("actions")?.getKeys(false)?.mapNotNull { id ->
             val path = "actions.$id"
             val rawType = config.getString("$path.type") ?: return@mapNotNull null
-            val type = ActionType.entries.firstOrNull { it.name.equals(rawType.replace('-', '_'), true) }
+            val type = ActionType.parseYaml(rawType)
                 ?: return@mapNotNull null
             val defaults = config.getConfigurationSection("$path.defaults")
                 ?.getKeys(false)

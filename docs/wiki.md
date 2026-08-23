@@ -12,7 +12,7 @@ WorldScript adds named regions to a Paper server. A region is a box with a name,
 
 TabooLib and Kether are included in the jar. PlaceholderAPI is optional and is only needed for HUD placeholders.
 
-This page describes WorldScript `0.1.92`.
+This page describes WorldScript `0.1.93`.
 
 ## Create A Region
 
@@ -193,7 +193,7 @@ Only the deepest active region displays particles. A child particle setting over
 /ws delete <region-id>
 /ws list
 /ws info <region-id>
-/ws gui
+/ws list
 /ws edit <region-id>
 /ws reload
 /ws validate [region-id]

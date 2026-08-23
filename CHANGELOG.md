@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.93
+
+- Extracted editor input parsing and centralized action storage for maintainable region editing.
+- Discovery rewards now use the same preset action list and action parameter editor as region events.
+- Unified region discovery Title, sound, and command execution with the same action executor used by enter events.
+- Discovery actions now use the standard placeholder expansion and action error handling path.
+- Fixed discovery feature switches edited in the region editor being blocked by disabled global switches.
+- Fixed discovery reward input to accept direct commands and common action aliases.
+- Enabling a per-region Discovery child feature now enables both its region-level and relevant global feature switches.
+- Normalized kebab-case and underscore ActionType YAML parsing across discovery, event, and condition-failure actions, with round-trip regression coverage.
+- Discovery writes now migrate legacy `discovery.reward.actions` data to the canonical action list so removed actions cannot return after reload.
+- Extended configuration validation to discovery and condition-failure actions.
+- Kept block-click and generic interaction events independent.
+- Centralized runtime language loading for region event messages.
+- Localized condition failure details instead of hardcoding English explanations.
+- Reused the existing localized GUI enabled/disabled status text.
+- Audited the editor, GUI, condition, and discovery paths for maintainability without changing `/ws list` interactions.
+
 ## 0.1.92
 
 - Added automatically discovered region variables with `%worldscript_<key>%`.

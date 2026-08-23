@@ -60,9 +60,9 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         playerProgress = playerVariables
         val rewards = RewardService(this, regionCore, playerVariables)
         particles = RegionParticleService(this, regionCore, playerVariables)
-        val conditions = ConditionEvaluator(regionCore, playerVariables)
-        val events = RegionEventServiceImpl(this, regionCore, playerVariables)
+        val conditions = ConditionEvaluator(this, regionCore, playerVariables)
         val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards)
+        val events = RegionEventServiceImpl(this, regionCore, playerVariables, conditions, actions::executeConditionFailure)
         val gui = RegionGuiService(this, regionCore)
         val selection = SelectionService(this)
         val command = WsCommand(this, regionCore, selection, playerVariables)

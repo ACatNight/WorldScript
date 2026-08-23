@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION") // PlaceholderAPI exposes this metadata through the Bukkit plugin descriptor.
+
 package com.worldscript.integration.placeholder
 
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
@@ -44,7 +46,7 @@ class WorldScriptPlaceholderExpansion(
             "child_name" -> effective?.takeIf { it.parentId != null }?.displayName ?: ""
             "region_path" -> current?.let { regionPath(it.id, it.displayName, parent) } ?: ""
             "region_depth" -> current?.let { regions.depth(it.id).toString() } ?: "0"
-            "region_unlocked" -> current?.let { regions.isAccessible(it.id, state.isRegionUnlocked(player, it.id)).toString() } ?: "false"
+            "region_unlocked" -> current?.let { state.isRegionUnlocked(player, it.id).toString() } ?: "false"
             "region_entered" -> current?.let { state.hasEnteredRegion(player, it.id).toString() } ?: "false"
             "region_completed" -> current?.let { state.isRegionCompleted(player, it.id).toString() } ?: "false"
             "region_world" -> player.world.name

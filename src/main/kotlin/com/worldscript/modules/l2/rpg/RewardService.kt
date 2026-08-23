@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.worldscript.modules.l2.rpg
 
 import com.worldscript.foundation.model.GlobalRegionStatus
@@ -5,7 +7,7 @@ import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
+import net.md_5.bungee.api.ChatColor
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack

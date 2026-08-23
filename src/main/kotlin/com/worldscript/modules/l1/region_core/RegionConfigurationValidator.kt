@@ -36,6 +36,9 @@ internal class RegionConfigurationValidator(
             }
         }
         if (hasParentCycle(region.id)) issues += "$prefix: parent-id creates a cycle"
+        region.discovery?.configuredActions()?.forEachIndexed { index, action ->
+            validateAction(issues, "$prefix.discovery", index, action)
+        }
         region.events.forEach { (eventType, script) ->
             val eventPrefix = "$prefix.events.${eventType.name.lowercase()}"
             if (script.firstEntryOnly && script.repeatEntryOnly) {
@@ -44,6 +47,9 @@ internal class RegionConfigurationValidator(
             script.conditions.forEachIndexed { index, condition -> validateCondition(issues, eventPrefix, index, condition, region.id) }
             script.rewards.forEachIndexed { index, reward -> validateReward(issues, eventPrefix, index, reward) }
             script.actions.forEachIndexed { index, action -> validateAction(issues, eventPrefix, index, action) }
+            script.conditionFailureActions.forEachIndexed { index, action ->
+                validateAction(issues, "$eventPrefix.condition-failure", index, action)
+            }
         }
     }
 

@@ -14,7 +14,7 @@ WorldScript 用来给 Paper 服务器配置区域。一个区域就是一块范�
 
 TabooLib 和 Kether 已包含在 WorldScript JAR 中，不需要另外安装 TabooLib。PlaceholderAPI 是可选依赖。
 
-本文档按 `0.1.92` 编写。
+本文档按 `0.1.93` 编写。
 
 ## 3. 第一个区域
 
@@ -35,7 +35,7 @@ TabooLib 和 Kether 已包含在 WorldScript JAR 中，不需要另外安装 Tab
 ```text
 /ws list
 /ws info starter_valley
-/ws gui
+/ws list
 ```
 
 在区域列表中，左键传送到区域中心，右键打开聊天编辑器。
@@ -208,7 +208,7 @@ particle:
 /ws delete <区域ID>
 /ws list
 /ws info <区域ID>
-/ws gui
+/ws list
 /ws edit <区域ID>
 /ws reload
 /ws validate [区域ID]

@@ -1,5 +1,7 @@
 package com.worldscript.foundation.model
 
+import java.util.Locale
+
 data class BlockPosition(val x: Int, val y: Int, val z: Int)
 
 data class RegionBounds(val min: BlockPosition, val max: BlockPosition)
@@ -27,6 +29,29 @@ enum class ActionType {
     GIVE_MONEY,
     UNLOCK_REGION,
     COMPLETE_REGION,
+
+    ;
+
+    companion object {
+        /**
+         * Parses the stable YAML representation of an action type.
+         *
+         * Region YAML uses kebab-case while Kotlin enum identifiers use
+         * underscores. Keep that normalization here so every configuration
+         * load path has identical compatibility behaviour.
+         */
+        fun parseYaml(value: String?): ActionType? {
+            val normalized = value
+                ?.trim()
+                ?.uppercase(Locale.ROOT)
+                ?.replace('-', '_')
+                ?.takeIf { it.isNotBlank() }
+                ?: return null
+            return entries.firstOrNull { it.name == normalized }
+        }
+
+        fun yamlName(type: ActionType): String = type.name.lowercase(Locale.ROOT).replace('_', '-')
+    }
 }
 
 /** World-level state shared by every player. */
@@ -70,6 +95,8 @@ enum class ComparisonOperator {
     LESS_OR_EQUAL,
     EXISTS,
 }
+
+enum class ConditionMode { AND, OR }
 
 data class ConditionDefinition(
     val type: ConditionType,
@@ -117,11 +144,47 @@ data class RegionParticleDefinition(
     val speed: Double = 0.0,
 )
 
+data class DiscoveryDefinition(
+    val enabled: Boolean = false,
+    val titleEnabled: Boolean = false,
+    val title: String = "",
+    val subtitle: String = "",
+    val fadeIn: Int = 10,
+    val stay: Int = 50,
+    val fadeOut: Int = 10,
+    val soundEnabled: Boolean = false,
+    val sound: String = "ENTITY_PLAYER_LEVELUP",
+    val volume: Float = 1.0f,
+    val pitch: Float = 1.0f,
+    val rewardEnabled: Boolean = false,
+    /** Canonical discovery action list for newly edited configurations. */
+    val actions: List<ActionDefinition> = emptyList(),
+    /** Legacy YAML compatibility; migrate-on-write copies this into [actions]. */
+    val rewardActions: List<ActionDefinition> = emptyList(),
+) {
+    fun configuredActions(): List<ActionDefinition> = actions.ifEmpty { rewardActions }
+
+    /**
+     * Converts legacy reward actions to the canonical discovery action list.
+     * Once an edited definition is written, the legacy list must be empty:
+     * otherwise deleting the final canonical action would make old rewards
+     * unexpectedly reappear through [configuredActions].
+     */
+    fun canonicalized(): DiscoveryDefinition = when {
+        rewardActions.isEmpty() -> this
+        actions.isEmpty() -> copy(actions = rewardActions, rewardActions = emptyList())
+        else -> copy(rewardActions = emptyList())
+    }
+}
+
 data class ScriptDefinition(
     val enabled: Boolean = true,
     val cooldownSeconds: Long = 0,
     val actions: List<ActionDefinition> = emptyList(),
     val conditions: List<ConditionDefinition> = emptyList(),
+    /** Actions executed when this event's entry conditions deny access. */
+    val conditionFailureActions: List<ActionDefinition> = emptyList(),
+    val conditionMode: ConditionMode = ConditionMode.AND,
     val rewards: List<RewardDefinition> = emptyList(),
     val overrideParent: Boolean = false,
     val firstEntryOnly: Boolean = false,
@@ -143,4 +206,5 @@ data class RegionDefinition(
     val variables: Map<String, String> = emptyMap(),
     val statuses: Set<GlobalRegionStatus> = emptySet(),
     val particle: RegionParticleDefinition? = null,
+    val discovery: DiscoveryDefinition? = null,
 )

@@ -39,7 +39,7 @@ The starter files use the recommended Schema 2 format: [examples](examples). Exi
 /ws info <name>
 /ws edit <region-id>
 /ws edit <region-id> events
-/ws gui
+/ws list
 /ws reload
 /ws validate
 /ws progress <player> <region> <unlock|complete>

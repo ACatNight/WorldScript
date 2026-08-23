@@ -13,6 +13,7 @@ import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import java.io.File
 
 class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val state: PlayerVariableService) : CommandExecutor, TabCompleter {
     private val lang = Lang(plugin)
@@ -25,10 +26,10 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         if (!sender.hasPermission("worldscript.admin")) return reply(sender, "no-permission")
         when (args.firstOrNull()?.lowercase()) {
             "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK)); reply(it, "wand-given") } ?: reply(sender, "only-player")
-            "gui" -> (sender as? Player)?.let { guiOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
+            "list" -> (sender as? Player)?.let { guiOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
             "edit" -> edit(sender, args)
-            "list" -> { if (regions.all().isEmpty()) reply(sender, "region-list-empty") else regions.all().forEach { lang.send(sender, "region-list-item", "region" to it.id) } }
-            "reload" -> { plugin.reloadConfig(); regions.load(); reloadHandler?.invoke(); reply(sender, "reload-success") }
+            "reload" -> reload(sender, args)
+            "language" -> language(sender, args)
             "validate" -> validate(sender, args.getOrNull(1)?.takeUnless { it.isBlank() })
             "progress" -> progress(sender, args)
             "help" -> sendUsage(sender)
@@ -108,9 +109,9 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "usage-delete",
             "usage-list",
             "usage-info",
-            "usage-gui",
             "usage-edit",
             "usage-reload",
+            "usage-language",
             "usage-validate",
             "usage-progress",
             "usage-footer",
@@ -118,11 +119,37 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
     }
 
     private fun reply(sender: CommandSender, key: String, vararg values: Any): Boolean { lang.send(sender, key, "region" to values.firstOrNull()); return true }
+
+    private fun reload(sender: CommandSender, args: Array<out String>) {
+        plugin.reloadConfig()
+        regions.load()
+        reloadHandler?.invoke()
+        if (args.getOrNull(1)?.equals("language", true) == true) Lang.reloadAll()
+        reply(sender, "reload-success")
+    }
+
+    private fun language(sender: CommandSender, args: Array<out String>) {
+        val requested = args.getOrNull(1)?.trim()
+        if (requested.isNullOrBlank() || requested.equals("reload", true)) {
+            Lang.reloadAll()
+            lang.send(sender, "language-reloaded")
+            return
+        }
+        if (!requested.matches(Regex("[A-Za-z0-9_-]+")) || !File(plugin.dataFolder, "lang/$requested.yml").isFile) {
+            lang.send(sender, "language-not-found", "language" to requested)
+            return
+        }
+        plugin.config.set("language", requested)
+        plugin.saveConfig()
+        Lang.reloadAll()
+        lang.send(sender, "language-changed", "language" to requested)
+    }
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> = when {
-        args.size == 1 -> listOf("wand", "create", "delete", "list", "info", "gui", "edit", "reload", "validate", "progress", "help")
+        args.size == 1 -> listOf("wand", "create", "delete", "list", "info", "edit", "reload", "language", "validate", "progress", "help")
         args.size == 2 && args[0].equals("validate", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("progress", true) -> regions.all().map { it.id }
         args.size == 4 && args[0].equals("progress", true) -> listOf("unlock", "complete")
+        args.size == 2 && args[0].equals("language", true) -> listOf("reload", "en_US", "zh_CN", "zh_TW")
         args.size == 2 -> regions.all().map { it.id }
         else -> emptyList()
     }

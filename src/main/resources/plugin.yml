@@ -6,7 +6,7 @@ softdepend: [PlaceholderAPI]
 commands:
   ws:
     description: WorldScript administration command
-    usage: /ws <wand|create|delete|list|info|gui|edit|reload|validate|progress>
+    usage: /ws <wand|create|delete|list|info|edit|reload|language|validate|progress>
     permission: worldscript.admin
 permissions:
   worldscript.admin:

@@ -6,6 +6,7 @@ import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
 import com.worldscript.foundation.model.BlockPosition
 import com.worldscript.foundation.model.ComparisonOperator
+import com.worldscript.foundation.model.ConditionMode
 import com.worldscript.foundation.model.ConditionDefinition
 import com.worldscript.foundation.model.ConditionType
 import com.worldscript.foundation.model.RegionDefinition
@@ -16,6 +17,7 @@ import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
 import com.worldscript.foundation.model.RegionBounds
 import com.worldscript.foundation.model.RegionParticleDefinition
+import com.worldscript.foundation.model.DiscoveryDefinition
 import com.worldscript.foundation.model.ScriptDefinition
 import org.bukkit.Location
 import org.bukkit.configuration.ConfigurationSection
@@ -87,6 +89,23 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             data.set("particle.spread.z", particle.spreadZ)
             data.set("particle.speed", particle.speed)
         }
+        region.discovery?.canonicalized()?.let { discovery ->
+            data.set("discovery.enabled", discovery.enabled)
+            data.set("discovery.title.enabled", discovery.titleEnabled)
+            data.set("discovery.title.text", discovery.title)
+            data.set("discovery.title.subtitle", discovery.subtitle)
+            data.set("discovery.title.fade-in", discovery.fadeIn)
+            data.set("discovery.title.stay", discovery.stay)
+            data.set("discovery.title.fade-out", discovery.fadeOut)
+            data.set("discovery.sound.enabled", discovery.soundEnabled)
+            data.set("discovery.sound.type", discovery.sound)
+            data.set("discovery.sound.volume", discovery.volume)
+            data.set("discovery.sound.pitch", discovery.pitch)
+            data.set("discovery.reward.enabled", discovery.rewardEnabled)
+            data.set("discovery.actions", discovery.actions.map(::actionMap))
+            // The old reward list is read for compatibility only. Saving a
+            // region completes the migration and removes that YAML path.
+        }
         writePosition(data, "location.min", region.bounds.min)
         writePosition(data, "location.max", region.bounds.max)
         region.events.forEach { (type, script) ->
@@ -97,6 +116,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             data.set("$eventPath.mode", eventMode(script))
             data.set("$eventPath.actions", script.actions.map(::actionMap))
             data.set("$eventPath.conditions", script.conditions.map { conditionMap(it) })
+            data.set("$eventPath.condition-failure-actions", script.conditionFailureActions.map(::actionMap))
+            data.set("$eventPath.condition-mode", script.conditionMode.name.lowercase())
             data.set("$eventPath.rewards", script.rewards.map { rewardMap(it) })
         }
         data.save(File(regionDirectory, "${region.id}.yml"))
@@ -178,9 +199,20 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         return true
     }
 
+    fun updateDiscovery(id: String, update: (DiscoveryDefinition) -> DiscoveryDefinition): Boolean {
+        val region = find(id) ?: return false
+        // Edit against the effective definition so a child region does not
+        // accidentally replace inherited discovery settings with defaults.
+        val base = region.discovery ?: effective(id)?.discovery ?: DiscoveryDefinition()
+        val updated = region.copy(discovery = update(base.canonicalized()).canonicalized())
+        regions[region.id.lowercase()] = updated
+        save(updated)
+        return true
+    }
+
     fun toggleEvent(id: String, type: RegionEventType): Boolean {
         val region = find(id) ?: return false
-        val current = region.events[type] ?: ScriptDefinition()
+        val current = effective(id)?.events?.get(type) ?: region.events[type] ?: ScriptDefinition()
         val updated = region.copy(events = region.events + (type to current.copy(enabled = !current.enabled, overrideParent = true)))
         regions[id.lowercase()] = updated
         save(updated)
@@ -189,7 +221,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     override fun updateEvent(id: String, type: RegionEventType, update: (ScriptDefinition) -> ScriptDefinition): Boolean {
         val region = find(id) ?: return false
-        val current = region.events[type] ?: ScriptDefinition()
+        val current = effective(id)?.events?.get(type) ?: region.events[type] ?: ScriptDefinition()
         val updated = region.copy(events = region.events + (type to update(current).copy(overrideParent = true)))
         regions[id.lowercase()] = updated
         save(updated)
@@ -233,7 +265,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         return depth
     }
 
-    fun variable(id: String, key: String): String? = effective(id)?.variables?.get(key)
+    fun variable(id: String, key: String): String? =
+        effective(id)?.variables?.entries?.firstOrNull { it.key.equals(key.trim(), true) }?.value
 
     fun setDisplayName(id: String, displayName: String): Boolean {
         val region = find(id) ?: return false
@@ -299,6 +332,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             variables = parent.variables + region.variables,
             statuses = parent.statuses + region.statuses,
             particle = region.particle ?: parent.particle,
+            discovery = region.discovery ?: parent.discovery,
         )
     }
 
@@ -354,6 +388,42 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             variables = section.getConfigurationSection("variables")?.getKeys(false)?.associateWith { key -> section.getString("variables.$key", "") ?: "" } ?: emptyMap(),
             statuses = statuses,
             particle = readParticle(section, source),
+            discovery = readDiscovery(section, source),
+        )
+    }
+
+    private fun readDiscovery(section: ConfigurationSection, source: String): DiscoveryDefinition? {
+        if (!section.isConfigurationSection("discovery")) return null
+        val sound = section.getString("discovery.sound.type", "ENTITY_PLAYER_LEVELUP") ?: "ENTITY_PLAYER_LEVELUP"
+        if (section.getBoolean("discovery.sound.enabled", false) && BukkitCompatibility.resolveSound(sound) == null) {
+            loadIssue(source, "discovery.sound.type", "unknown sound '$sound'")
+        }
+        fun readActions(path: String) = section.getMapList(path).mapIndexedNotNull { index, raw ->
+            val rawType = raw["type"]?.toString() ?: raw["preset"]?.toString()
+            val preset = raw["preset"]?.toString()?.trim()?.lowercase()
+            val actionType = parseActionType(rawType, preset)
+                ?: return@mapIndexedNotNull loadIssue(source, "$path[$index].type", "unknown action type '${rawType ?: "missing"}'").let { null }
+            val value = raw["value"]?.toString() ?: ""
+            val parameters = raw.entries.filter { it.key.toString() !in setOf("type", "preset", "value") }.associate { it.key.toString() to (it.value?.toString() ?: "") }
+            ActionDefinition(actionType, value, parameters, preset)
+        }
+        val legacyActions = readActions("discovery.reward.actions")
+        val actions = readActions("discovery.actions")
+        return DiscoveryDefinition(
+            enabled = section.getBoolean("discovery.enabled", false),
+            titleEnabled = section.getBoolean("discovery.title.enabled", false),
+            title = section.getString("discovery.title.text", "") ?: "",
+            subtitle = section.getString("discovery.title.subtitle", "") ?: "",
+            fadeIn = section.getInt("discovery.title.fade-in", 10).coerceAtLeast(0),
+            stay = section.getInt("discovery.title.stay", 50).coerceAtLeast(0),
+            fadeOut = section.getInt("discovery.title.fade-out", 10).coerceAtLeast(0),
+            soundEnabled = section.getBoolean("discovery.sound.enabled", false),
+            sound = sound,
+            volume = section.getDouble("discovery.sound.volume", 1.0).toFloat().coerceAtLeast(0f),
+            pitch = section.getDouble("discovery.sound.pitch", 1.0).toFloat().coerceAtLeast(0f),
+            rewardEnabled = section.getBoolean("discovery.reward.enabled", false),
+            actions = actions,
+            rewardActions = legacyActions,
         )
     }
 
@@ -393,23 +463,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         val actions = section.getMapList("$path.actions").mapIndexedNotNull { index, raw ->
             val rawType = raw["type"]?.toString() ?: raw["preset"]?.toString()
             val preset = raw["preset"]?.toString()?.trim()?.lowercase()
-            val resolvedType = when (preset) {
-                "text-display", "title" -> ActionType.TEXT_DISPLAY
-                "sound" -> ActionType.SOUND
-                "message" -> ActionType.MESSAGE
-                "player-command" -> ActionType.PLAYER_COMMAND
-                "console-command" -> ActionType.CONSOLE_COMMAND
-                "teleport" -> ActionType.TELEPORT
-                "set-variable" -> ActionType.SET_VARIABLE
-                "set-region-status" -> ActionType.SET_REGION_STATUS
-                "give-item" -> ActionType.GIVE_ITEM
-                "give-experience" -> ActionType.GIVE_EXPERIENCE
-                "give-money" -> ActionType.GIVE_MONEY
-                "unlock-region" -> ActionType.UNLOCK_REGION
-                "complete-region" -> ActionType.COMPLETE_REGION
-                else -> null
-            }
-            val actionType = resolvedType ?: parseEnum<ActionType>(rawType)
+            val actionType = parseActionType(rawType, preset)
                 ?: return@mapIndexedNotNull loadIssue(source, "$path.actions[$index].type", "unknown action type '${rawType ?: "missing"}'").let { null }
             val value = raw["value"]?.toString() ?: ""
             val parameters = raw.entries
@@ -422,12 +476,24 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
                 ActionDefinition(actionType, value, cleanedParameters, preset)
             }
         }
+        val failureActions = section.getMapList("$path.condition-failure-actions").mapIndexedNotNull { index, raw ->
+            val rawType = raw["type"]?.toString() ?: raw["preset"]?.toString()
+            val actionType = parseActionType(rawType, raw["preset"]?.toString()?.trim()?.lowercase())
+                ?: return@mapIndexedNotNull loadIssue(source, "$path.condition-failure-actions[$index].type", "unknown action type '${rawType ?: "missing"}'").let { null }
+            val value = raw["value"]?.toString() ?: ""
+            val parameters = raw.entries
+                .filter { it.key.toString() !in setOf("type", "preset", "value") }
+                .associate { it.key.toString() to (it.value?.toString() ?: "") }
+            ActionDefinition(actionType, value, parameters, raw["preset"]?.toString())
+        }
         return ScriptDefinition(
             // New click events stay disabled until explicitly configured; legacy events retain their enabled-by-default behavior.
             enabled = if (type == RegionEventType.LEFT_CLICK || type == RegionEventType.RIGHT_CLICK) section.getBoolean("$path.enabled", false) else section.getBoolean("$path.enabled", true),
             cooldownSeconds = section.getLong("$path.cooldown-seconds", 0).coerceAtLeast(0),
             actions = actions,
             conditions = readConditions(section.getMapList("$path.conditions"), source, "$path.conditions"),
+            conditionFailureActions = failureActions,
+            conditionMode = section.getString("$path.condition-mode", "and")?.uppercase()?.let { runCatching { ConditionMode.valueOf(it) }.getOrNull() } ?: ConditionMode.AND,
             rewards = readRewards(section.getMapList("$path.rewards"), source, "$path.rewards"),
             overrideParent = if (section.contains("$path.inherit")) !section.getBoolean("$path.inherit") else section.getBoolean("$path.override-parent", false),
             firstEntryOnly = when (mode) { "first" -> true; "repeat", "always" -> false; else -> section.getBoolean("$path.first-entry-only", false) },
@@ -471,7 +537,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     private fun actionMap(action: ActionDefinition): Map<String, Any> = linkedMapOf<String, Any>().apply {
         if (action.preset != null) put("preset", action.preset)
-        else put("type", action.type.name.lowercase().replace('_', '-'))
+        else put("type", ActionType.yamlName(action.type))
         if (action.value.isNotBlank()) put("value", action.value)
         putAll(action.parameters)
     }
@@ -501,6 +567,23 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     }
 
     private inline fun <reified T : Enum<T>> parseEnum(value: String?): T? = value?.trim()?.uppercase()?.let { runCatching { enumValueOf<T>(it) }.getOrNull() }
+
+    private fun parseActionType(rawType: String?, preset: String?): ActionType? = when (preset) {
+        "title", "text-display" -> ActionType.TEXT_DISPLAY
+        "sound" -> ActionType.SOUND
+        "message" -> ActionType.MESSAGE
+        "player-command" -> ActionType.PLAYER_COMMAND
+        "console-command" -> ActionType.CONSOLE_COMMAND
+        "teleport" -> ActionType.TELEPORT
+        "set-variable" -> ActionType.SET_VARIABLE
+        "set-region-status" -> ActionType.SET_REGION_STATUS
+        "give-item" -> ActionType.GIVE_ITEM
+        "give-experience" -> ActionType.GIVE_EXPERIENCE
+        "give-money" -> ActionType.GIVE_MONEY
+        "unlock-region" -> ActionType.UNLOCK_REGION
+        "complete-region" -> ActionType.COMPLETE_REGION
+        else -> ActionType.parseYaml(rawType)
+    }
 
     private fun parseGlobalStatus(value: String?): GlobalRegionStatus? = GlobalRegionStatus.parse(value)
 

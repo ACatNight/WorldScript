@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.worldscript.modules.l2.admin_gui
 
 import com.worldscript.foundation.Lang
@@ -7,14 +9,14 @@ import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionRole
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
+import net.md_5.bungee.api.ChatColor
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
+import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
@@ -38,7 +40,7 @@ class RegionGuiService(
         )
         fillBackground(inventory)
         inventory.setItem(4, item(material("MAP"), lang.text("gui-list-title", "WorldScript Regions"), listOf(
-            lang.text("gui-list-hint", "Left-click teleport | Right-click edit"),
+            lang.text("gui-list-hint", "Left-click edit | Right-click teleport | Middle-click settings"),
             "${page + 1} / $pageCount",
         )))
 
@@ -51,14 +53,54 @@ class RegionGuiService(
         player.openInventory(inventory)
     }
 
+    private fun openSettings(player: Player) {
+        val inventory = Bukkit.createInventory(RegionGuiHolder("settings", 0), 27, color(lang.text("gui-settings-title", "WorldScript Settings")))
+        fillBackground(inventory)
+        inventory.setItem(10, toggleItem("discovery.enabled", "gui-setting-discovery", "Discovery"))
+        inventory.setItem(12, toggleItem("discovery.title.enabled", "gui-setting-title", "Discovery Title"))
+        inventory.setItem(14, toggleItem("discovery.sound.enabled", "gui-setting-sound", "Discovery Sound"))
+        inventory.setItem(16, toggleItem("discovery.reward.enabled", "gui-setting-reward", "Discovery Reward"))
+        inventory.setItem(22, toggleItem("conditions.enabled", "gui-setting-conditions", "Entry Conditions"))
+        inventory.setItem(18, button("ARROW", "gui-settings-back", "Back"))
+        inventory.setItem(26, button("BARRIER", "gui-close", "Close"))
+        player.openInventory(inventory)
+    }
+
+    private fun toggleItem(path: String, key: String, fallback: String): ItemStack {
+        val enabled = plugin.config.getBoolean(path, false)
+        val state = if (enabled) {
+            lang.text("gui-enabled", "&aEnabled, click to disable")
+        } else {
+            lang.text("gui-disabled", "&cDisabled, click to enable")
+        }
+        return item(material(if (enabled) "LIME_DYE" else "GRAY_DYE"), lang.text(key, fallback), listOf(state))
+    }
+
     @EventHandler
     fun onClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val holder = event.inventory.holder as? RegionGuiHolder ?: return
-        if (holder.page != "list") return
         event.isCancelled = true
+        if (holder.page == "settings") {
+            when (event.rawSlot) {
+                10 -> toggleSetting("discovery.enabled", player)
+                12 -> toggleSetting("discovery.title.enabled", player)
+                14 -> toggleSetting("discovery.sound.enabled", player)
+                16 -> toggleSetting("discovery.reward.enabled", player)
+                22 -> toggleSetting("conditions.enabled", player)
+                18 -> openList(player)
+                26 -> player.closeInventory()
+            }
+            return
+        }
+        if (holder.page != "list") return
         val page = holder.pageIndex
         when (event.rawSlot) {
+            // Middle-click is not emitted by many survival clients. The
+            // header map is therefore also a reliable settings fallback.
+            4 -> if (event.click == ClickType.LEFT || event.click == ClickType.SHIFT_LEFT) {
+                openSettingsNextTick(player)
+            }
             45 -> if (page > 0) openList(player, page - 1)
             49 -> player.closeInventory()
             53 -> openList(player, page + 1)
@@ -83,8 +125,7 @@ class RegionGuiService(
         }
         val min = region.bounds.min
         val max = region.bounds.max
-        player.teleport(org.bukkit.Location(
-            world,
+        player.teleport(org.bukkit.Location(world,
             (min.x + max.x) / 2.0 + 0.5,
             (min.y + max.y).toDouble() / 2.0 + 0.1,
             (min.z + max.z) / 2.0 + 0.5,
@@ -94,13 +135,37 @@ class RegionGuiService(
 
     private fun handleRegionClick(player: Player, region: RegionDefinition, click: ClickType) {
         when (click) {
-            ClickType.RIGHT, ClickType.SHIFT_RIGHT -> {
+            ClickType.LEFT, ClickType.SHIFT_LEFT -> {
                 player.closeInventory()
                 editorOpener?.invoke(player, region.id)
             }
-            ClickType.LEFT, ClickType.SHIFT_LEFT -> teleportToRegion(player, region)
+            ClickType.RIGHT, ClickType.SHIFT_RIGHT -> teleportToRegion(player, region)
+            ClickType.MIDDLE, ClickType.CREATIVE -> {
+                openSettingsNextTick(player)
+            }
             else -> Unit
         }
+    }
+
+    private fun openSettingsNextTick(player: Player) {
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            if (player.isOnline) {
+                player.closeInventory()
+                openSettings(player)
+            }
+        })
+    }
+
+    private fun toggleSetting(path: String, player: Player) {
+        val enabled = !plugin.config.getBoolean(path, false)
+        plugin.config.set(path, enabled)
+        // A Discovery child switch has no effect while its parent is off.
+        // Keep the global settings GUI consistent with the region editor.
+        if (enabled && path.startsWith("discovery.") && path != "discovery.enabled") {
+            plugin.config.set("discovery.enabled", true)
+        }
+        plugin.saveConfig()
+        openSettings(player)
     }
 
     private fun sortedRegions(): List<RegionDefinition> =
@@ -125,7 +190,7 @@ class RegionGuiService(
         parent?.let { lore += "&7${lang.text("gui-region-parent", "Parent")}: &f${it.displayName}" }
         if (region.contentId.isNotBlank()) lore += "&7${lang.text("gui-region-content", "Content")}: &f${region.contentId}"
         lore += ""
-        lore += lang.text("gui-list-hint", "Left-click teleport | Right-click edit")
+        lore += lang.text("gui-list-hint", "Left-click edit | Right-click teleport | Middle-click settings")
         return item(roleMaterial(region.role), region.id, lore)
     }
 

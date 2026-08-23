@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.worldscript.foundation
 
 import org.bukkit.Particle

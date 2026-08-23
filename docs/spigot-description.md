@@ -185,7 +185,7 @@ With PlaceholderAPI installed, these values can be used in HUDs, scoreboards, ta
 /ws list
 /ws info <region-id>
 /ws edit <region-id>
-/ws gui
+/ws list
 /ws validate
 /ws reload
 /ws progress <player> <region-id> <unlock|complete>
