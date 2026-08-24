@@ -64,6 +64,7 @@ class RegionChatEditor(
                 EditorOperation.MODE -> toggleMode(player, region, mutation.payload)
                 EditorOperation.SOUND -> soundControl(player, region, mutation.payload)
                 EditorOperation.SELECT -> selectParameter(player, region, mutation.payload)
+                EditorOperation.TOAST -> toastControl(player, region, mutation.payload)
                 EditorOperation.PARTICLE -> particleController.control(player, region, mutation.payload)
                 EditorOperation.DISCOVERY -> discoveryController.control(player, region, mutation.payload)
                 EditorOperation.CONDITION -> conditionController.control(player, region, mutation.payload)
@@ -225,6 +226,12 @@ class RegionChatEditor(
         if (action.type == ActionType.SOUND) soundProperties(player, region, key, index, action)
 
         group(player, editorText("group-parameters", "&bAction parameters"))
+        if (action.type == ActionType.TOAST) {
+            toastProperties(player, region, key, index, action)
+            group(player, editorText("group-danger", "&cDanger zone"))
+            operation(player, editorText("button-delete", "&c[Delete action]"), editorText("hint-delete-action", "&cDelete this action"), "/ws edit ${region.id} $key remove:$index")
+            return
+        }
         if (action.parameters.isEmpty()) {
             property(player, editorText("label-action-value", "&bAction value"), action.value.ifBlank { editorText("value-unset", "Not set") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:value")
         } else {
@@ -245,6 +252,12 @@ class RegionChatEditor(
         property(player, editorText("label-action-type", "&7Action type"), actionLabel(action), "&8—")
         if (action.type == ActionType.SOUND) soundProperties(player, region, key, index, action)
         group(player, editorText("group-parameters", "&bAction parameters"))
+        if (action.type == ActionType.TOAST) {
+            toastProperties(player, region, key, index, action)
+            group(player, editorText("group-danger", "&cDanger zone"))
+            operation(player, editorText("button-delete", "&c[Delete action]"), editorText("hint-delete-action", "&cDelete this action"), "/ws edit ${region.id} $key remove:$index")
+            return
+        }
         if (action.parameters.isEmpty()) {
             property(player, editorText("label-action-value", "&bAction value"), action.value.ifBlank { editorText("value-unset", "Not set") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:value")
         } else {
@@ -254,6 +267,43 @@ class RegionChatEditor(
         }
         group(player, editorText("group-danger", "&cDanger zone"))
         operation(player, editorText("button-delete", "&c[Delete action]"), editorText("hint-delete-action", "&cDelete this action"), "/ws edit ${region.id} $key remove:$index")
+    }
+
+    private fun toastProperties(player: Player, region: RegionDefinition, key: String, index: Int, action: ActionDefinition) {
+        val source = action.parameters["source"].orEmpty()
+        val title = action.parameters["title"].orEmpty()
+        val description = action.parameters["description"].orEmpty()
+        val icon = action.parameters["icon"].orEmpty()
+        val frame = action.parameters["frame"].orEmpty().ifBlank { editorText("value-global-default", "Global default") }
+        property(player, editorText("editor-parameter-source", "&7Toast source"), source.ifBlank { editorText("value-global-default", "Global default") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:source")
+        property(player, editorText("editor-parameter-title", "&7Toast title"), title.ifBlank { editorText("value-global-default", "Global default") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:title")
+        property(player, editorText("editor-parameter-description", "&7Toast description"), description.ifBlank { editorText("value-global-default", "Global default") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:description")
+        property(player, editorText("editor-parameter-icon", "&7Toast icon"), icon.ifBlank { editorText("value-region-default", "Region default") }, editorText("button-use-held-item", "&b[Use held item]"), "/ws edit ${region.id} $key toast:$index:held-item", listOf(
+            ChatEditorButton(editorText("button-input", "&e[Input]"), editorText("hint-toast-icon-input", "&7Enter a Bukkit material name"), "/ws edit ${region.id} $key set:$index:icon"),
+            ChatEditorButton(editorText("button-reset", "&c[Reset]"), editorText("hint-toast-reset", "&7Use the region default icon again"), "/ws edit ${region.id} $key toast:$index:reset-icon"),
+        ))
+        property(player, editorText("editor-parameter-frame", "&7Toast frame"), frame, editorText("button-cycle", "&e[Cycle]"), "/ws edit ${region.id} $key toast:$index:next-frame")
+    }
+
+    private fun toastControl(player: Player, region: RegionDefinition, payload: String) {
+        val parts = payload.split(':')
+        val key = parts.firstOrNull() ?: return
+        val index = parts.getOrNull(1)?.toIntOrNull() ?: return
+        val action = actionAt(region, key, index) ?: return
+        when (parts.getOrNull(2)?.lowercase()) {
+            "held-item" -> {
+                val item = player.inventory.itemInMainHand
+                if (item.type == org.bukkit.Material.AIR) sendEditor(player, "toast-icon-held-empty", "&cHold an item in your main hand first.")
+                else updateActionParameter(region, key, index, action.copy(parameters = action.parameters + ("icon" to item.type.name)))
+            }
+            "reset-icon" -> updateActionParameter(region, key, index, action.copy(parameters = action.parameters - "icon"))
+            "next-frame" -> {
+                val frames = listOf("", "task", "goal", "challenge")
+                val current = frames.indexOf(action.parameters["frame"]).coerceAtLeast(0)
+                updateActionParameter(region, key, index, action.copy(parameters = action.parameters + ("frame" to frames[(current + 1) % frames.size])))
+            }
+        }
+        open(player, region.id, key)
     }
 
     private fun soundProperties(player: Player, region: RegionDefinition, key: String, index: Int, action: ActionDefinition) {

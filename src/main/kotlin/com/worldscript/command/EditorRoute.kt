@@ -21,6 +21,7 @@ internal object EditorRoute {
         actionPage.startsWith("remove:") -> "remove:$eventKey:${actionPage.removePrefix("remove:")}"
         actionPage.startsWith("sound:") -> "sound:$eventKey:${actionPage.removePrefix("sound:")}"
         actionPage.startsWith("select:") -> "select:$eventKey:${actionPage.removePrefix("select:")}"
+        actionPage.startsWith("toast:") -> "toast:$eventKey:${actionPage.removePrefix("toast:")}"
         actionPage.startsWith("discovery:") -> "discovery:${actionPage.removePrefix("discovery:")}"
         else -> eventKey
     }
@@ -44,6 +45,7 @@ internal enum class EditorOperation(val prefix: String) {
     MODE("mode:"),
     SOUND("sound:"),
     SELECT("select:"),
+    TOAST("toast:"),
     PARTICLE("particle:"),
     SET("set:"),
     REMOVE("remove:"),

@@ -84,6 +84,8 @@ object WorldScriptTestRunner {
         check(EditorRoute.fromCommand("conditions", "failure-edit:2") == "condition:failure-edit:2") { "condition failure edit route should preserve its index" }
         check(EditorRoute.fromCommand("conditions", "failure-remove:2") == "condition:failure-remove:2") { "condition failure removal route should preserve its index" }
         check(EditorRoute.fromCommand("conditions", "failure-add") == "condition:failure-add") { "condition failure add route should be recognized" }
+        check(EditorRoute.fromCommand("enter", "toast:0:held-item") == "toast:enter:0:held-item") { "Toast held-item route should be recognized" }
+        check(EditorRoute.mutation("toast:enter:0:next-frame")?.operation == EditorOperation.TOAST) { "Toast mutation should be recognized" }
         check(EditorRoute.mutation("events") == null) { "page names must not be treated as mutations" }
         println("[TEST] PASS editor.route: command and mutation routes are parsed consistently")
 
