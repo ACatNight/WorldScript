@@ -2,6 +2,7 @@ package com.worldscript.modules.l2.script_actions
 
 import com.worldscript.foundation.Lang
 import com.worldscript.foundation.MaterialResolver
+import com.worldscript.foundation.model.RegionRole
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -25,12 +26,13 @@ class ToastService(private val plugin: JavaPlugin) {
         Bukkit.getUnsafe()::class.java.getMethod("removeAdvancement", NamespacedKey::class.java)
     }.getOrNull()
 
-    fun showDiscovery(player: Player, regionId: String, regionName: String, regionEnabled: Boolean) {
+    fun showDiscovery(player: Player, regionId: String, regionName: String, regionRole: RegionRole, regionEnabled: Boolean) {
         if (!regionEnabled || !plugin.config.getBoolean("discovery.display.toast.enabled", false)) return
         queues.getOrPut(player.uniqueId) { ArrayDeque() }.addLast(
             ToastRequest(
                 regionId = regionId,
                 regionName = regionName,
+                regionRole = regionRole,
                 title = template("discovery.display.toast.title", regionName),
                 description = template("discovery.display.toast.description", regionName),
                 frame = plugin.config.getString("discovery.display.toast.frame")?.lowercase(Locale.ROOT).orEmpty(),
@@ -59,7 +61,7 @@ class ToastService(private val plugin: JavaPlugin) {
             "task", "goal", "challenge" -> request.frame
             else -> null
         }
-        val icon = resolveIcon(request.icon)
+        val icon = resolveIcon(request.icon, request.regionRole)
         if (frame == null || icon == null || !sendNative(player, request.regionId, request.title, request.description, frame, icon)) {
             lang.send(player, "discovery-toast-fallback", true, "region" to request.regionName)
         }
@@ -86,10 +88,13 @@ class ToastService(private val plugin: JavaPlugin) {
         }
     }
 
-    private fun resolveIcon(raw: String): Material? {
+    private fun resolveIcon(raw: String, role: RegionRole): Material? {
         val configured = raw.trim()
         val materialName = if (configured.equals("region", true)) {
-            plugin.config.getString("gui.materials.point-of-interest").orEmpty()
+            val roleKey = role.name.lowercase(Locale.ROOT).replace('_', '-')
+            plugin.config.getString("discovery.display.toast.role-icons.$roleKey")
+                ?: plugin.config.getString("gui.materials.$roleKey")
+                ?: plugin.config.getString("gui.materials.point-of-interest").orEmpty()
         } else configured
         return MaterialResolver.find(materialName)
     }
@@ -111,6 +116,7 @@ class ToastService(private val plugin: JavaPlugin) {
     private data class ToastRequest(
         val regionId: String,
         val regionName: String,
+        val regionRole: RegionRole,
         val title: String,
         val description: String,
         val frame: String,

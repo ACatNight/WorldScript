@@ -8,6 +8,7 @@ import com.worldscript.foundation.Lang
 import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.ActionType
 import com.worldscript.foundation.model.RegionEventType
+import com.worldscript.foundation.model.RegionRole
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
@@ -130,7 +131,8 @@ class ScriptActionServiceImpl(
         // state while the feature is globally disabled; otherwise enabling it
         // later would silently skip the player's first-discovery actions.
         state.unlockRegion(player, regionId)
-        toasts.showDiscovery(player, regionId, regions.effective(regionId)?.displayName ?: regionId, discovery.toastEnabled)
+        val region = regions.effective(regionId)
+        toasts.showDiscovery(player, regionId, region?.displayName ?: regionId, region?.role ?: RegionRole.OPEN_ZONE, discovery.toastEnabled)
         val actions = buildList {
             if (discovery.titleEnabled && featureEnabled("discovery.title.enabled", discovery.titleEnabled)) {
                 add(

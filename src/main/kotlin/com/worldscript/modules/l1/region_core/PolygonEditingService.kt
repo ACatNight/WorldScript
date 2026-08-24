@@ -112,7 +112,36 @@ class PolygonEditingService(
     fun status(player: Player) {
         val session = sessions[player.uniqueId]
         if (session == null) lang.send(player, "polygon-not-editing")
-        else lang.send(player, "polygon-status", "region" to session.regionId, "count" to session.points.size)
+        else {
+            lang.send(player, "polygon-status", "region" to session.regionId, "count" to session.points.size)
+            session.points.forEachIndexed { index, point ->
+                lang.send(player, "polygon-point-status", "index" to index + 1, "x" to point.x, "z" to point.z)
+            }
+        }
+    }
+
+    fun removePoint(player: Player, number: Int): Boolean {
+        val session = sessions[player.uniqueId] ?: return missingSession(player)
+        val index = number - 1
+        if (index !in session.points.indices) return invalidIndex(player, session)
+        val removed = session.points.removeAt(index)
+        refreshHeldTool(player, session)
+        lang.send(player, "polygon-point-removed", "index" to number, "x" to removed.x, "z" to removed.z, "count" to session.points.size)
+        preview(player, notify = false)
+        return true
+    }
+
+    fun movePoint(player: Player, fromNumber: Int, toNumber: Int): Boolean {
+        val session = sessions[player.uniqueId] ?: return missingSession(player)
+        val from = fromNumber - 1
+        val to = toNumber - 1
+        if (from !in session.points.indices || to !in session.points.indices) return invalidIndex(player, session)
+        val point = session.points.removeAt(from)
+        session.points.add(to, point)
+        refreshHeldTool(player, session)
+        lang.send(player, "polygon-point-moved", "from" to fromNumber, "to" to toNumber)
+        preview(player, notify = false)
+        return true
     }
 
     fun preview(player: Player, notify: Boolean = true): Boolean {
@@ -198,6 +227,16 @@ class PolygonEditingService(
     private fun cancelMissingRegion(player: Player) {
         val session = sessions.remove(player.uniqueId) ?: return
         lang.send(player, "region-not-found", "region" to session.regionId)
+    }
+
+    private fun missingSession(player: Player): Boolean {
+        lang.send(player, "polygon-not-editing")
+        return false
+    }
+
+    private fun invalidIndex(player: Player, session: Session): Boolean {
+        lang.send(player, "polygon-point-index-invalid", "count" to session.points.size)
+        return false
     }
 
     private fun color(value: String): String = ChatColor.translateAlternateColorCodes('&', value)

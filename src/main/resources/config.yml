@@ -86,6 +86,13 @@ discovery:
       frame: task
       # Bukkit material name, or "region" to use the region icon material.
       icon: region
+      # Used when icon is "region". Each role may use a different Bukkit material.
+      role-icons:
+        hub: COMPASS
+        open-zone: GRASS
+        point-of-interest: MAP
+        danger-zone: REDSTONE
+        gate: IRON_BARS
       title: '&6发现新区域'
       description: '&f%region%'
       # Delay before this player's next queued Toast.

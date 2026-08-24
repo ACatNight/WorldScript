@@ -71,6 +71,14 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "status" -> polygons.status(player)
             "preview" -> polygons.preview(player)
             "finish" -> polygons.finish(player)
+            "remove" -> args.getOrNull(2)?.toIntOrNull()?.let { polygons.removePoint(player, it) }
+                ?: lang.send(player, "polygon-remove-usage")
+            "move" -> {
+                val from = args.getOrNull(2)?.toIntOrNull()
+                val to = args.getOrNull(3)?.toIntOrNull()
+                if (from == null || to == null) lang.send(player, "polygon-move-usage")
+                else polygons.movePoint(player, from, to)
+            }
             "reset" -> {
                 val regionId = args.getOrNull(2) ?: polygons.activeRegion(player)
                 if (regionId == null) lang.send(player, "polygon-reset-usage")
@@ -174,7 +182,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
     }
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> = when {
         args.size == 1 -> listOf("wand", "create", "polygon", "delete", "list", "settings", "info", "edit", "reload", "language", "validate", "progress", "help")
-        args.size == 2 && args[0].equals("polygon", true) -> listOf("cancel", "status", "preview", "finish", "reset") + regions.all().map { it.id }
+        args.size == 2 && args[0].equals("polygon", true) -> listOf("cancel", "status", "preview", "finish", "remove", "move", "reset") + regions.all().map { it.id }
         args.size == 3 && args[0].equals("polygon", true) && args[1].equals("reset", true) -> regions.all().map { it.id }
         args.size == 2 && args[0].equals("validate", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("progress", true) -> regions.all().map { it.id }
