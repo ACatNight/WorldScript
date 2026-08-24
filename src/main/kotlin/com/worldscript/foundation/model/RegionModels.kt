@@ -149,6 +149,10 @@ data class DiscoveryDefinition(
     val titleEnabled: Boolean = false,
     /** Per-region switch for the global native discovery Toast. */
     val toastEnabled: Boolean = true,
+    /** Optional region-specific Toast values; blank values inherit global defaults. */
+    val toastTitle: String = "",
+    val toastDescription: String = "",
+    val toastIcon: String = "",
     val title: String = "",
     val subtitle: String = "",
     val fadeIn: Int = 10,

@@ -29,6 +29,15 @@ internal class EditorDiscoveryController(
         renderer.property(player, text("label-discovery-title", "&eTitle"), enabled(discovery.titleEnabled), toggle(discovery.titleEnabled), "/ws edit ${region.id} discovery:title")
         renderer.property(player, text("label-discovery-sound", "&eSound"), enabled(discovery.soundEnabled), toggle(discovery.soundEnabled), "/ws edit ${region.id} discovery:sound")
         renderer.property(player, text("label-discovery-reward", "&eReward"), enabled(discovery.rewardEnabled), toggle(discovery.rewardEnabled), "/ws edit ${region.id} discovery:reward")
+        if (discovery.toastEnabled) {
+            renderer.group(player, text("group-discovery-toast", "&6Toast feedback"))
+            renderer.property(player, text("label-discovery-toast-title", "&7Toast title"), discovery.toastTitle.ifBlank { text("value-global-default", "Global default") }, text("button-input", "&e[Input]"), "/ws edit ${region.id} discovery:toast-title-input")
+            renderer.property(player, text("label-discovery-toast-description", "&7Toast description"), discovery.toastDescription.ifBlank { text("value-global-default", "Global default") }, text("button-input", "&e[Input]"), "/ws edit ${region.id} discovery:toast-description-input")
+            renderer.property(player, text("label-discovery-toast-icon", "&7Toast icon"), discovery.toastIcon.ifBlank { text("value-global-default", "Global default") }, text("button-use-held-item", "&b[Use held item]"), "/ws edit ${region.id} discovery:toast-held-item", listOf(
+                ChatEditorButton(text("button-input", "&e[Input]"), text("hint-toast-icon-input", "&7Enter a Bukkit material name"), "/ws edit ${region.id} discovery:toast-icon-input"),
+                ChatEditorButton(text("button-reset", "&c[Reset]"), text("hint-toast-reset", "&7Use the global default icon again"), "/ws edit ${region.id} discovery:toast-icon-reset"),
+            ))
+        }
         if (discovery.titleEnabled) {
             renderer.group(player, text("group-discovery-title", "&5Title feedback"))
             renderer.property(player, text("label-discovery-title-text", "&7Title text"), discovery.title.ifBlank { text("value-unset", "Not set") }, text("button-input", "&e[Input]"), "/ws edit ${region.id} discovery:title-input")
@@ -65,7 +74,7 @@ internal class EditorDiscoveryController(
                 }
                 regions.updateDiscovery(region.id) { when (parts[0]) {
                     "toggle" -> it.copy(enabled = enabled)
-                    "toast" -> it.copy(toastEnabled = enabled)
+                    "toast" -> it.copy(enabled = enabled || it.enabled, toastEnabled = enabled)
                     // A child feature is unusable while the region-level
                     // Discovery switch is off. Enable both in one saved
                     // update so the editor never shows a false-positive ON.
@@ -81,11 +90,30 @@ internal class EditorDiscoveryController(
                     else if (parts[0] != "toggle") enableGlobal("discovery.${parts[0]}.enabled")
                 }
             }
-            "title-input", "subtitle-input", "sound-input" -> {
-                val parameter = when (parts[0]) { "title-input" -> "__discovery_title__"; "subtitle-input" -> "__discovery_subtitle__"; else -> "__discovery_sound__" }
+            "title-input", "subtitle-input", "sound-input", "toast-title-input", "toast-description-input", "toast-icon-input" -> {
+                val parameter = when (parts[0]) {
+                    "title-input" -> "__discovery_title__"
+                    "subtitle-input" -> "__discovery_subtitle__"
+                    "sound-input" -> "__discovery_sound__"
+                    "toast-title-input" -> "__discovery_toast_title__"
+                    "toast-description-input" -> "__discovery_toast_description__"
+                    else -> "__discovery_toast_icon__"
+                }
                 sessions.begin(player.uniqueId, EditorPendingInput(region.id, "discovery", RegionEventType.ENTER, -1, parameter, System.currentTimeMillis()))
                 send(player, "discovery-input-prompt", "&6Enter the discovery value, or type &ccancel&7.")
                 return
+            }
+            "toast-held-item" -> {
+                val item = player.inventory.itemInMainHand
+                if (item.type == org.bukkit.Material.AIR) send(player, "toast-icon-held-empty", "&cHold an item in your main hand first.")
+                else {
+                    regions.updateDiscovery(region.id) { it.copy(toastIcon = item.type.name) }
+                    send(player, "toast-icon-saved", "&aToast icon saved: &f%value%", "value" to item.type.name)
+                }
+            }
+            "toast-icon-reset" -> {
+                regions.updateDiscovery(region.id) { it.copy(toastIcon = "") }
+                send(player, "toast-icon-reset", "&eToast icon now uses the global default.")
             }
             "fade-in", "stay", "fade-out" -> {
                 val delta = parts.getOrNull(1)?.toIntOrNull() ?: return

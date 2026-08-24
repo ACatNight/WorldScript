@@ -132,7 +132,10 @@ class ScriptActionServiceImpl(
         // later would silently skip the player's first-discovery actions.
         state.unlockRegion(player, regionId)
         val region = regions.effective(regionId)
-        toasts.showDiscovery(player, regionId, region?.displayName ?: regionId, region?.role ?: RegionRole.OPEN_ZONE, discovery.toastEnabled)
+        toasts.showDiscovery(
+            player, regionId, region?.displayName ?: regionId, region?.role ?: RegionRole.OPEN_ZONE, discovery.toastEnabled,
+            discovery.toastTitle, discovery.toastDescription, discovery.toastIcon,
+        )
         val actions = buildList {
             if (discovery.titleEnabled && featureEnabled("discovery.title.enabled", discovery.titleEnabled)) {
                 add(

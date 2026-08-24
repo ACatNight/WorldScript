@@ -26,17 +26,26 @@ class ToastService(private val plugin: JavaPlugin) {
         Bukkit.getUnsafe()::class.java.getMethod("removeAdvancement", NamespacedKey::class.java)
     }.getOrNull()
 
-    fun showDiscovery(player: Player, regionId: String, regionName: String, regionRole: RegionRole, regionEnabled: Boolean) {
+    fun showDiscovery(
+        player: Player,
+        regionId: String,
+        regionName: String,
+        regionRole: RegionRole,
+        regionEnabled: Boolean,
+        titleOverride: String,
+        descriptionOverride: String,
+        iconOverride: String,
+    ) {
         if (!regionEnabled || !plugin.config.getBoolean("discovery.display.toast.enabled", false)) return
         queues.getOrPut(player.uniqueId) { ArrayDeque() }.addLast(
             ToastRequest(
                 regionId = regionId,
                 regionName = regionName,
                 regionRole = regionRole,
-                title = template("discovery.display.toast.title", regionName),
-                description = template("discovery.display.toast.description", regionName),
+                title = template(titleOverride.ifBlank { plugin.config.getString("discovery.display.toast.title").orEmpty() }, regionName),
+                description = template(descriptionOverride.ifBlank { plugin.config.getString("discovery.display.toast.description").orEmpty() }, regionName),
                 frame = plugin.config.getString("discovery.display.toast.frame")?.lowercase(Locale.ROOT).orEmpty(),
-                icon = plugin.config.getString("discovery.display.toast.icon").orEmpty(),
+                icon = iconOverride.ifBlank { plugin.config.getString("discovery.display.toast.icon").orEmpty() },
             ),
         )
         showNext(player)
@@ -100,8 +109,7 @@ class ToastService(private val plugin: JavaPlugin) {
         return MaterialResolver.find(materialName)
     }
 
-    private fun template(path: String, regionName: String): String =
-        plugin.config.getString(path).orEmpty().replace("%region%", regionName)
+    private fun template(value: String, regionName: String): String = value.replace("%region%", regionName)
 
     /** Advancement JSON does not interpret legacy colour codes consistently across supported clients. */
     private fun color(value: String): String = net.md_5.bungee.api.ChatColor.stripColor(

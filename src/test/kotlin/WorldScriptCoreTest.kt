@@ -51,7 +51,12 @@ class WorldScriptCoreTest {
     fun conditionSwitchDefaultsOnForLegacyModel() {
         assertTrue(ScriptDefinition().conditionsEnabled)
         assertEquals(ConditionMode.AND, ScriptDefinition().conditionMode)
-        assertTrue(DiscoveryDefinition().toastEnabled)
+        val discovery = DiscoveryDefinition()
+        assertTrue(discovery.toastEnabled)
+        assertEquals("", discovery.toastTitle)
+        assertEquals("", discovery.toastDescription)
+        assertEquals("", discovery.toastIcon)
+        assertEquals("Ancient Forest", discovery.copy(toastTitle = "Ancient Forest").toastTitle)
     }
 
     @Test

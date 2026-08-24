@@ -159,7 +159,14 @@ object WorldScriptTestRunner {
         check(mixedDiscovery.titleEnabled && mixedDiscovery.soundEnabled && mixedDiscovery.configuredActions().single().type == ActionType.CONSOLE_COMMAND) {
             "legacy title and sound settings must coexist with canonical discovery actions"
         }
-        check(DiscoveryDefinition().toastEnabled) { "existing regions must opt in to Toast by default after upgrade" }
+        val toastDefaults = DiscoveryDefinition()
+        check(toastDefaults.toastEnabled) { "existing regions must opt in to Toast by default after upgrade" }
+        check(toastDefaults.toastTitle.isBlank() && toastDefaults.toastDescription.isBlank() && toastDefaults.toastIcon.isBlank()) {
+            "blank regional Toast values must inherit global defaults"
+        }
+        check(toastDefaults.copy(toastIcon = "COMPASS").toastIcon == "COMPASS") {
+            "regional Toast icon overrides must persist in the model"
+        }
         println("[TEST] PASS editor.input-parser: conditions and discovery actions are parsed consistently")
         println("[TEST] SUMMARY region-core: passed=8 failed=0 total=8")
     }

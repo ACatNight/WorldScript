@@ -133,6 +133,9 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         region.discovery?.canonicalized()?.let { discovery ->
             data.set("discovery.enabled", discovery.enabled)
             data.set("discovery.toast.enabled", discovery.toastEnabled)
+            data.set("discovery.toast.title", discovery.toastTitle)
+            data.set("discovery.toast.description", discovery.toastDescription)
+            data.set("discovery.toast.icon", discovery.toastIcon)
             data.set("discovery.title.enabled", discovery.titleEnabled)
             data.set("discovery.title.text", discovery.title)
             data.set("discovery.title.subtitle", discovery.subtitle)
@@ -524,6 +527,9 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         return DiscoveryDefinition(
             enabled = section.getBoolean("discovery.enabled", false),
             toastEnabled = section.getBoolean("discovery.toast.enabled", true),
+            toastTitle = section.getString("discovery.toast.title", "") ?: "",
+            toastDescription = section.getString("discovery.toast.description", "") ?: "",
+            toastIcon = section.getString("discovery.toast.icon", "") ?: "",
             titleEnabled = section.getBoolean("discovery.title.enabled", false),
             title = section.getString("discovery.title.text", "") ?: "",
             subtitle = section.getString("discovery.title.subtitle", "") ?: "",
