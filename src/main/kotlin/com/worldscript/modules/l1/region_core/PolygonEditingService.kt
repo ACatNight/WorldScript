@@ -20,19 +20,28 @@ class PolygonEditingService(
     private val plugin: JavaPlugin,
     private val regions: RegionCoreServiceImpl,
 ) {
-    private data class Session(val regionId: String, val points: MutableList<PolygonPoint>)
+    private data class Session(
+        val regionId: String,
+        val points: MutableList<PolygonPoint>,
+        val toolMarker: String,
+    )
 
     private val sessions = mutableMapOf<UUID, Session>()
     private val lang = Lang(plugin)
 
     fun start(player: Player, regionId: String): Boolean {
+        sessions[player.uniqueId]?.let { active ->
+            lang.send(player, "polygon-session-active", "region" to active.regionId)
+            return false
+        }
         val region = regions.find(regionId) ?: return false
         val points = (region.shape as? RegionShape.Polygon)?.points?.toMutableList() ?: mutableListOf()
-        if (player.inventory.addItem(tool(region.id, points.size)).isNotEmpty()) {
+        val session = Session(region.id, points, TOOL_MARKER_PREFIX + UUID.randomUUID())
+        if (player.inventory.addItem(tool(region.id, points.size, session.toolMarker)).isNotEmpty()) {
             lang.send(player, "polygon-tool-inventory-full")
             return false
         }
-        sessions[player.uniqueId] = Session(region.id, points)
+        sessions[player.uniqueId] = session
         lang.send(player, "polygon-started", "region" to region.id, "count" to points.size)
         return true
     }
@@ -42,8 +51,8 @@ class PolygonEditingService(
     fun activeRegion(player: Player): String? = sessions[player.uniqueId]?.regionId
 
     fun isEditingTool(player: Player, item: ItemStack?): Boolean {
-        if (!isEditing(player) || item == null) return false
-        return item.type == configuredToolMaterial() && item.itemMeta?.localizedName == TOOL_MARKER
+        val session = sessions[player.uniqueId] ?: return false
+        return item?.type == configuredToolMaterial() && item.itemMeta?.localizedName == session.toolMarker
     }
 
     fun addPoint(player: Player, x: Int, z: Int) {
@@ -99,12 +108,14 @@ class PolygonEditingService(
             return false
         }
         sessions.remove(player.uniqueId)
+        removeTools(player, session.toolMarker)
         lang.send(player, "polygon-saved", "region" to session.regionId, "count" to session.points.size)
         return true
     }
 
     fun cancel(player: Player, notify: Boolean = true): Boolean {
         val removed = sessions.remove(player.uniqueId) ?: return false
+        removeTools(player, removed.toolMarker)
         if (notify) lang.send(player, "polygon-cancelled", "region" to removed.regionId)
         return true
     }
@@ -193,16 +204,19 @@ class PolygonEditingService(
             lang.send(player, "polygon-already-cuboid", "region" to region.id)
             return false
         }
-        if (sessions[player.uniqueId]?.regionId.equals(region.id, true)) sessions.remove(player.uniqueId)
+        sessions[player.uniqueId]?.takeIf { it.regionId.equals(region.id, true) }?.let { session ->
+            sessions.remove(player.uniqueId)
+            removeTools(player, session.toolMarker)
+        }
         lang.send(player, "polygon-reset", "region" to region.id)
         return true
     }
 
     fun clear() = sessions.clear()
 
-    private fun tool(regionId: String, count: Int): ItemStack = ItemStack(configuredToolMaterial()).apply {
+    private fun tool(regionId: String, count: Int, marker: String): ItemStack = ItemStack(configuredToolMaterial()).apply {
         val meta = itemMeta ?: return@apply
-        meta.setLocalizedName(TOOL_MARKER)
+        meta.setLocalizedName(marker)
         meta.setDisplayName(color(lang.text("polygon-tool-name", "polygon-tool-name", "region" to regionId)))
         meta.lore = listOf(
             lang.text("polygon-tool-lore-region", "polygon-tool-lore-region", "region" to regionId),
@@ -216,8 +230,8 @@ class PolygonEditingService(
     }
 
     private fun refreshHeldTool(player: Player, session: Session) {
-        if (player.inventory.itemInMainHand.type == configuredToolMaterial()) {
-            player.inventory.setItemInMainHand(tool(session.regionId, session.points.size))
+        if (isEditingTool(player, player.inventory.itemInMainHand)) {
+            player.inventory.setItemInMainHand(tool(session.regionId, session.points.size, session.toolMarker))
         }
     }
 
@@ -226,7 +240,14 @@ class PolygonEditingService(
 
     private fun cancelMissingRegion(player: Player) {
         val session = sessions.remove(player.uniqueId) ?: return
+        removeTools(player, session.toolMarker)
         lang.send(player, "region-not-found", "region" to session.regionId)
+    }
+
+    private fun removeTools(player: Player, marker: String) {
+        player.inventory.contents.forEachIndexed { slot, item ->
+            if (item?.itemMeta?.localizedName == marker) player.inventory.setItem(slot, null)
+        }
     }
 
     private fun missingSession(player: Player): Boolean {
@@ -247,6 +268,6 @@ class PolygonEditingService(
         const val DEFAULT_PARTICLE = "END_ROD"
         const val DEFAULT_SPACING = 0.75
         const val DEFAULT_MAX_PARTICLES = 512
-        const val TOOL_MARKER = "worldscript:polygon-editor"
+        const val TOOL_MARKER_PREFIX = "worldscript:polygon-editor:"
     }
 }
