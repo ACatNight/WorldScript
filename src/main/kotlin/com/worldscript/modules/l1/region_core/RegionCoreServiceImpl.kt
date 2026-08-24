@@ -110,6 +110,10 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             is RegionShape.Polygon -> {
                 data.set("location.shape.type", "polygon")
                 data.set("location.shape.points", shape.points.map { mapOf("x" to it.x, "z" to it.z) })
+                shape.cuboidBounds?.let { cuboidBounds ->
+                    writePosition(data, "location.shape.cuboid-bounds.min", cuboidBounds.min)
+                    writePosition(data, "location.shape.cuboid-bounds.max", cuboidBounds.max)
+                }
             }
         }
         data.set("state.inherit", region.inheritParent)
@@ -245,7 +249,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     fun updatePolygon(id: String, points: List<PolygonPoint>): Boolean {
         val region = find(id) ?: return false
         val bounds = RegionGeometry.polygonBounds(points, region.bounds.min.y, region.bounds.max.y) ?: return false
-        val updated = region.copy(bounds = bounds, shape = RegionShape.Polygon(points.toList()))
+        val cuboidBounds = (region.shape as? RegionShape.Polygon)?.cuboidBounds ?: region.bounds
+        val updated = region.copy(bounds = bounds, shape = RegionShape.Polygon(points.toList(), cuboidBounds))
         regions[region.id.lowercase()] = updated
         save(updated)
         return true
@@ -253,8 +258,8 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     fun resetPolygon(id: String): Boolean {
         val region = find(id) ?: return false
-        if (region.shape !is RegionShape.Polygon) return false
-        val updated = region.copy(shape = RegionShape.Cuboid)
+        val shape = region.shape as? RegionShape.Polygon ?: return false
+        val updated = region.copy(bounds = shape.cuboidBounds ?: region.bounds, shape = RegionShape.Cuboid)
         regions[region.id.lowercase()] = updated
         save(updated)
         return true
@@ -482,7 +487,21 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         if (calculated != bounds) {
             loadIssue(source, "location.shape.points", "polygon bounds differ from location min/max; calculated bounds are used for detection")
         }
-        return RegionShape.Polygon(points)
+        return RegionShape.Polygon(points, readPolygonCuboidBounds(section, bounds))
+    }
+
+    private fun readPolygonCuboidBounds(section: ConfigurationSection, fallback: RegionBounds): RegionBounds {
+        val root = "location.shape.cuboid-bounds"
+        if (!section.isConfigurationSection(root)) return fallback
+        fun point(path: String): BlockPosition? {
+            val x = section.get("$path.x") as? Number
+            val y = section.get("$path.y") as? Number
+            val z = section.get("$path.z") as? Number
+            return if (x == null || y == null || z == null) null else BlockPosition(x.toInt(), y.toInt(), z.toInt())
+        }
+        val min = point("$root.min") ?: return fallback
+        val max = point("$root.max") ?: return fallback
+        return RegionGeometry.from(min, max)
     }
 
     private fun readDiscovery(section: ConfigurationSection, source: String): DiscoveryDefinition? {

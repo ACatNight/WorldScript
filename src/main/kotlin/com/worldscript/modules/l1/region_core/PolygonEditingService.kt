@@ -28,8 +28,11 @@ class PolygonEditingService(
     fun start(player: Player, regionId: String): Boolean {
         val region = regions.find(regionId) ?: return false
         val points = (region.shape as? RegionShape.Polygon)?.points?.toMutableList() ?: mutableListOf()
+        if (player.inventory.addItem(tool(region.id, points.size)).isNotEmpty()) {
+            lang.send(player, "polygon-tool-inventory-full")
+            return false
+        }
         sessions[player.uniqueId] = Session(region.id, points)
-        player.inventory.addItem(tool(region.id, points.size))
         lang.send(player, "polygon-started", "region" to region.id, "count" to points.size)
         return true
     }
@@ -40,7 +43,7 @@ class PolygonEditingService(
 
     fun isEditingTool(player: Player, item: ItemStack?): Boolean {
         if (!isEditing(player) || item == null) return false
-        return item.type == configuredToolMaterial()
+        return item.type == configuredToolMaterial() && item.itemMeta?.localizedName == TOOL_MARKER
     }
 
     fun addPoint(player: Player, x: Int, z: Int) {
@@ -81,6 +84,10 @@ class PolygonEditingService(
     fun finish(player: Player): Boolean {
         val session = sessions[player.uniqueId] ?: run {
             lang.send(player, "polygon-not-editing")
+            return false
+        }
+        if (RegionGeometry.isSelfIntersecting(session.points)) {
+            lang.send(player, "polygon-self-intersection")
             return false
         }
         if (!RegionGeometry.isValidPolygon(session.points)) {
@@ -166,6 +173,7 @@ class PolygonEditingService(
 
     private fun tool(regionId: String, count: Int): ItemStack = ItemStack(configuredToolMaterial()).apply {
         val meta = itemMeta ?: return@apply
+        meta.setLocalizedName(TOOL_MARKER)
         meta.setDisplayName(color(lang.text("polygon-tool-name", "polygon-tool-name", "region" to regionId)))
         meta.lore = listOf(
             lang.text("polygon-tool-lore-region", "polygon-tool-lore-region", "region" to regionId),
@@ -200,5 +208,6 @@ class PolygonEditingService(
         const val DEFAULT_PARTICLE = "END_ROD"
         const val DEFAULT_SPACING = 0.75
         const val DEFAULT_MAX_PARTICLES = 512
+        const val TOOL_MARKER = "worldscript:polygon-editor"
     }
 }

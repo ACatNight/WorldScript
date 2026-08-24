@@ -44,6 +44,7 @@ class WorldScriptCoreTest {
         assertTrue(!RegionGeometry.isValidPolygon(listOf(PolygonPoint(0, 0), PolygonPoint(1, 1))))
         assertTrue(!RegionGeometry.isValidPolygon(listOf(PolygonPoint(0, 0), PolygonPoint(1, 1), PolygonPoint(2, 2))))
         assertTrue(RegionGeometry.isValidPolygon(listOf(PolygonPoint(0, 0), PolygonPoint(4, 0), PolygonPoint(0, 4))))
+        assertTrue(!RegionGeometry.isValidPolygon(listOf(PolygonPoint(0, 0), PolygonPoint(4, 4), PolygonPoint(0, 4), PolygonPoint(4, 0))))
     }
 
     @Test

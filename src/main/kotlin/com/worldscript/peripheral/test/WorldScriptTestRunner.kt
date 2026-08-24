@@ -45,6 +45,9 @@ object WorldScriptTestRunner {
         check(!RegionGeometry.isValidPolygon(listOf(PolygonPoint(0, 0), PolygonPoint(1, 1), PolygonPoint(2, 2)))) {
             "collinear polygon must be rejected"
         }
+        check(!RegionGeometry.isValidPolygon(listOf(PolygonPoint(0, 0), PolygonPoint(4, 4), PolygonPoint(0, 4), PolygonPoint(4, 0)))) {
+            "self-intersecting polygon must be rejected"
+        }
         println("[TEST] PASS region-core.polygon: containment, border, height, and degenerate outlines")
 
         val progress = PlayerRegionProgress()

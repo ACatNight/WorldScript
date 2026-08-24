@@ -42,7 +42,20 @@ object RegionGeometry {
     }
 
     fun isValidPolygon(points: List<PolygonPoint>): Boolean =
-        points.distinct().size >= 3 && signedAreaTwice(points) != 0L
+        points.distinct().size >= 3 && signedAreaTwice(points) != 0L && !isSelfIntersecting(points)
+
+    /** Rejects bow-tie and overlapping outlines before they can be saved. */
+    fun isSelfIntersecting(points: List<PolygonPoint>): Boolean {
+        if (points.size < 4) return false
+        return points.indices.any { firstIndex ->
+            val secondIndex = (firstIndex + 1) % points.size
+            (firstIndex + 1 until points.size).any { otherIndex ->
+                val otherNext = (otherIndex + 1) % points.size
+                val adjacent = firstIndex == otherIndex || secondIndex == otherIndex || firstIndex == otherNext
+                !adjacent && segmentsIntersect(points[firstIndex], points[secondIndex], points[otherIndex], points[otherNext])
+            }
+        }
+    }
 
     fun polygonBounds(points: List<PolygonPoint>, minY: Int, maxY: Int): RegionBounds? {
         if (!isValidPolygon(points)) return null
@@ -84,4 +97,23 @@ object RegionGeometry {
         return x >= minOf(first.x, second.x) && x <= maxOf(first.x, second.x) &&
             z >= minOf(first.z, second.z) && z <= maxOf(first.z, second.z)
     }
+
+    private fun segmentsIntersect(first: PolygonPoint, second: PolygonPoint, third: PolygonPoint, fourth: PolygonPoint): Boolean {
+        val one = orientation(first, second, third)
+        val two = orientation(first, second, fourth)
+        val three = orientation(third, fourth, first)
+        val four = orientation(third, fourth, second)
+        if (one == 0L && onIntegerSegment(first, second, third)) return true
+        if (two == 0L && onIntegerSegment(first, second, fourth)) return true
+        if (three == 0L && onIntegerSegment(third, fourth, first)) return true
+        if (four == 0L && onIntegerSegment(third, fourth, second)) return true
+        return (one > 0) != (two > 0) && (three > 0) != (four > 0)
+    }
+
+    private fun orientation(first: PolygonPoint, second: PolygonPoint, point: PolygonPoint): Long =
+        (second.x - first.x).toLong() * (point.z - first.z) - (second.z - first.z).toLong() * (point.x - first.x)
+
+    private fun onIntegerSegment(first: PolygonPoint, second: PolygonPoint, point: PolygonPoint): Boolean =
+        point.x in minOf(first.x, second.x)..maxOf(first.x, second.x) &&
+            point.z in minOf(first.z, second.z)..maxOf(first.z, second.z)
 }
