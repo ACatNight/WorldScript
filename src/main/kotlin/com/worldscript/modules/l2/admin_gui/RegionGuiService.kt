@@ -66,9 +66,24 @@ class RegionGuiService(
         inventory.setItem(settingsSlot("title-slot", 12), toggleItem("discovery.title.enabled", "gui-setting-title", "Discovery Title"))
         inventory.setItem(settingsSlot("sound-slot", 14), toggleItem("discovery.sound.enabled", "gui-setting-sound", "Discovery Sound"))
         inventory.setItem(settingsSlot("reward-slot", 16), toggleItem("discovery.reward.enabled", "gui-setting-reward", "Discovery Reward"))
+        inventory.setItem(settingsSlot("toast-slot", 20), toggleItem("discovery.display.toast.enabled", "gui-setting-toast", "Discovery Toast"))
         inventory.setItem(settingsSlot("conditions-slot", 22), toggleItem("conditions.enabled", "gui-setting-conditions", "Entry Conditions"))
         inventory.setItem(settingsSlot("back-slot", 18), button("previous", "ARROW", "gui-settings-back", "Back"))
         inventory.setItem(settingsSlot("close-slot", 26), button("close", "BARRIER", "gui-close", "Close"))
+        player.openInventory(inventory)
+        playSound(player, "open")
+    }
+
+    private fun openToastIcons(player: Player) {
+        val inventory = Bukkit.createInventory(
+            RegionGuiHolder("toast-icons", 0),
+            inventorySize("gui.layout.toast-icons.size", 27),
+            color(lang.text("gui-toast-icons-title", "Toast icons")),
+        )
+        fillBackground(inventory, "gui.layout.toast-icons.border-slots")
+        RegionRole.entries.forEach { role -> inventory.setItem(toastIconSlot(role), toastIconItem(role)) }
+        inventory.setItem(toastIconSlot("back-slot", 18), button("previous", "ARROW", "gui-settings-back", "Back"))
+        inventory.setItem(toastIconSlot("close-slot", 26), button("close", "BARRIER", "gui-close", "Close"))
         player.openInventory(inventory)
         playSound(player, "open")
     }
@@ -90,12 +105,18 @@ class RegionGuiService(
         if (event.rawSlot !in 0 until event.view.topInventory.size) return
         event.isCancelled = true
         playSound(player, "click")
+        if (holder.page == "toast-icons") {
+            handleToastIconClick(player, event)
+            return
+        }
         if (holder.page == "settings") {
             when (event.rawSlot) {
                 settingsSlot("discovery-slot", 10) -> toggleSetting("discovery.enabled", player)
                 settingsSlot("title-slot", 12) -> toggleSetting("discovery.title.enabled", player)
                 settingsSlot("sound-slot", 14) -> toggleSetting("discovery.sound.enabled", player)
                 settingsSlot("reward-slot", 16) -> toggleSetting("discovery.reward.enabled", player)
+                settingsSlot("toast-slot", 20) -> if (event.click.isRightClick) openToastIcons(player)
+                    else toggleSetting("discovery.display.toast.enabled", player)
                 settingsSlot("conditions-slot", 22) -> toggleSetting("conditions.enabled", player)
                 settingsSlot("back-slot", 18) -> openList(player)
                 settingsSlot("close-slot", 26) -> { player.closeInventory(); playSound(player, "close") }
@@ -175,6 +196,30 @@ class RegionGuiService(
         openSettings(player)
     }
 
+    private fun handleToastIconClick(player: Player, event: InventoryClickEvent) {
+        val role = RegionRole.entries.firstOrNull { toastIconSlot(it) == event.rawSlot }
+        if (role != null) {
+            if (event.click.isRightClick && isEmpty(event.cursor)) {
+                plugin.config.set("discovery.display.toast.role-items.${roleKey(role)}", null)
+                plugin.saveConfig()
+                lang.send(player, "gui-toast-icon-reset", "role" to roleText(role))
+            } else if (!isEmpty(event.cursor)) {
+                plugin.config.set("discovery.display.toast.role-items.${roleKey(role)}", event.cursor.clone().apply { amount = 1 })
+                plugin.saveConfig()
+                lang.send(player, "gui-toast-icon-saved", "role" to roleText(role))
+            } else {
+                lang.send(player, "gui-toast-icon-place")
+            }
+            playSound(player, "success")
+            openToastIcons(player)
+            return
+        }
+        when (event.rawSlot) {
+            toastIconSlot("back-slot", 18) -> openSettings(player)
+            toastIconSlot("close-slot", 26) -> { player.closeInventory(); playSound(player, "close") }
+        }
+    }
+
     private fun playSound(player: Player, action: String) {
         val name = plugin.config.getString("gui.sounds.$action") ?: return
         val sound = BukkitCompatibility.resolveSound(name) ?: run {
@@ -238,6 +283,20 @@ class RegionGuiService(
         RegionRole.GATE -> "IRON_BARS"
     }, *(if (role == RegionRole.OPEN_ZONE) arrayOf("GRASS") else emptyArray()))
 
+    private fun toastIconItem(role: RegionRole): ItemStack {
+        val configured = plugin.config.getItemStack("discovery.display.toast.role-items.${roleKey(role)}")
+        if (!isEmpty(configured)) return configured!!.clone().apply { amount = 1 }
+        val material = MaterialResolver.find(plugin.config.getString("discovery.display.toast.role-icons.${roleKey(role)}").orEmpty())
+            ?: roleMaterial(role)
+        return item(material, roleText(role), listOf(lang.text("gui-toast-icon-place"), lang.text("gui-toast-icon-reset-hint")))
+    }
+
+    private fun roleText(role: RegionRole): String = lang.text("gui-toast-icon-${roleKey(role)}", role.name.lowercase())
+
+    private fun roleKey(role: RegionRole): String = role.name.lowercase().replace('_', '-')
+
+    private fun isEmpty(item: ItemStack?): Boolean = item == null || item.type == Material.AIR
+
     private fun material(primary: String, vararg legacy: String): Material = MaterialResolver.find(primary, *legacy) ?: Material.PAPER
 
     private fun button(materialKey: String, fallbackMaterial: String, key: String, fallback: String): ItemStack =
@@ -259,6 +318,9 @@ class RegionGuiService(
         plugin.config.getInt("gui.layout.list.$key", fallback).coerceIn(0, inventorySize("gui.layout.list.size", 54) - 1)
     private fun settingsSlot(key: String, fallback: Int) =
         plugin.config.getInt("gui.layout.settings.$key", fallback).coerceIn(0, inventorySize("gui.layout.settings.size", 27) - 1)
+    private fun toastIconSlot(role: RegionRole): Int = toastIconSlot("${roleKey(role)}-slot", 10)
+    private fun toastIconSlot(key: String, fallback: Int) =
+        plugin.config.getInt("gui.layout.toast-icons.$key", fallback).coerceIn(0, inventorySize("gui.layout.toast-icons.size", 27) - 1)
     private fun listRegionSlots(): List<Int> {
         val first = listSlot("region-first-slot", 9)
         val last = listSlot("region-last-slot", 44)

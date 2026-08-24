@@ -92,7 +92,8 @@ class ToastService(private val plugin: JavaPlugin) {
         val configured = raw.trim()
         val materialName = if (configured.equals("region", true)) {
             val roleKey = role.name.lowercase(Locale.ROOT).replace('_', '-')
-            plugin.config.getString("discovery.display.toast.role-icons.$roleKey")
+            plugin.config.getItemStack("discovery.display.toast.role-items.$roleKey")?.type?.name
+                ?: plugin.config.getString("discovery.display.toast.role-icons.$roleKey")
                 ?: plugin.config.getString("gui.materials.$roleKey")
                 ?: plugin.config.getString("gui.materials.point-of-interest").orEmpty()
         } else configured

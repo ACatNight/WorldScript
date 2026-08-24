@@ -38,6 +38,17 @@ gui:
       sound-slot: 14
       reward-slot: 16
       conditions-slot: 22
+      toast-slot: 20
+      back-slot: 18
+      close-slot: 26
+      border-slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 17, 19, 20, 21, 23, 24, 25]
+    toast-icons:
+      size: 27
+      hub-slot: 10
+      open-zone-slot: 12
+      point-of-interest-slot: 14
+      danger-zone-slot: 16
+      gate-slot: 22
       back-slot: 18
       close-slot: 26
       border-slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 17, 19, 20, 21, 23, 24, 25]
@@ -93,6 +104,9 @@ discovery:
         point-of-interest: MAP
         danger-zone: REDSTONE
         gate: IRON_BARS
+      # The Toast icon editor saves player-provided item stacks here.
+      # Right-click an icon slot with an empty cursor to restore role-icons.
+      role-items: {}
       title: '&6发现新区域'
       description: '&f%region%'
       # Delay before this player's next queued Toast.
