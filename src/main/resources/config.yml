@@ -43,6 +43,15 @@ discovery:
 conditions:
   enabled: false
   deny:
+    # A subtle particle cue at the player when a region's entry condition blocks movement.
+    particle:
+      enabled: true
+      type: REDSTONE
+      count: 8
+      offset-x: 0.35
+      offset-y: 0.55
+      offset-z: 0.35
+      speed: 0.0
     title:
       enabled: true
       text: '&cAccess denied'

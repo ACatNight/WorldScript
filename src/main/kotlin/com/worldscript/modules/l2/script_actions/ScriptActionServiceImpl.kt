@@ -44,6 +44,7 @@ class ScriptActionServiceImpl(
     /** Executes the common feedback shown when an entry condition denies access. */
     fun executeConditionFailure(player: Player, regionId: String, reason: String, actions: List<ActionDefinition> = emptyList()) {
         Lang(plugin).send(player, "condition-failed", "region" to regionId, "reason" to reason)
+        showConditionDeniedParticle(player)
         if (actions.isNotEmpty()) {
             val contextualActions = actions.map { action ->
                 action.copy(
@@ -67,6 +68,23 @@ class ScriptActionServiceImpl(
                 "fade-out" to plugin.config.getInt("conditions.deny.title.fade-out", 5).coerceAtLeast(0).toString(),
             ),
         )))
+    }
+
+    private fun showConditionDeniedParticle(player: Player) {
+        if (!plugin.config.getBoolean("conditions.deny.particle.enabled", true)) return
+        val name = plugin.config.getString("conditions.deny.particle.type", "REDSTONE") ?: return
+        val particle = BukkitCompatibility.resolveParticle(name) ?: run {
+            plugin.logger.warning("Invalid condition-denial particle '$name'")
+            return
+        }
+        val count = plugin.config.getInt("conditions.deny.particle.count", 8).coerceAtLeast(0)
+        val offsetX = plugin.config.getDouble("conditions.deny.particle.offset-x", 0.35).coerceAtLeast(0.0)
+        val offsetY = plugin.config.getDouble("conditions.deny.particle.offset-y", 0.55).coerceAtLeast(0.0)
+        val offsetZ = plugin.config.getDouble("conditions.deny.particle.offset-z", 0.35).coerceAtLeast(0.0)
+        val speed = plugin.config.getDouble("conditions.deny.particle.speed", 0.0).coerceAtLeast(0.0)
+        runCatching {
+            player.spawnParticle(particle, player.location.clone().add(0.0, offsetY, 0.0), count, offsetX, offsetY, offsetZ, speed)
+        }.onFailure { plugin.logger.warning("Could not show condition-denial particle: ${it.message}") }
     }
 
     @EventHandler fun onEnter(event: RegionEnterEvent) {
