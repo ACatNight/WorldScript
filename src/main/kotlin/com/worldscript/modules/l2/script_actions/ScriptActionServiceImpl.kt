@@ -86,7 +86,12 @@ class ScriptActionServiceImpl(
         if (eventType == RegionEventType.ENTER && !plugin.config.getBoolean("conditions.enabled", false)) {
             // Conditions are an opt-in global feature.
         } else conditions.firstFailure(player, regionId, script.conditions, script.conditionMode)?.let { failed ->
-            Lang(plugin).send(player, "condition-failed", "region" to regionId, "reason" to conditions.describe(failed))
+            executeConditionFailure(
+                player = player,
+                regionId = regionId,
+                reason = conditions.describe(failed),
+                actions = script.conditionFailureActions,
+            )
             return
         }
         val key = "${player.uniqueId}:$regionId:${eventType.name}"

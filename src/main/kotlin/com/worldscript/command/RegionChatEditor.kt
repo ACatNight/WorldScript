@@ -106,7 +106,7 @@ class RegionChatEditor(
             ChatEditorButton(editorText("tab-conditions", "&f[Conditions]"), editorText("hint-conditions", "&7Edit entry conditions"), "/ws edit ${region.id} conditions"),
         )
         spacer(player)
-        player.sendMessage(color("&8────────────────────────────────────────"))
+        renderer.divider(player)
     }
 
     private fun main(player: Player, region: RegionDefinition) {
@@ -720,7 +720,7 @@ class RegionChatEditor(
             else -> "main"
         }
         spacer(player)
-        player.sendMessage(color("&8────────────────────────────────────────"))
+        renderer.divider(player)
         operationRow(player,
             ChatEditorButton(editorText("button-back", "&7[Back]"), editorText("hint-back", "&7Return to the previous page"), "/ws edit ${region.id} $back"),
             ChatEditorButton(editorText("refresh", "&7[Refresh]"), editorText("hint-refresh", "&7Reload this page"), "/ws edit ${region.id} $section"),

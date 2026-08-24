@@ -39,11 +39,15 @@ internal class EditorRenderer(private val lang: Lang) {
         // Keep groups unmistakable in a fast-moving chat log without adding a
         // full-width separator before every field. The title itself keeps its
         // semantic colour (gold, purple, red, etc.) from the caller.
-        player.sendMessage(color("&8┌─ $title"))
+        player.sendMessage(color(text("ui-group-prefix", "&8┌─ ") + title))
     }
 
     fun spacer(player: Player) {
         player.sendMessage("")
+    }
+
+    fun divider(player: Player) {
+        player.sendMessage(color(text("ui-divider", "&8────────────────────────────────────────")))
     }
 
     fun property(
@@ -58,7 +62,11 @@ internal class EditorRenderer(private val lang: Lang) {
         // A stable label → value rhythm makes long editor pages skimmable.
         // Do not force a colour onto the value: callers may deliberately use
         // a semantic state colour such as enabled/disabled.
-        components += TextComponent(color("&8│ &7$label &8› $value"))
+        components += TextComponent(color(
+            text("ui-property-prefix", "&8│ ") +
+                text("ui-property-label", "&7") + label +
+                text("ui-property-separator", " &8› ") + value,
+        ))
         if (action == null) {
             components += TextComponent(color(" &8$actionLabel"))
         } else {
@@ -66,7 +74,7 @@ internal class EditorRenderer(private val lang: Lang) {
             components += button(actionLabel, message("hint-run-action", "&7Run: %action%", "action" to plain(actionLabel)), action).toList()
         }
         extra.forEach {
-            components += TextComponent(color(" &8| "))
+            components += TextComponent(color(text("ui-extra-separator", " &8| ")))
             components += button(it.label, it.hover, it.command).toList()
         }
         player.spigot().sendMessage(*components.toTypedArray())
