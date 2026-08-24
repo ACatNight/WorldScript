@@ -19,6 +19,7 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
@@ -109,6 +110,20 @@ class RegionEventServiceImpl(
         plugin.server.scheduler.runTask(plugin, Runnable {
             discoverAt(event.player, event.player.location)
             updateRegions(event.player, event.player.location)
+        })
+    }
+
+    /** Teleports do not always produce a block-change move event. Re-run the
+     * same discovery/entry pipeline after the destination is committed so
+     * commands, portals and scripted teleports behave like walking in. */
+    @EventHandler
+    fun onTeleport(event: PlayerTeleportEvent) {
+        if (event.isCancelled) return
+        val destination = event.to
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            if (!event.player.isOnline) return@Runnable
+            discoverAt(event.player, destination)
+            updateRegions(event.player, destination)
         })
     }
 
