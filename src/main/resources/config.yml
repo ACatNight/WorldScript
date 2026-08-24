@@ -2,6 +2,16 @@ config-version: 2
 language: en_US
 selection:
   tool: GOLD_AXE
+  polygon:
+    # Safety cap for one region outline. Values outside 3-512 are clamped.
+    max-points: 128
+    preview:
+      particle: END_ROD
+      spacing: 0.75
+      max-particles: 512
+      count: 1
+      y-offset: 0.15
+      speed: 0.0
 messages:
   # Optional region transition messages.
   region-enter-enabled: false
@@ -68,6 +78,18 @@ editor:
   page-top-spacer-lines: 12
 discovery:
   enabled: false
+  display:
+    # Native advancement-style Toast shown on a player's first discovery.
+    toast:
+      enabled: false
+      # task / goal / challenge
+      frame: task
+      # Bukkit material name, or "region" to use the region icon material.
+      icon: region
+      title: '&6发现新区域'
+      description: '&f%region%'
+      # Delay before this player's next queued Toast.
+      queue-interval-ticks: 50
   title:
     enabled: false
   sound:

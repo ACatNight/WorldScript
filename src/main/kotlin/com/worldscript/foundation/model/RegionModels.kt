@@ -147,6 +147,8 @@ data class RegionParticleDefinition(
 data class DiscoveryDefinition(
     val enabled: Boolean = false,
     val titleEnabled: Boolean = false,
+    /** Per-region switch for the global native discovery Toast. */
+    val toastEnabled: Boolean = true,
     val title: String = "",
     val subtitle: String = "",
     val fadeIn: Int = 10,
@@ -199,6 +201,7 @@ data class RegionDefinition(
     val worldId: String,
     val worldName: String,
     val bounds: RegionBounds,
+    val shape: RegionShape = RegionShape.Cuboid,
     val role: RegionRole = RegionRole.OPEN_ZONE,
     val contentId: String = "",
     val priority: Int = 0,

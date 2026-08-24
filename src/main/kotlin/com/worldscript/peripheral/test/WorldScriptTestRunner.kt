@@ -3,6 +3,8 @@ package com.worldscript.peripheral.test
 import com.worldscript.foundation.model.BlockPosition
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionBounds
+import com.worldscript.foundation.model.PolygonPoint
+import com.worldscript.foundation.model.RegionShape
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.DiscoveryDefinition
 import com.worldscript.foundation.model.ActionDefinition
@@ -29,6 +31,21 @@ object WorldScriptTestRunner {
         check(RegionGeometry.contains(bounds, BlockPosition(10, 70, 8))) { "max boundary should be included" }
         check(!RegionGeometry.contains(bounds, BlockPosition(11, 70, 8))) { "outside position should be excluded" }
         println("[TEST] PASS region-core.geometry: bounds normalization and containment")
+
+        val polygon = listOf(PolygonPoint(0, 0), PolygonPoint(6, 0), PolygonPoint(0, 6))
+        val polygonRegion = RegionDefinition(
+            "triangle", "Triangle", "world", "world",
+            RegionGeometry.polygonBounds(polygon, 64, 70)!!,
+            shape = RegionShape.Polygon(polygon),
+        )
+        check(RegionGeometry.contains(polygonRegion, BlockPosition(1, 65, 1))) { "polygon interior should be included" }
+        check(RegionGeometry.contains(polygonRegion, BlockPosition(3, 65, 0))) { "polygon boundary should be included" }
+        check(!RegionGeometry.contains(polygonRegion, BlockPosition(5, 65, 5))) { "outside polygon should be excluded" }
+        check(!RegionGeometry.contains(polygonRegion, BlockPosition(1, 71, 1))) { "polygon height bounds should be enforced" }
+        check(!RegionGeometry.isValidPolygon(listOf(PolygonPoint(0, 0), PolygonPoint(1, 1), PolygonPoint(2, 2)))) {
+            "collinear polygon must be rejected"
+        }
+        println("[TEST] PASS region-core.polygon: containment, border, height, and degenerate outlines")
 
         val progress = PlayerRegionProgress()
         progress.unlock("sunken_ruins")
@@ -139,7 +156,8 @@ object WorldScriptTestRunner {
         check(mixedDiscovery.titleEnabled && mixedDiscovery.soundEnabled && mixedDiscovery.configuredActions().single().type == ActionType.CONSOLE_COMMAND) {
             "legacy title and sound settings must coexist with canonical discovery actions"
         }
+        check(DiscoveryDefinition().toastEnabled) { "existing regions must opt in to Toast by default after upgrade" }
         println("[TEST] PASS editor.input-parser: conditions and discovery actions are parsed consistently")
-        println("[TEST] SUMMARY region-core: passed=7 failed=0 total=7")
+        println("[TEST] SUMMARY region-core: passed=8 failed=0 total=8")
     }
 }

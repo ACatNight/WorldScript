@@ -31,7 +31,7 @@ internal class RegionConfigurationValidator(
             findRegion(parentId)?.let { parent ->
                 when {
                     parent.worldName != region.worldName -> issues += "$prefix: parent '$parentId' is in another world"
-                    !RegionGeometry.encloses(parent.bounds, region.bounds) -> issues += "$prefix: bounds are not fully inside parent '$parentId'"
+                    !RegionGeometry.encloses(parent, region) -> issues += "$prefix: bounds are not fully inside parent '$parentId'"
                 }
             }
         }

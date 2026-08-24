@@ -25,6 +25,7 @@ internal class EditorDiscoveryController(
         val discovery = region.discovery ?: regions.effective(region.id)?.discovery ?: DiscoveryDefinition()
         renderer.group(player, text("group-discovery", "&5Discovery"))
         renderer.property(player, text("label-discovery-enabled", "&eDiscovery"), enabled(discovery.enabled), toggle(discovery.enabled), "/ws edit ${region.id} discovery:toggle")
+        renderer.property(player, text("label-discovery-toast", "&eToast"), enabled(discovery.toastEnabled), toggle(discovery.toastEnabled), "/ws edit ${region.id} discovery:toast")
         renderer.property(player, text("label-discovery-title", "&eTitle"), enabled(discovery.titleEnabled), toggle(discovery.titleEnabled), "/ws edit ${region.id} discovery:title")
         renderer.property(player, text("label-discovery-sound", "&eSound"), enabled(discovery.soundEnabled), toggle(discovery.soundEnabled), "/ws edit ${region.id} discovery:sound")
         renderer.property(player, text("label-discovery-reward", "&eReward"), enabled(discovery.rewardEnabled), toggle(discovery.rewardEnabled), "/ws edit ${region.id} discovery:reward")
@@ -53,16 +54,18 @@ internal class EditorDiscoveryController(
     fun control(player: Player, region: RegionDefinition, value: String) {
         val parts = value.split(':')
         when (parts.firstOrNull()) {
-            "toggle", "title", "sound", "reward" -> {
+            "toggle", "toast", "title", "sound", "reward" -> {
                 val current = regions.effective(region.id)?.discovery ?: DiscoveryDefinition()
                 val enabled = when (parts[0]) {
                     "toggle" -> !current.enabled
+                    "toast" -> !current.toastEnabled
                     "title" -> !current.titleEnabled
                     "sound" -> !current.soundEnabled
                     else -> !current.rewardEnabled
                 }
                 regions.updateDiscovery(region.id) { when (parts[0]) {
                     "toggle" -> it.copy(enabled = enabled)
+                    "toast" -> it.copy(toastEnabled = enabled)
                     // A child feature is unusable while the region-level
                     // Discovery switch is off. Enable both in one saved
                     // update so the editor never shows a false-positive ON.
@@ -74,7 +77,8 @@ internal class EditorDiscoveryController(
                     // Child feedback cannot run until Discovery itself is globally
                     // enabled, so activating any child also activates the parent.
                     enableGlobal("discovery.enabled")
-                    if (parts[0] != "toggle") enableGlobal("discovery.${parts[0]}.enabled")
+                    if (parts[0] == "toast") enableGlobal("discovery.display.toast.enabled")
+                    else if (parts[0] != "toggle") enableGlobal("discovery.${parts[0]}.enabled")
                 }
             }
             "title-input", "subtitle-input", "sound-input" -> {

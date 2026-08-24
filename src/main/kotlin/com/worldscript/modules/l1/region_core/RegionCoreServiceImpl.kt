@@ -17,6 +17,8 @@ import com.worldscript.foundation.model.RewardDefinition
 import com.worldscript.foundation.model.RewardType
 import com.worldscript.foundation.model.RegionBounds
 import com.worldscript.foundation.model.RegionParticleDefinition
+import com.worldscript.foundation.model.PolygonPoint
+import com.worldscript.foundation.model.RegionShape
 import com.worldscript.foundation.model.DiscoveryDefinition
 import com.worldscript.foundation.model.ScriptDefinition
 import org.bukkit.Location
@@ -62,7 +64,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     override fun regionsAt(location: Location): List<RegionDefinition> = regionsAt(location, ::isAccessible)
 
     fun regionsAt(location: Location, accessible: (String) -> Boolean): List<RegionDefinition> = indexedCandidates(location)
-        .filter { region -> region.worldName == location.world?.name && RegionGeometry.contains(region.bounds, location.toBlockPosition()) }
+        .filter { region -> region.worldName == location.world?.name && RegionGeometry.contains(region, location.toBlockPosition()) }
         .filter { accessible(it.id) }
         .sortedWith(compareBy<RegionDefinition> { depth(it.id) }.thenBy { it.priority }.thenBy { it.id.lowercase() })
 
@@ -103,6 +105,13 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         data.set("location.world", region.worldName)
         data.set("location.world-id", region.worldId)
         data.set("location.priority", region.priority)
+        when (val shape = region.shape) {
+            RegionShape.Cuboid -> data.set("location.shape.type", "cuboid")
+            is RegionShape.Polygon -> {
+                data.set("location.shape.type", "polygon")
+                data.set("location.shape.points", shape.points.map { mapOf("x" to it.x, "z" to it.z) })
+            }
+        }
         data.set("state.inherit", region.inheritParent)
         data.set("state.statuses", region.statuses.map { it.name.lowercase() })
         data.set("variables", region.variables)
@@ -119,6 +128,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         }
         region.discovery?.canonicalized()?.let { discovery ->
             data.set("discovery.enabled", discovery.enabled)
+            data.set("discovery.toast.enabled", discovery.toastEnabled)
             data.set("discovery.title.enabled", discovery.titleEnabled)
             data.set("discovery.title.text", discovery.title)
             data.set("discovery.title.subtitle", discovery.subtitle)
@@ -227,6 +237,24 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     override fun updateParticle(id: String, particle: RegionParticleDefinition?): Boolean {
         val region = find(id) ?: return false
         val updated = region.copy(particle = particle)
+        regions[region.id.lowercase()] = updated
+        save(updated)
+        return true
+    }
+
+    fun updatePolygon(id: String, points: List<PolygonPoint>): Boolean {
+        val region = find(id) ?: return false
+        val bounds = RegionGeometry.polygonBounds(points, region.bounds.min.y, region.bounds.max.y) ?: return false
+        val updated = region.copy(bounds = bounds, shape = RegionShape.Polygon(points.toList()))
+        regions[region.id.lowercase()] = updated
+        save(updated)
+        return true
+    }
+
+    fun resetPolygon(id: String): Boolean {
+        val region = find(id) ?: return false
+        if (region.shape !is RegionShape.Polygon) return false
+        val updated = region.copy(shape = RegionShape.Cuboid)
         regions[region.id.lowercase()] = updated
         save(updated)
         return true
@@ -406,12 +434,18 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             }
         }.toSet()
         val parentId = (section.getString("identity.parent") ?: section.getString("parent-id"))?.takeUnless { it.isBlank() }
+        val bounds = RegionGeometry.from(readPosition(section, "location.min", "min", source), readPosition(section, "location.max", "max", source))
+        val shape = readShape(section, bounds, source)
+        val effectiveBounds = (shape as? RegionShape.Polygon)
+            ?.let { RegionGeometry.polygonBounds(it.points, bounds.min.y, bounds.max.y) }
+            ?: bounds
         return RegionDefinition(
             id = id,
             displayName = section.getString("identity.name") ?: section.getString("display-name", id) ?: id,
             worldId = section.getString("location.world-id") ?: section.getString("world-id", worldName) ?: worldName,
             worldName = worldName,
-            bounds = RegionGeometry.from(readPosition(section, "location.min", "min", source), readPosition(section, "location.max", "max", source)),
+            bounds = effectiveBounds,
+            shape = shape,
             role = role ?: RegionRole.OPEN_ZONE,
             contentId = section.getString("identity.content-id") ?: section.getString("content-id", "") ?: "",
             priority = if (section.contains("location.priority")) section.getInt("location.priority") else section.getInt("priority", 0),
@@ -423,6 +457,32 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             particle = readParticle(section, source),
             discovery = readDiscovery(section, source),
         )
+    }
+
+    private fun readShape(section: ConfigurationSection, bounds: RegionBounds, source: String): RegionShape {
+        val type = section.getString("location.shape.type", "cuboid")?.trim()?.lowercase() ?: "cuboid"
+        if (type == "cuboid") return RegionShape.Cuboid
+        if (type != "polygon") {
+            loadIssue(source, "location.shape.type", "unknown shape '$type'; using cuboid")
+            return RegionShape.Cuboid
+        }
+        val points = section.getMapList("location.shape.points").mapIndexedNotNull { index, raw ->
+            val x = (raw["x"] as? Number)?.toInt() ?: raw["x"]?.toString()?.toIntOrNull()
+            val z = (raw["z"] as? Number)?.toInt() ?: raw["z"]?.toString()?.toIntOrNull()
+            if (x == null || z == null) {
+                loadIssue(source, "location.shape.points[$index]", "x and z must be integers")
+                null
+            } else PolygonPoint(x, z)
+        }
+        if (!RegionGeometry.isValidPolygon(points)) {
+            loadIssue(source, "location.shape.points", "polygon needs at least three distinct, non-collinear points; using cuboid")
+            return RegionShape.Cuboid
+        }
+        val calculated = RegionGeometry.polygonBounds(points, bounds.min.y, bounds.max.y)
+        if (calculated != bounds) {
+            loadIssue(source, "location.shape.points", "polygon bounds differ from location min/max; calculated bounds are used for detection")
+        }
+        return RegionShape.Polygon(points)
     }
 
     private fun readDiscovery(section: ConfigurationSection, source: String): DiscoveryDefinition? {
@@ -444,6 +504,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         val actions = readActions("discovery.actions")
         return DiscoveryDefinition(
             enabled = section.getBoolean("discovery.enabled", false),
+            toastEnabled = section.getBoolean("discovery.toast.enabled", true),
             titleEnabled = section.getBoolean("discovery.title.enabled", false),
             title = section.getString("discovery.title.text", "") ?: "",
             subtitle = section.getString("discovery.title.subtitle", "") ?: "",

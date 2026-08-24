@@ -7,8 +7,10 @@ import com.worldscript.command.ActionPresetCatalog
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l1.region_events.RegionEventServiceImpl
 import com.worldscript.modules.l1.region_core.SelectionService
+import com.worldscript.modules.l1.region_core.PolygonEditingService
 import com.worldscript.modules.l1.region_events.RegionSelectionListener
 import com.worldscript.modules.l2.script_actions.ScriptActionServiceImpl
+import com.worldscript.modules.l2.script_actions.ToastService
 import com.worldscript.modules.l2.admin_gui.RegionGuiService
 import com.worldscript.modules.l2.rpg.ConditionEvaluator
 import com.worldscript.modules.l2.rpg.RewardService
@@ -36,6 +38,7 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
     lateinit var taboolib: TabooLibBridge
         private set
     private lateinit var particles: RegionParticleService
+    private lateinit var toasts: ToastService
     private var placeholderExpansion: WorldScriptPlaceholderExpansion? = null
 
     override fun onEnable() {
@@ -61,11 +64,13 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         val rewards = RewardService(this, regionCore, playerVariables)
         particles = RegionParticleService(this, regionCore, playerVariables)
         val conditions = ConditionEvaluator(this, regionCore, playerVariables)
-        val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards)
+        toasts = ToastService(this)
+        val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards, toasts)
         val events = RegionEventServiceImpl(this, regionCore, playerVariables, conditions, actions::executeConditionFailure)
         val gui = RegionGuiService(this, regionCore)
         val selection = SelectionService(this)
-        val command = WsCommand(this, regionCore, selection, playerVariables)
+        val polygons = PolygonEditingService(this, regionCore)
+        val command = WsCommand(this, regionCore, selection, polygons, playerVariables)
         command.guiOpener = { player -> gui.openList(player) }
         command.settingsOpener = { player -> gui.openSettings(player) }
         val presets = ActionPresetCatalog(this)
@@ -89,7 +94,7 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         server.pluginManager.registerEvents(actions, this)
         server.pluginManager.registerEvents(gui, this)
         server.pluginManager.registerEvents(chatEditor, this)
-        server.pluginManager.registerEvents(RegionSelectionListener(this, selection), this)
+        server.pluginManager.registerEvents(RegionSelectionListener(this, selection, polygons), this)
         registerPlaceholderExpansion()
         logger.info("WorldScript enabled with ${regionCore.all().size} regions.")
     }
@@ -98,6 +103,7 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         placeholderExpansion?.unregister()
         placeholderExpansion = null
         if (::particles.isInitialized) particles.close()
+        if (::toasts.isInitialized) toasts.close()
         if (::playerVariables.isInitialized) playerVariables.saveAll()
         logger.info("WorldScript disabled.")
     }

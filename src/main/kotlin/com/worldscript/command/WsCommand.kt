@@ -4,6 +4,7 @@ import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.Lang
 import com.worldscript.foundation.MaterialResolver
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
+import com.worldscript.modules.l1.region_core.PolygonEditingService
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -15,7 +16,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.io.File
 
-class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val state: PlayerVariableService) : CommandExecutor, TabCompleter {
+class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val polygons: PolygonEditingService, private val state: PlayerVariableService) : CommandExecutor, TabCompleter {
     private val lang = Lang(plugin)
     var guiOpener: ((Player) -> Unit)? = null
     var settingsOpener: ((Player) -> Unit)? = null
@@ -29,6 +30,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK)); reply(it, "wand-given") } ?: reply(sender, "only-player")
             "list" -> (sender as? Player)?.let { guiOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
             "settings" -> (sender as? Player)?.let { settingsOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
+            "polygon" -> polygon(sender, args)
             "edit" -> edit(sender, args)
             "reload" -> reload(sender, args)
             "language" -> language(sender, args)
@@ -59,6 +61,27 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             reply(player, "region-created", args[1])
             regions.find(args[1])?.parentId?.let { parent -> lang.send(player, "region-parent-assigned", "region" to args[1], "parent" to parent) }
         } else reply(player, "region-create-failed", args[1])
+    }
+
+    private fun polygon(sender: CommandSender, args: Array<out String>) {
+        val player = sender as? Player ?: run { reply(sender, "only-player"); return }
+        when (val operation = args.getOrNull(1)?.lowercase()) {
+            null -> lang.send(player, "polygon-usage")
+            "cancel" -> if (!polygons.cancel(player)) lang.send(player, "polygon-not-editing")
+            "status" -> polygons.status(player)
+            "preview" -> polygons.preview(player)
+            "finish" -> polygons.finish(player)
+            "reset" -> {
+                val regionId = args.getOrNull(2) ?: polygons.activeRegion(player)
+                if (regionId == null) lang.send(player, "polygon-reset-usage")
+                else if (regions.find(regionId) == null) reply(player, "region-not-found", regionId)
+                else polygons.reset(player, regionId)
+            }
+            else -> {
+                if (regions.find(operation) == null) reply(player, "region-not-found", operation)
+                else polygons.start(player, operation)
+            }
+        }
     }
 
     private fun edit(sender: CommandSender, args: Array<out String>) {
@@ -111,6 +134,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "usage-delete",
             "usage-list",
             "usage-settings",
+            "usage-polygon",
             "usage-info",
             "usage-edit",
             "usage-reload",
@@ -124,6 +148,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
     private fun reply(sender: CommandSender, key: String, vararg values: Any): Boolean { lang.send(sender, key, "region" to values.firstOrNull()); return true }
 
     private fun reload(sender: CommandSender, args: Array<out String>) {
+        polygons.clear()
         plugin.reloadConfig()
         regions.load()
         reloadHandler?.invoke()
@@ -148,7 +173,9 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         lang.send(sender, "language-changed", "language" to requested)
     }
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> = when {
-        args.size == 1 -> listOf("wand", "create", "delete", "list", "settings", "info", "edit", "reload", "language", "validate", "progress", "help")
+        args.size == 1 -> listOf("wand", "create", "polygon", "delete", "list", "settings", "info", "edit", "reload", "language", "validate", "progress", "help")
+        args.size == 2 && args[0].equals("polygon", true) -> listOf("cancel", "status", "preview", "finish", "reset") + regions.all().map { it.id }
+        args.size == 3 && args[0].equals("polygon", true) && args[1].equals("reset", true) -> regions.all().map { it.id }
         args.size == 2 && args[0].equals("validate", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("progress", true) -> regions.all().map { it.id }
         args.size == 4 && args[0].equals("progress", true) -> listOf("unlock", "complete")
