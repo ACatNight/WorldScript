@@ -36,8 +36,16 @@ internal class RegionConfigurationValidator(
             }
         }
         if (hasParentCycle(region.id)) issues += "$prefix: parent-id creates a cycle"
-        region.discovery?.configuredActions()?.forEachIndexed { index, action ->
-            validateAction(issues, "$prefix.discovery", index, action)
+        region.discovery?.let { discovery ->
+            if (discovery.titleEnabled && discovery.title.isBlank()) {
+                issues += "$prefix.discovery.title.text: title is enabled but empty"
+            }
+            if (discovery.soundEnabled && discovery.sound.isBlank()) {
+                issues += "$prefix.discovery.sound.type: sound is enabled but empty"
+            }
+            discovery.configuredActions().forEachIndexed { index, action ->
+                validateAction(issues, "$prefix.discovery", index, action)
+            }
         }
         region.events.forEach { (eventType, script) ->
             val eventPrefix = "$prefix.events.${eventType.name.lowercase()}"
