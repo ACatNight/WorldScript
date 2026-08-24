@@ -168,11 +168,11 @@ object WorldScriptTestRunner {
         check(toastDefaults.copy(toastIcon = "COMPASS").toastIcon == "COMPASS") {
             "regional Toast icon overrides must persist in the model"
         }
-        check("\"item\":\"minecraft:compass\"" in AdvancementToastPayload.create("1.20.4-R0.1-SNAPSHOT", "COMPASS", "Title", "Description", "task")) {
+        check("\"item\":\"minecraft:compass\"" in AdvancementToastPayload.create("1.20.4-R0.1-SNAPSHOT", "minecraft:COMPASS", "Title", "Description", "task")) {
             "legacy servers must receive the legacy advancement icon field"
         }
-        val modernToast = AdvancementToastPayload.create("1.21.8-R0.1-SNAPSHOT", "COMPASS", "A \"quoted\" title", "Line 1\nLine 2", "goal")
-        check("\"id\":\"minecraft:compass\"" in modernToast && "\"item\":" !in modernToast) {
+        val modernToast = AdvancementToastPayload.create("1.21.8-R0.1-SNAPSHOT", "minecraft:OAK_LOG", "A \"quoted\" title", "Line 1\nLine 2", "goal")
+        check("\"id\":\"minecraft:oak_log\"" in modernToast && "\"item\":" !in modernToast) {
             "Minecraft 1.20.5+ must receive the data-component advancement icon field"
         }
         check("A \\\"quoted\\\" title" in modernToast && "Line 1\\nLine 2" in modernToast && "\"show_toast\":true" in modernToast) {

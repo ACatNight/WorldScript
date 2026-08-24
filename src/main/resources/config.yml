@@ -97,6 +97,8 @@ discovery:
       frame: task
       # Bukkit material name, or "region" to use the region icon material.
       icon: region
+      # Used if a saved or configured icon no longer exists on the current server version.
+      fallback-icon: PAPER
       # Used when icon is "region". Each role may use a different Bukkit material.
       role-icons:
         hub: COMPASS

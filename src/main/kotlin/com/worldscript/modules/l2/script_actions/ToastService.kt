@@ -27,6 +27,12 @@ class ToastService(private val plugin: JavaPlugin) {
     private val removeMethod: Method? = runCatching {
         Bukkit.getUnsafe()::class.java.getMethod("removeAdvancement", NamespacedKey::class.java)
     }.getOrNull()
+    private val fromLegacyMaterialMethod: Method? = runCatching {
+        Bukkit.getUnsafe()::class.java.getMethod("fromLegacy", Material::class.java)
+    }.getOrNull()
+    private val materialKeyMethod: Method? = runCatching {
+        Material::class.java.getMethod("getKey")
+    }.getOrNull()
     private val requestSequence = AtomicLong()
 
     fun showDiscovery(
@@ -119,7 +125,7 @@ class ToastService(private val plugin: JavaPlugin) {
         return runCatching {
             val json = AdvancementToastPayload.create(
                 minecraftVersion = Bukkit.getBukkitVersion(),
-                materialName = icon.name,
+                itemId = toastItemId(icon),
                 title = color(title),
                 description = color(description),
                 frame = frame,
@@ -148,6 +154,34 @@ class ToastService(private val plugin: JavaPlugin) {
             loadedKeys.remove(key)
             plugin.logger.warning("Could not show Toast for '$regionId': ${rootMessage(it)}")
             false
+        }
+    }
+
+    private fun toastItemId(material: Material): String {
+        if (!AdvancementToastPayload.usesDataComponentItemFormat(Bukkit.getBukkitVersion())) {
+            return "minecraft:${material.name.lowercase(Locale.ROOT).removePrefix("legacy_")}"
+        }
+        modernMaterialId(material)?.let { return it }
+        val fallbackName = plugin.config.getString("discovery.display.toast.fallback-icon", "PAPER") ?: "PAPER"
+        val fallback = MaterialResolver.find(fallbackName)
+        if (fallback != null) modernMaterialId(fallback)?.let { return it }
+        plugin.logger.warning("Invalid discovery.display.toast.fallback-icon '$fallbackName'; using minecraft:paper.")
+        return "minecraft:paper"
+    }
+
+    private fun modernMaterialId(material: Material): String? {
+        val legacyName = "LEGACY_${material.name.removePrefix("LEGACY_")}"
+        val legacyCandidate = runCatching { java.lang.Enum.valueOf(Material::class.java, legacyName) }.getOrNull()
+            ?: material
+        val converted = runCatching {
+            fromLegacyMaterialMethod?.invoke(Bukkit.getUnsafe(), legacyCandidate) as? Material
+        }.getOrNull() ?: material
+        val key = runCatching { materialKeyMethod?.invoke(converted)?.toString() }.getOrNull()
+            ?: return null
+        return key.takeIf {
+            ':' in it &&
+                !converted.name.startsWith("LEGACY_", true) &&
+                !it.substringAfter(':').startsWith("legacy_", true)
         }
     }
 
@@ -188,10 +222,10 @@ class ToastService(private val plugin: JavaPlugin) {
 }
 
 internal object AdvancementToastPayload {
-    fun create(minecraftVersion: String, materialName: String, title: String, description: String, frame: String): String {
+    fun create(minecraftVersion: String, itemId: String, title: String, description: String, frame: String): String {
         val iconKey = if (usesDataComponentItemFormat(minecraftVersion)) "id" else "item"
-        val material = materialName.lowercase(Locale.ROOT)
-        return """{"criteria":{"worldscript":{"trigger":"minecraft:impossible"}},"display":{"icon":{"$iconKey":"minecraft:$material"},"title":{"text":"${escape(title)}"},"description":{"text":"${escape(description)}"},"frame":"$frame","show_toast":true,"announce_to_chat":false,"hidden":true}}"""
+        val normalizedItemId = itemId.lowercase(Locale.ROOT).let { if (':' in it) it else "minecraft:$it" }
+        return """{"criteria":{"worldscript":{"trigger":"minecraft:impossible"}},"display":{"icon":{"$iconKey":"$normalizedItemId"},"title":{"text":"${escape(title)}"},"description":{"text":"${escape(description)}"},"frame":"$frame","show_toast":true,"announce_to_chat":false,"hidden":true}}"""
     }
 
     fun usesDataComponentItemFormat(version: String): Boolean {
