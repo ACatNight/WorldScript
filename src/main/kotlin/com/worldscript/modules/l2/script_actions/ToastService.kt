@@ -33,6 +33,9 @@ class ToastService(private val plugin: JavaPlugin) {
     private val materialKeyMethod: Method? = runCatching {
         Material::class.java.getMethod("getKey")
     }.getOrNull()
+    private val updateResourcesMethod: Method? = runCatching {
+        plugin.server.javaClass.methods.firstOrNull { it.name == "updateResources" && it.parameterCount == 0 }
+    }.getOrNull()
     private val requestSequence = AtomicLong()
 
     fun showDiscovery(
@@ -132,22 +135,34 @@ class ToastService(private val plugin: JavaPlugin) {
             )
             val advancement = method.invoke(Bukkit.getUnsafe(), key, json) ?: return false
             loadedKeys += key
-            val progress = player.getAdvancementProgress(advancement as org.bukkit.advancement.Advancement)
-            progress.remainingCriteria.forEach { progress.awardCriteria(it) }
             val cleanupDelay = plugin.config.getLong("discovery.display.toast.revoke-delay-ticks", 5L).coerceAtLeast(1L)
+            runCatching { updateResourcesMethod?.invoke(plugin.server) }
+                .onFailure { error -> plugin.logger.warning("Could not sync temporary Toast advancement '$key': ${rootMessage(error)}") }
             plugin.server.scheduler.runTaskLater(plugin, Runnable {
                 runCatching {
                     if (player.isOnline) {
-                        val currentProgress = player.getAdvancementProgress(advancement)
-                        currentProgress.awardedCriteria.toList().forEach { currentProgress.revokeCriteria(it) }
+                        val progress = player.getAdvancementProgress(advancement as org.bukkit.advancement.Advancement)
+                        progress.remainingCriteria.toList().forEach { progress.awardCriteria(it) }
+                        plugin.server.scheduler.runTaskLater(plugin, Runnable {
+                            runCatching {
+                                if (player.isOnline) {
+                                    val currentProgress = player.getAdvancementProgress(advancement)
+                                    currentProgress.awardedCriteria.toList().forEach { currentProgress.revokeCriteria(it) }
+                                }
+                            }.onFailure { error ->
+                                plugin.logger.warning("Could not revoke temporary Toast advancement '$key': ${rootMessage(error)}")
+                            }
+                        }, cleanupDelay)
                     }
                 }.onFailure { error ->
-                    plugin.logger.warning("Could not revoke temporary Toast advancement '$key': ${rootMessage(error)}")
+                    plugin.logger.warning("Could not award temporary Toast advancement '$key': ${rootMessage(error)}")
                 }
-                runCatching { removeMethod?.invoke(Bukkit.getUnsafe(), key) }
-                    .onFailure { error -> plugin.logger.warning("Could not remove temporary Toast advancement '$key': ${rootMessage(error)}") }
-                loadedKeys.remove(key)
-            }, cleanupDelay)
+                plugin.server.scheduler.runTaskLater(plugin, Runnable {
+                    runCatching { removeMethod?.invoke(Bukkit.getUnsafe(), key) }
+                        .onFailure { error -> plugin.logger.warning("Could not remove temporary Toast advancement '$key': ${rootMessage(error)}") }
+                    loadedKeys.remove(key)
+                }, cleanupDelay + 1L)
+            }, 1L)
             true
         }.getOrElse {
             runCatching { removeMethod?.invoke(Bukkit.getUnsafe(), key) }
