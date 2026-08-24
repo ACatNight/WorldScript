@@ -82,7 +82,7 @@ class RegionEventServiceImpl(
                 .firstOrNull { region ->
                     if (region.id in fromIds) return@firstOrNull false
                     val script = regions.effective(region.id)?.events?.get(RegionEventType.ENTER) ?: return@firstOrNull false
-                    script.conditions.isNotEmpty() && !conditions.allMet(event.player, region.id, script.conditions, script.conditionMode)
+                    script.conditionsEnabled && script.conditions.isNotEmpty() && !conditions.allMet(event.player, region.id, script.conditions, script.conditionMode)
                 }
             if (blocked != null) {
                 event.isCancelled = true
@@ -132,7 +132,7 @@ class RegionEventServiceImpl(
             if (!regions.isAccessible(id, state.isRegionUnlocked(player, id))) return@regionsAt false
             if (!plugin.config.getBoolean("conditions.enabled", false)) return@regionsAt true
             val script = regions.effective(id)?.events?.get(RegionEventType.ENTER) ?: return@regionsAt true
-            conditions.allMet(player, id, script.conditions, script.conditionMode)
+            !script.conditionsEnabled || conditions.allMet(player, id, script.conditions, script.conditionMode)
         }.map { it.id }.toSet()
         val previous = current[player.uniqueId] ?: emptySet()
         if (previous == next) {
@@ -160,7 +160,7 @@ class RegionEventServiceImpl(
                 if (state.isRegionUnlocked(player, region.id)) return@filter false
                 if (!plugin.config.getBoolean("conditions.enabled", false)) return@filter true
                 val script = regions.effective(region.id)?.events?.get(RegionEventType.ENTER) ?: return@filter true
-                script.conditions.isEmpty() || conditions.allMet(player, region.id, script.conditions, script.conditionMode)
+                !script.conditionsEnabled || script.conditions.isEmpty() || conditions.allMet(player, region.id, script.conditions, script.conditionMode)
             }
             .forEach { plugin.server.pluginManager.callEvent(RegionDiscoverEvent(player, it.id)) }
     }

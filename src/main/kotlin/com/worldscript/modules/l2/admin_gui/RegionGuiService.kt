@@ -4,6 +4,7 @@ package com.worldscript.modules.l2.admin_gui
 
 import com.worldscript.foundation.Lang
 import com.worldscript.foundation.MaterialResolver
+import com.worldscript.foundation.BukkitCompatibility
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionRole
@@ -54,6 +55,7 @@ class RegionGuiService(
         inventory.setItem(49, button("BARRIER", "gui-close", "Close"))
         inventory.setItem(53, button("ARROW", "gui-page-next", "Next page"))
         player.openInventory(inventory)
+        playSound(player, "open")
     }
 
     private fun openSettings(player: Player) {
@@ -67,6 +69,7 @@ class RegionGuiService(
         inventory.setItem(18, button("ARROW", "gui-settings-back", "Back"))
         inventory.setItem(26, button("BARRIER", "gui-close", "Close"))
         player.openInventory(inventory)
+        playSound(player, "open")
     }
 
     private fun toggleItem(path: String, key: String, fallback: String): ItemStack {
@@ -84,6 +87,7 @@ class RegionGuiService(
         val player = event.whoClicked as? Player ?: return
         val holder = event.inventory.holder as? RegionGuiHolder ?: return
         event.isCancelled = true
+        playSound(player, "click")
         if (holder.page == "settings") {
             when (event.rawSlot) {
                 10 -> toggleSetting("discovery.enabled", player)
@@ -92,7 +96,7 @@ class RegionGuiService(
                 16 -> toggleSetting("discovery.reward.enabled", player)
                 22 -> toggleSetting("conditions.enabled", player)
                 18 -> openList(player)
-                26 -> player.closeInventory()
+                26 -> { player.closeInventory(); playSound(player, "close") }
             }
             return
         }
@@ -105,7 +109,7 @@ class RegionGuiService(
                 openSettingsNextTick(player)
             }
             45 -> if (page > 0) openList(player, page - 1)
-            49 -> player.closeInventory()
+            49 -> { player.closeInventory(); playSound(player, "close") }
             53 -> openList(player, page + 1)
             in REGION_SLOTS -> {
                 val slotIndex = REGION_SLOTS.indexOf(event.rawSlot)
@@ -168,7 +172,18 @@ class RegionGuiService(
             plugin.config.set("discovery.enabled", true)
         }
         plugin.saveConfig()
+        playSound(player, "success")
         openSettings(player)
+    }
+
+    private fun playSound(player: Player, action: String) {
+        val name = plugin.config.getString("gui.sounds.$action") ?: return
+        val sound = BukkitCompatibility.resolveSound(name) ?: run {
+            plugin.logger.warning("Invalid GUI sound gui.sounds.$action='$name'")
+            if (action != "error") playSound(player, "error")
+            return
+        }
+        player.playSound(player.location, sound, 1.0f, 1.0f)
     }
 
     private fun sortedRegions(): List<RegionDefinition> =
@@ -197,7 +212,20 @@ class RegionGuiService(
         lore += lang.text("gui-list-right", "Right-click: Teleport")
         lore += lang.text("gui-list-middle", "Middle-click: Global settings")
         lore += lang.text("gui-list-map", "Map: Open settings")
-        return item(roleMaterial(region.role), region.id, lore)
+        return item(roleMaterial(region.role), region.id, lore).also { applyModelData(it, region.role) }
+    }
+
+    private fun applyModelData(stack: ItemStack, role: RegionRole) {
+        if (!plugin.config.getBoolean("gui.custom-model-data.enabled", false)) return
+        val key = role.name.lowercase().replace('_', '-')
+        val model = plugin.config.getInt("gui.custom-model-data.$key", plugin.config.getInt("gui.custom-model-data.default", 0))
+        if (model <= 0) return
+        runCatching {
+            val meta = stack.itemMeta ?: return
+            val method = meta.javaClass.methods.firstOrNull { it.name == "setCustomModelData" && it.parameterTypes.size == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType }
+            method?.invoke(meta, model)
+            stack.itemMeta = meta
+        }.onFailure { plugin.logger.warning("Could not apply GUI custom model data: ${it.message}") }
     }
 
     private fun statusText(statuses: Set<GlobalRegionStatus>): String =

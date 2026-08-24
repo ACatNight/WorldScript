@@ -146,6 +146,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             data.set("$eventPath.conditions", script.conditions.map { conditionMap(it) })
             data.set("$eventPath.condition-failure-actions", script.conditionFailureActions.map(::actionMap))
             data.set("$eventPath.condition-mode", script.conditionMode.name.lowercase())
+            data.set("$eventPath.conditions-enabled", script.conditionsEnabled)
             data.set("$eventPath.rewards", script.rewards.map { rewardMap(it) })
         }
         data.save(File(regionDirectory, "${region.id}.yml"))
@@ -527,6 +528,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             conditions = readConditions(section.getMapList("$path.conditions"), source, "$path.conditions"),
             conditionFailureActions = failureActions,
             conditionMode = section.getString("$path.condition-mode", "and")?.uppercase()?.let { runCatching { ConditionMode.valueOf(it) }.getOrNull() } ?: ConditionMode.AND,
+            conditionsEnabled = section.getBoolean("$path.conditions-enabled", true),
             rewards = readRewards(section.getMapList("$path.rewards"), source, "$path.rewards"),
             overrideParent = if (section.contains("$path.inherit")) !section.getBoolean("$path.inherit") else section.getBoolean("$path.override-parent", false),
             firstEntryOnly = when (mode) { "first" -> true; "repeat", "always" -> false; else -> section.getBoolean("$path.first-entry-only", false) },

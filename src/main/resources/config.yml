@@ -10,6 +10,21 @@ messages:
   leave: '&7Leaving region: &f%region%'
 gui:
   event-icon: PAPER
+  custom-model-data:
+    enabled: false
+    default: 0
+    hub: 0
+    open-zone: 0
+    point-of-interest: 0
+    danger-zone: 0
+    gate: 0
+  # Optional feedback sounds for inventory interactions.
+  sounds:
+    open: UI_BUTTON_CLICK
+    close: BLOCK_CHEST_CLOSE
+    click: UI_BUTTON_CLICK
+    success: ENTITY_PLAYER_LEVELUP
+    error: BLOCK_NOTE_BLOCK_BASS
 placeholders:
   # Tokens: {parent}, {current}, {child}, {id}, {path}
   region-name-format: '{parent} / {current}'

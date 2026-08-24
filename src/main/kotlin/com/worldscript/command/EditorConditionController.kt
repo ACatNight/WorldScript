@@ -28,6 +28,13 @@ internal class EditorConditionController(
         renderer.group(player, text("group-conditions", "&cConditions"))
         renderer.property(
             player,
+            text("label-conditions-enabled", "&eEntry conditions"),
+            if (script.conditionsEnabled) text("value-enabled", "Enabled") else text("value-disabled", "Disabled"),
+            if (script.conditionsEnabled) text("button-close", "&c[Close]") else text("button-open", "&a[Open]"),
+            "/ws edit ${region.id} conditions toggle",
+        )
+        renderer.property(
+            player,
             text("label-condition-mode", "&eCombination"),
             if (script.conditionMode == ConditionMode.AND) text("value-condition-all", "&aALL") else text("value-condition-any", "&aANY"),
             text("button-cycle", "&e[Switch]"),
@@ -61,6 +68,12 @@ internal class EditorConditionController(
 
     fun control(player: Player, region: RegionDefinition, value: String) {
         when {
+            value == "toggle" -> {
+                val enabled = !(regions.effective(region.id)?.events?.get(RegionEventType.ENTER)?.conditionsEnabled ?: false)
+                regions.updateEvent(region.id, RegionEventType.ENTER) { it.copy(conditionsEnabled = enabled) }
+                if (enabled) enableGlobal("conditions.enabled")
+                open(player, region.id, "conditions")
+            }
             value == "add" -> {
                 sessions.begin(player.uniqueId, EditorPendingInput(region.id, "conditions", RegionEventType.ENTER, -1, "__condition_add__", System.currentTimeMillis()))
                 send(player, "condition-prompt", "&6Enter a condition expression, or permission: node. Type &ccancel&7 to stop.")

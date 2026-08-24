@@ -83,7 +83,7 @@ class ScriptActionServiceImpl(
         val firstEntry = eventType == RegionEventType.ENTER && !state.hasEnteredRegion(player, regionId)
         if (script.firstEntryOnly && !firstEntry) return
         if (script.repeatEntryOnly && firstEntry) return
-        if (eventType == RegionEventType.ENTER && !plugin.config.getBoolean("conditions.enabled", false)) {
+        if (eventType == RegionEventType.ENTER && (!plugin.config.getBoolean("conditions.enabled", false) || !script.conditionsEnabled)) {
             // Conditions are an opt-in global feature.
         } else conditions.firstFailure(player, regionId, script.conditions, script.conditionMode)?.let { failed ->
             executeConditionFailure(

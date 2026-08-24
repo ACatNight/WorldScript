@@ -185,6 +185,8 @@ data class ScriptDefinition(
     /** Actions executed when this event's entry conditions deny access. */
     val conditionFailureActions: List<ActionDefinition> = emptyList(),
     val conditionMode: ConditionMode = ConditionMode.AND,
+    /** Per-region opt-in switch for evaluating entry conditions. */
+    val conditionsEnabled: Boolean = true,
     val rewards: List<RewardDefinition> = emptyList(),
     val overrideParent: Boolean = false,
     val firstEntryOnly: Boolean = false,

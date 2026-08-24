@@ -33,6 +33,8 @@ dependencies {
     taboo("org.bstats:bstats-bukkit:3.2.1")
     implementation("io.izzel.taboolib:platform-bukkit-impl:6.3.0")
     implementation("io.izzel.taboolib:minecraft-kether:6.3.0")
+    testImplementation(kotlin("test-junit5"))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 }
 
 taboolib {
