@@ -85,7 +85,8 @@ class RegionGuiService(
     @EventHandler
     fun onClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
-        val holder = event.inventory.holder as? RegionGuiHolder ?: return
+        val holder = event.view.topInventory.holder as? RegionGuiHolder ?: return
+        if (event.rawSlot !in 0 until event.view.topInventory.size) return
         event.isCancelled = true
         playSound(player, "click")
         if (holder.page == "settings") {
@@ -103,11 +104,9 @@ class RegionGuiService(
         if (holder.page != "list") return
         val page = holder.pageIndex
         when (event.rawSlot) {
-            // Middle-click is not emitted by many survival clients. The
-            // header map is therefore also a reliable settings fallback.
-            4 -> if (event.click == ClickType.LEFT || event.click == ClickType.SHIFT_LEFT) {
-                openSettingsNextTick(player)
-            }
+            // Some clients do not emit an inventory middle-click in survival.
+            // The header map is a click-type-independent settings entry point.
+            4 -> openSettingsNextTick(player)
             45 -> if (page > 0) openList(player, page - 1)
             49 -> { player.closeInventory(); playSound(player, "close") }
             53 -> openList(player, page + 1)
@@ -157,7 +156,6 @@ class RegionGuiService(
     private fun openSettingsNextTick(player: Player) {
         plugin.server.scheduler.runTask(plugin, Runnable {
             if (player.isOnline) {
-                player.closeInventory()
                 openSettings(player)
             }
         })
