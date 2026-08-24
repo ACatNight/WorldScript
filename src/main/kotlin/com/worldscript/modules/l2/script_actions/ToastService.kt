@@ -8,10 +8,12 @@ import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.util.ArrayDeque
 import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicLong
 
 /** Best-effort native advancement toast with a language-message fallback. */
 class ToastService(private val plugin: JavaPlugin) {
@@ -25,6 +27,7 @@ class ToastService(private val plugin: JavaPlugin) {
     private val removeMethod: Method? = runCatching {
         Bukkit.getUnsafe()::class.java.getMethod("removeAdvancement", NamespacedKey::class.java)
     }.getOrNull()
+    private val requestSequence = AtomicLong()
 
     fun showDiscovery(
         player: Player,
@@ -108,17 +111,42 @@ class ToastService(private val plugin: JavaPlugin) {
 
     private fun sendNative(player: Player, regionId: String, title: String, description: String, frame: String, icon: Material): Boolean {
         val method = loadMethod ?: return false
-        val key = NamespacedKey(plugin, "toast_${regionId.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9._/-]"), "_")}")
+        val regionKey = regionId.lowercase(Locale.ROOT)
+            .replace(Regex("[^a-z0-9._/-]"), "_")
+            .take(32)
+            .ifBlank { "region" }
+        val key = NamespacedKey(plugin, "toast_${regionKey}_${player.uniqueId.toString().replace("-", "")}_${requestSequence.incrementAndGet()}")
         return runCatching {
-            val json = """{"criteria":{"worldscript":{"trigger":"minecraft:impossible"}},"display":{"icon":{"item":"minecraft:${icon.name.lowercase(Locale.ROOT)}"},"title":{"text":"${jsonEscape(color(title))}"},"description":{"text":"${jsonEscape(color(description))}"},"frame":"$frame","announce_to_chat":false,"hidden":true}}"""
+            val json = AdvancementToastPayload.create(
+                minecraftVersion = Bukkit.getBukkitVersion(),
+                materialName = icon.name,
+                title = color(title),
+                description = color(description),
+                frame = frame,
+            )
             val advancement = method.invoke(Bukkit.getUnsafe(), key, json) ?: return false
             loadedKeys += key
             val progress = player.getAdvancementProgress(advancement as org.bukkit.advancement.Advancement)
             progress.remainingCriteria.forEach { progress.awardCriteria(it) }
-            progress.awardedCriteria.forEach { progress.revokeCriteria(it) }
+            val cleanupDelay = plugin.config.getLong("discovery.display.toast.revoke-delay-ticks", 5L).coerceAtLeast(1L)
+            plugin.server.scheduler.runTaskLater(plugin, Runnable {
+                runCatching {
+                    if (player.isOnline) {
+                        val currentProgress = player.getAdvancementProgress(advancement)
+                        currentProgress.awardedCriteria.toList().forEach { currentProgress.revokeCriteria(it) }
+                    }
+                }.onFailure { error ->
+                    plugin.logger.warning("Could not revoke temporary Toast advancement '$key': ${rootMessage(error)}")
+                }
+                runCatching { removeMethod?.invoke(Bukkit.getUnsafe(), key) }
+                    .onFailure { error -> plugin.logger.warning("Could not remove temporary Toast advancement '$key': ${rootMessage(error)}") }
+                loadedKeys.remove(key)
+            }, cleanupDelay)
             true
         }.getOrElse {
-            plugin.logger.warning("Could not show discovery toast for '$regionId': ${it.message}")
+            runCatching { removeMethod?.invoke(Bukkit.getUnsafe(), key) }
+            loadedKeys.remove(key)
+            plugin.logger.warning("Could not show Toast for '$regionId': ${rootMessage(it)}")
             false
         }
     }
@@ -142,11 +170,11 @@ class ToastService(private val plugin: JavaPlugin) {
         net.md_5.bungee.api.ChatColor.translateAlternateColorCodes('&', value),
     )
 
-    private fun jsonEscape(value: String): String = value
-        .replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
+    private fun rootMessage(error: Throwable): String {
+        var current = if (error is InvocationTargetException) error.targetException ?: error else error
+        while (current.cause != null && current.cause !== current) current = current.cause!!
+        return current.message?.takeIf { it.isNotBlank() } ?: current.javaClass.simpleName
+    }
 
     private data class ToastRequest(
         val regionId: String,
@@ -157,4 +185,26 @@ class ToastService(private val plugin: JavaPlugin) {
         val frame: String,
         val icon: String,
     )
+}
+
+internal object AdvancementToastPayload {
+    fun create(minecraftVersion: String, materialName: String, title: String, description: String, frame: String): String {
+        val iconKey = if (usesDataComponentItemFormat(minecraftVersion)) "id" else "item"
+        val material = materialName.lowercase(Locale.ROOT)
+        return """{"criteria":{"worldscript":{"trigger":"minecraft:impossible"}},"display":{"icon":{"$iconKey":"minecraft:$material"},"title":{"text":"${escape(title)}"},"description":{"text":"${escape(description)}"},"frame":"$frame","show_toast":true,"announce_to_chat":false,"hidden":true}}"""
+    }
+
+    fun usesDataComponentItemFormat(version: String): Boolean {
+        val match = Regex("""(\d+)\.(\d+)(?:\.(\d+))?""").find(version) ?: return false
+        val major = match.groupValues[1].toIntOrNull() ?: return false
+        val minor = match.groupValues[2].toIntOrNull() ?: return false
+        val patch = match.groupValues.getOrNull(3)?.toIntOrNull() ?: 0
+        return major > 1 || minor > 20 || (minor == 20 && patch >= 5)
+    }
+
+    private fun escape(value: String): String = value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
 }

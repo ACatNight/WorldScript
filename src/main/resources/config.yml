@@ -109,6 +109,8 @@ discovery:
       role-items: {}
       title: '&6发现新区域'
       description: '&f%region%'
+      # Keep the temporary advancement awarded long enough for the client to render its Toast.
+      revoke-delay-ticks: 5
       # Delay before this player's next queued Toast.
       queue-interval-ticks: 50
   title:

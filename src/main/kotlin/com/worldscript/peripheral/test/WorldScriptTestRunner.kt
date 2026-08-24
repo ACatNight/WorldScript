@@ -17,6 +17,7 @@ import com.worldscript.modules.l1.region_core.RegionConfigurationValidator
 import com.worldscript.modules.l1.region_events.RegionInteractionPolicy
 import com.worldscript.command.EditorInputParser
 import com.worldscript.modules.l2.rpg.PlayerRegionProgress
+import com.worldscript.modules.l2.script_actions.AdvancementToastPayload
 import com.worldscript.integration.placeholder.PlaceholderRequest
 import com.worldscript.integration.placeholder.RegionNameFormatter
 
@@ -166,6 +167,16 @@ object WorldScriptTestRunner {
         }
         check(toastDefaults.copy(toastIcon = "COMPASS").toastIcon == "COMPASS") {
             "regional Toast icon overrides must persist in the model"
+        }
+        check("\"item\":\"minecraft:compass\"" in AdvancementToastPayload.create("1.20.4-R0.1-SNAPSHOT", "COMPASS", "Title", "Description", "task")) {
+            "legacy servers must receive the legacy advancement icon field"
+        }
+        val modernToast = AdvancementToastPayload.create("1.21.8-R0.1-SNAPSHOT", "COMPASS", "A \"quoted\" title", "Line 1\nLine 2", "goal")
+        check("\"id\":\"minecraft:compass\"" in modernToast && "\"item\":" !in modernToast) {
+            "Minecraft 1.20.5+ must receive the data-component advancement icon field"
+        }
+        check("A \\\"quoted\\\" title" in modernToast && "Line 1\\nLine 2" in modernToast && "\"show_toast\":true" in modernToast) {
+            "Toast payload text must be escaped and explicitly request client display"
         }
         println("[TEST] PASS editor.input-parser: conditions and discovery actions are parsed consistently")
         println("[TEST] SUMMARY region-core: passed=8 failed=0 total=8")
