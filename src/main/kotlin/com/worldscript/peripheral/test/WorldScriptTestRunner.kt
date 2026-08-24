@@ -89,6 +89,11 @@ object WorldScriptTestRunner {
             .validate(listOf(invalidActionRegion), emptyList())
         check(actionValidationIssues.any { it.contains("discovery.actions[0]: message is empty") }) { "discovery actions must be validated" }
         check(actionValidationIssues.any { it.contains("condition-failure.actions[0]: command is empty") }) { "condition failure actions must be validated" }
+        val incompleteDiscovery = parent.copy(discovery = DiscoveryDefinition(titleEnabled = true, soundEnabled = true, sound = ""))
+        val incompleteIssues = RegionConfigurationValidator({ id -> if (id.equals(parent.id, true)) parent else null }, { false })
+            .validate(listOf(incompleteDiscovery), emptyList())
+        check(incompleteIssues.any { it.contains("discovery.title.text: title is enabled but empty") }) { "blank discovery title must be reported" }
+        check(incompleteIssues.any { it.contains("discovery.sound.type: sound is enabled but empty") }) { "blank discovery sound must be reported" }
         println("[TEST] PASS region-validation: parent bounds are validated independently from storage")
 
         check(PlaceholderRequest.parse(" REGION_ID ") == PlaceholderRequest.Fixed("region_id")) { "fixed placeholders should be trimmed and normalized" }
