@@ -32,15 +32,16 @@ class RegionGuiService(
 
     fun openList(player: Player, requestedPage: Int = 0) {
         val entries = sortedRegions()
-        val pageCount = ((entries.size + PAGE_SIZE - 1) / PAGE_SIZE).coerceAtLeast(1)
+        val regionSlots = listRegionSlots()
+        val pageCount = ((entries.size + regionSlots.size - 1) / regionSlots.size).coerceAtLeast(1)
         val page = requestedPage.coerceIn(0, pageCount - 1)
         val inventory = Bukkit.createInventory(
             RegionGuiHolder("list", page),
-            54,
+            inventorySize("gui.layout.list.size", 54),
             color(lang.text("gui-list-title", "WorldScript Regions")),
         )
-        fillBackground(inventory)
-        inventory.setItem(4, item(material("MAP"), lang.text("gui-list-title", "WorldScript Regions"), listOf(
+        fillBackground(inventory, "gui.layout.list.border-slots")
+        inventory.setItem(listSlot("header-slot", 4), item(guiMaterial("header", "MAP"), lang.text("gui-list-title", "WorldScript Regions"), listOf(
             lang.text("gui-list-left", "Left-click: Edit"),
             lang.text("gui-list-right", "Right-click: Teleport"),
             lang.text("gui-list-middle", "Middle-click: Global settings"),
@@ -48,26 +49,26 @@ class RegionGuiService(
             "&8${page + 1} / $pageCount",
         )))
 
-        entries.drop(page * PAGE_SIZE).take(PAGE_SIZE).forEachIndexed { index, region ->
-            inventory.setItem(REGION_SLOTS[index], regionItem(region, player))
+        entries.drop(page * regionSlots.size).take(regionSlots.size).forEachIndexed { index, region ->
+            inventory.setItem(regionSlots[index], regionItem(region, player))
         }
-        inventory.setItem(45, button("ARROW", "gui-page-previous", "Previous page"))
-        inventory.setItem(49, button("BARRIER", "gui-close", "Close"))
-        inventory.setItem(53, button("ARROW", "gui-page-next", "Next page"))
+        inventory.setItem(listSlot("previous-slot", 45), button("previous", "ARROW", "gui-page-previous", "Previous page"))
+        inventory.setItem(listSlot("close-slot", 49), button("close", "BARRIER", "gui-close", "Close"))
+        inventory.setItem(listSlot("next-slot", 53), button("next", "ARROW", "gui-page-next", "Next page"))
         player.openInventory(inventory)
         playSound(player, "open")
     }
 
-    private fun openSettings(player: Player) {
-        val inventory = Bukkit.createInventory(RegionGuiHolder("settings", 0), 27, color(lang.text("gui-settings-title", "WorldScript Settings")))
-        fillBackground(inventory)
-        inventory.setItem(10, toggleItem("discovery.enabled", "gui-setting-discovery", "Discovery"))
-        inventory.setItem(12, toggleItem("discovery.title.enabled", "gui-setting-title", "Discovery Title"))
-        inventory.setItem(14, toggleItem("discovery.sound.enabled", "gui-setting-sound", "Discovery Sound"))
-        inventory.setItem(16, toggleItem("discovery.reward.enabled", "gui-setting-reward", "Discovery Reward"))
-        inventory.setItem(22, toggleItem("conditions.enabled", "gui-setting-conditions", "Entry Conditions"))
-        inventory.setItem(18, button("ARROW", "gui-settings-back", "Back"))
-        inventory.setItem(26, button("BARRIER", "gui-close", "Close"))
+    fun openSettings(player: Player) {
+        val inventory = Bukkit.createInventory(RegionGuiHolder("settings", 0), inventorySize("gui.layout.settings.size", 27), color(lang.text("gui-settings-title", "WorldScript Settings")))
+        fillBackground(inventory, "gui.layout.settings.border-slots")
+        inventory.setItem(settingsSlot("discovery-slot", 10), toggleItem("discovery.enabled", "gui-setting-discovery", "Discovery"))
+        inventory.setItem(settingsSlot("title-slot", 12), toggleItem("discovery.title.enabled", "gui-setting-title", "Discovery Title"))
+        inventory.setItem(settingsSlot("sound-slot", 14), toggleItem("discovery.sound.enabled", "gui-setting-sound", "Discovery Sound"))
+        inventory.setItem(settingsSlot("reward-slot", 16), toggleItem("discovery.reward.enabled", "gui-setting-reward", "Discovery Reward"))
+        inventory.setItem(settingsSlot("conditions-slot", 22), toggleItem("conditions.enabled", "gui-setting-conditions", "Entry Conditions"))
+        inventory.setItem(settingsSlot("back-slot", 18), button("previous", "ARROW", "gui-settings-back", "Back"))
+        inventory.setItem(settingsSlot("close-slot", 26), button("close", "BARRIER", "gui-close", "Close"))
         player.openInventory(inventory)
         playSound(player, "open")
     }
@@ -79,7 +80,7 @@ class RegionGuiService(
         } else {
             lang.text("gui-disabled", "&cDisabled, click to enable")
         }
-        return item(material(if (enabled) "LIME_DYE" else "GRAY_DYE"), lang.text(key, fallback), listOf(state))
+        return item(guiMaterial(if (enabled) "enabled" else "disabled", if (enabled) "LIME_DYE" else "GRAY_DYE"), lang.text(key, fallback), listOf(state))
     }
 
     @EventHandler
@@ -91,13 +92,13 @@ class RegionGuiService(
         playSound(player, "click")
         if (holder.page == "settings") {
             when (event.rawSlot) {
-                10 -> toggleSetting("discovery.enabled", player)
-                12 -> toggleSetting("discovery.title.enabled", player)
-                14 -> toggleSetting("discovery.sound.enabled", player)
-                16 -> toggleSetting("discovery.reward.enabled", player)
-                22 -> toggleSetting("conditions.enabled", player)
-                18 -> openList(player)
-                26 -> { player.closeInventory(); playSound(player, "close") }
+                settingsSlot("discovery-slot", 10) -> toggleSetting("discovery.enabled", player)
+                settingsSlot("title-slot", 12) -> toggleSetting("discovery.title.enabled", player)
+                settingsSlot("sound-slot", 14) -> toggleSetting("discovery.sound.enabled", player)
+                settingsSlot("reward-slot", 16) -> toggleSetting("discovery.reward.enabled", player)
+                settingsSlot("conditions-slot", 22) -> toggleSetting("conditions.enabled", player)
+                settingsSlot("back-slot", 18) -> openList(player)
+                settingsSlot("close-slot", 26) -> { player.closeInventory(); playSound(player, "close") }
             }
             return
         }
@@ -106,13 +107,13 @@ class RegionGuiService(
         when (event.rawSlot) {
             // Some clients do not emit an inventory middle-click in survival.
             // The header map is a click-type-independent settings entry point.
-            4 -> openSettingsNextTick(player)
-            45 -> if (page > 0) openList(player, page - 1)
-            49 -> { player.closeInventory(); playSound(player, "close") }
-            53 -> openList(player, page + 1)
-            in REGION_SLOTS -> {
-                val slotIndex = REGION_SLOTS.indexOf(event.rawSlot)
-                val region = sortedRegions().getOrNull(page * PAGE_SIZE + slotIndex) ?: return
+            listSlot("header-slot", 4) -> openSettingsNextTick(player)
+            listSlot("previous-slot", 45) -> if (page > 0) openList(player, page - 1)
+            listSlot("close-slot", 49) -> { player.closeInventory(); playSound(player, "close") }
+            listSlot("next-slot", 53) -> openList(player, page + 1)
+            in listRegionSlots() -> {
+                val slotIndex = listRegionSlots().indexOf(event.rawSlot)
+                val region = sortedRegions().getOrNull(page * listRegionSlots().size + slotIndex) ?: return
                 handleRegionClick(player, region, event.click)
             }
         }
@@ -229,18 +230,18 @@ class RegionGuiService(
     private fun statusText(statuses: Set<GlobalRegionStatus>): String =
         if (statuses.isEmpty()) lang.text("gui-status-open", "open") else statuses.joinToString(",") { it.name.lowercase() }
 
-    private fun roleMaterial(role: RegionRole): Material = when (role) {
-        RegionRole.HUB -> material("COMPASS")
-        RegionRole.OPEN_ZONE -> material("GRASS_BLOCK", "GRASS")
-        RegionRole.POINT_OF_INTEREST -> material("MAP")
-        RegionRole.DANGER_ZONE -> material("REDSTONE")
-        RegionRole.GATE -> material("IRON_BARS")
-    }
+    private fun roleMaterial(role: RegionRole): Material = guiMaterial(role.name.lowercase().replace('_', '-'), when (role) {
+        RegionRole.HUB -> "COMPASS"
+        RegionRole.OPEN_ZONE -> "GRASS_BLOCK"
+        RegionRole.POINT_OF_INTEREST -> "MAP"
+        RegionRole.DANGER_ZONE -> "REDSTONE"
+        RegionRole.GATE -> "IRON_BARS"
+    }, *(if (role == RegionRole.OPEN_ZONE) arrayOf("GRASS") else emptyArray()))
 
     private fun material(primary: String, vararg legacy: String): Material = MaterialResolver.find(primary, *legacy) ?: Material.PAPER
 
-    private fun button(material: String, key: String, fallback: String): ItemStack =
-        item(this.material(material), lang.text(key, fallback), emptyList())
+    private fun button(materialKey: String, fallbackMaterial: String, key: String, fallback: String): ItemStack =
+        item(guiMaterial(materialKey, fallbackMaterial), lang.text(key, fallback), emptyList())
 
     private fun item(material: Material, name: String, lore: List<String>): ItemStack = ItemStack(material).also { stack ->
         stack.itemMeta = stack.itemMeta?.also { meta: ItemMeta ->
@@ -249,16 +250,26 @@ class RegionGuiService(
         }
     }
 
-    private fun fillBackground(inventory: Inventory) {
-        val pane = item(material("GRAY_STAINED_GLASS_PANE", "STAINED_GLASS_PANE"), " ", emptyList())
-        BORDER_SLOTS.forEach { inventory.setItem(it, pane) }
+    private fun fillBackground(inventory: Inventory, slotsPath: String) {
+        val pane = item(guiMaterial("background", "GRAY_STAINED_GLASS_PANE", "STAINED_GLASS_PANE"), " ", emptyList())
+        plugin.config.getIntegerList(slotsPath).filter { it in 0 until inventory.size }.forEach { inventory.setItem(it, pane) }
     }
+
+    private fun listSlot(key: String, fallback: Int) =
+        plugin.config.getInt("gui.layout.list.$key", fallback).coerceIn(0, inventorySize("gui.layout.list.size", 54) - 1)
+    private fun settingsSlot(key: String, fallback: Int) =
+        plugin.config.getInt("gui.layout.settings.$key", fallback).coerceIn(0, inventorySize("gui.layout.settings.size", 27) - 1)
+    private fun listRegionSlots(): List<Int> {
+        val first = listSlot("region-first-slot", 9)
+        val last = listSlot("region-last-slot", 44)
+        return (minOf(first, last)..maxOf(first, last)).filter { it in 0 until inventorySize("gui.layout.list.size", 54) }.ifEmpty { (9..44).toList() }
+    }
+    private fun inventorySize(path: String, fallback: Int): Int = plugin.config.getInt(path, fallback).takeIf { it in 9..54 && it % 9 == 0 } ?: fallback
+    private fun guiMaterial(key: String, fallback: String, vararg legacy: String): Material =
+        material(plugin.config.getString("gui.materials.$key", fallback) ?: fallback, *legacy)
 
     private fun color(value: String) = ChatColor.translateAlternateColorCodes('&', value)
 
     private companion object {
-        const val PAGE_SIZE = 36
-        val REGION_SLOTS = (9..44).toList()
-        val BORDER_SLOTS = listOf(0, 1, 2, 3, 5, 6, 7, 8, 45, 46, 47, 48, 50, 51, 52, 53)
     }
 }

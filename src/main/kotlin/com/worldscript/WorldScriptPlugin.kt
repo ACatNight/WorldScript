@@ -67,6 +67,7 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         val selection = SelectionService(this)
         val command = WsCommand(this, regionCore, selection, playerVariables)
         command.guiOpener = { player -> gui.openList(player) }
+        command.settingsOpener = { player -> gui.openSettings(player) }
         val presets = ActionPresetCatalog(this)
         val chatEditor = RegionChatEditor(this, regionCore, presets)
         command.chatEditor = chatEditor

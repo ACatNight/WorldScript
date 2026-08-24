@@ -10,6 +10,40 @@ messages:
   leave: '&7Leaving region: &f%region%'
 gui:
   event-icon: PAPER
+  # Inventory layout and icon materials. Invalid values fall back to the defaults used by older configs.
+  layout:
+    list:
+      size: 54
+      header-slot: 4
+      region-first-slot: 9
+      region-last-slot: 44
+      previous-slot: 45
+      close-slot: 49
+      next-slot: 53
+      border-slots: [0, 1, 2, 3, 5, 6, 7, 8, 45, 46, 47, 48, 50, 51, 52, 53]
+    settings:
+      size: 27
+      discovery-slot: 10
+      title-slot: 12
+      sound-slot: 14
+      reward-slot: 16
+      conditions-slot: 22
+      back-slot: 18
+      close-slot: 26
+      border-slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 17, 19, 20, 21, 23, 24, 25]
+  materials:
+    header: MAP
+    previous: ARROW
+    next: ARROW
+    close: BARRIER
+    background: GRAY_STAINED_GLASS_PANE
+    enabled: LIME_DYE
+    disabled: GRAY_DYE
+    hub: COMPASS
+    open-zone: GRASS_BLOCK
+    point-of-interest: MAP
+    danger-zone: REDSTONE
+    gate: IRON_BARS
   custom-model-data:
     enabled: false
     default: 0

@@ -18,6 +18,7 @@ import java.io.File
 class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val state: PlayerVariableService) : CommandExecutor, TabCompleter {
     private val lang = Lang(plugin)
     var guiOpener: ((Player) -> Unit)? = null
+    var settingsOpener: ((Player) -> Unit)? = null
     var chatEditor: RegionChatEditor? = null
     var reloadHandler: (() -> Unit)? = null
     var playerRefresh: ((Player) -> Unit)? = null
@@ -27,6 +28,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         when (args.firstOrNull()?.lowercase()) {
             "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK)); reply(it, "wand-given") } ?: reply(sender, "only-player")
             "list" -> (sender as? Player)?.let { guiOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
+            "settings" -> (sender as? Player)?.let { settingsOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
             "edit" -> edit(sender, args)
             "reload" -> reload(sender, args)
             "language" -> language(sender, args)
@@ -108,6 +110,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "usage-create",
             "usage-delete",
             "usage-list",
+            "usage-settings",
             "usage-info",
             "usage-edit",
             "usage-reload",
@@ -145,7 +148,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         lang.send(sender, "language-changed", "language" to requested)
     }
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> = when {
-        args.size == 1 -> listOf("wand", "create", "delete", "list", "info", "edit", "reload", "language", "validate", "progress", "help")
+        args.size == 1 -> listOf("wand", "create", "delete", "list", "settings", "info", "edit", "reload", "language", "validate", "progress", "help")
         args.size == 2 && args[0].equals("validate", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("progress", true) -> regions.all().map { it.id }
         args.size == 4 && args[0].equals("progress", true) -> listOf("unlock", "complete")
