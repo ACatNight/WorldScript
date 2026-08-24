@@ -7,7 +7,6 @@ import com.worldscript.foundation.model.ActionType
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
-import com.worldscript.foundation.model.RegionParticleDefinition
 import com.worldscript.foundation.BukkitCompatibility
 import com.worldscript.foundation.Lang
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
@@ -32,6 +31,7 @@ class RegionChatEditor(
     private val actionStore = RegionActionStore(regions)
     private val conditionController = EditorConditionController(regions, renderer, sessions, ::open, ::enableGlobalSetting, ::actionLabel)
     private val discoveryController = EditorDiscoveryController(regions, renderer, sessions, ::open, ::enableGlobalSetting, ::actionLabel)
+    private val particleController = EditorParticleController(regions, renderer, ::sendEditor, ::editorMessage)
     private val inputTimeoutMillis: Long
         get() = plugin.config.getLong("editor.input-timeout-seconds", 120).coerceIn(15, 600) * 1000
 
@@ -62,7 +62,7 @@ class RegionChatEditor(
                 EditorOperation.MODE -> toggleMode(player, region, mutation.payload)
                 EditorOperation.SOUND -> soundControl(player, region, mutation.payload)
                 EditorOperation.SELECT -> selectParameter(player, region, mutation.payload)
-                EditorOperation.PARTICLE -> particleControl(player, region, mutation.payload)
+                EditorOperation.PARTICLE -> particleController.control(player, region, mutation.payload)
                 EditorOperation.DISCOVERY -> discoveryController.control(player, region, mutation.payload)
                 EditorOperation.CONDITION -> conditionController.control(player, region, mutation.payload)
                 EditorOperation.SET -> setInput(player, region, mutation.payload)
@@ -76,7 +76,7 @@ class RegionChatEditor(
             section == "data" -> data(player, region)
             section == "variables" -> variables(player, region)
             section == "events" -> events(player, region)
-            section == "particles" -> particles(player, region)
+            section == "particles" -> particleController.render(player, region)
             section == "discovery" -> discoveryController.render(player, region)
             section == "conditions" -> conditionController.render(player, region)
             section.startsWith("add:") -> addPreset(player, region, section.removePrefix("add:"))
@@ -637,67 +637,11 @@ class RegionChatEditor(
     private fun actionAt(region: RegionDefinition, key: String, index: Int): ActionDefinition? =
         actionStore.get(region, key, index)
 
-    private fun particles(player: Player, region: RegionDefinition) {
-        val local = region.particle
-        val particle = local ?: regions.effective(region.id)?.particle ?: RegionParticleDefinition(enabled = false)
-        group(player, editorText("group-atmosphere", "&dRegion atmosphere"))
-        property(player, editorText("label-particle-state", "&d[Display state]"), if (particle.enabled) editorText("value-enabled", "Enabled") else editorText("value-disabled", "Disabled"), if (particle.enabled) editorText("button-close", "&c[Close]") else editorText("button-open", "&a[Open]"), "/ws edit ${region.id} particle:toggle")
-        property(player, editorText("label-preset", "&d[Visual style]"), particle.preset, editorText("button-readonly", "&8[Read-only]"))
-        property(player, editorText("label-particle-type", "&d[Particle type]"), particle.type, editorText("button-preview", "&d[Preview]"), "/ws edit ${region.id} particle:preview", listOf(
-            ChatEditorButton(editorText("button-previous", "&e[Previous]"), editorText("hint-previous-particle", "&7Select the previous particle"), "/ws edit ${region.id} particle:prev"),
-            ChatEditorButton(editorText("button-next", "&e[Next]"), editorText("hint-next-particle", "&7Select the next particle"), "/ws edit ${region.id} particle:next"),
-        ))
-        stepper(player, editorText("label-particle-count", "&e[Particle count]"), particle.count.toString(), "&c[-1]", "/ws edit ${region.id} particle:count:-1", "&a[+1]", "/ws edit ${region.id} particle:count:1")
-        stepper(player, editorText("label-particle-interval", "&e[Spawn interval]"), "${particle.intervalTicks} tick", "&c[-5]", "/ws edit ${region.id} particle:interval:-5", "&a[+5]", "/ws edit ${region.id} particle:interval:5")
-        property(player, editorText("label-particle-spread", "&b[Spread]"), "${particle.spreadX}, ${particle.spreadY}, ${particle.spreadZ}", editorText("button-config", "&8[Config]"))
-        if (local == null && region.parentId != null) sendEditor(player, "particle-inherited", "&8Particles are inherited from the parent; the first edit creates a local override.")
-    }
-
     private fun enableGlobalSetting(path: String) {
         if (!plugin.config.getBoolean(path, false)) {
             plugin.config.set(path, true)
             plugin.saveConfig()
         }
-    }
-
-    private fun particleControl(player: Player, region: RegionDefinition, value: String) {
-        val current = region.particle ?: regions.effective(region.id)?.particle ?: RegionParticleDefinition(enabled = false)
-        val parts = value.split(':', limit = 2)
-        if (parts[0] == "preview") {
-            previewParticle(player, current)
-            return
-        }
-        val updated = when (parts[0]) {
-            "toggle" -> current.copy(enabled = !current.enabled)
-            "prev", "next" -> {
-                val choices = EditorCatalog.particleChoices.filter { BukkitCompatibility.resolveParticle(it) != null }.ifEmpty { listOf(current.type) }
-                val index = choices.indexOf(current.type).coerceAtLeast(0)
-                val delta = if (parts[0] == "next") 1 else -1
-                current.copy(type = choices[(index + delta + choices.size) % choices.size])
-            }
-            "count" -> current.copy(count = (current.count + (parts.getOrNull(1)?.toIntOrNull() ?: 0)).coerceIn(1, 64))
-            "interval" -> current.copy(intervalTicks = (current.intervalTicks + (parts.getOrNull(1)?.toLongOrNull() ?: 0)).coerceAtLeast(1))
-            else -> current
-        }
-        regions.updateParticle(region.id, updated)
-        val message = when (parts[0]) {
-            "toggle" -> editorMessage("particle-toggle", "Particles are now %state%.", "state" to if (updated.enabled) editorText("value-enabled", "Enabled") else editorText("value-disabled", "Disabled"))
-            "prev", "next" -> editorMessage("particle-type-saved", "Particle type changed to %value%.", "value" to updated.type)
-            "count" -> editorMessage("particle-count-saved", "Particle count changed to %value%.", "value" to updated.count)
-            "interval" -> editorMessage("particle-interval-saved", "Spawn interval changed to %value% tick.", "value" to updated.intervalTicks)
-            else -> editorText("particle-saved", "Particle settings saved.")
-        }
-        sendEditor(player, "particle-updated", "&a%value% &8| &7Refresh to view the full page.", "value" to message)
-    }
-
-    private fun previewParticle(player: Player, definition: RegionParticleDefinition) {
-        val particle = BukkitCompatibility.resolveParticle(definition.type)
-        if (particle == null) {
-            sendEditor(player, "particle-unsupported", "&cThis server does not support particle: &f%value%", "value" to definition.type)
-            return
-        }
-        player.spawnParticle(particle, player.location.clone().add(0.0, 1.0, 0.0), definition.count, definition.spreadX, definition.spreadY, definition.spreadZ, definition.speed)
-        sendEditor(player, "particle-preview", "&aPreviewed particle: &f%value%", "value" to definition.type)
     }
 
     private fun cycleStatus(player: Player, region: RegionDefinition) {

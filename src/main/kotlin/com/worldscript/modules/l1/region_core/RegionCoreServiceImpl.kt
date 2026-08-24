@@ -25,13 +25,17 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 
+private data class SpatialKey(val world: String, val cellX: Int, val cellZ: Int)
+
 class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService {
     private val regions = linkedMapOf<String, RegionDefinition>()
+    private var spatialIndex: Map<SpatialKey, List<RegionDefinition>>? = null
     private val loadIssues = mutableListOf<String>()
     private val regionDirectory = File(plugin.dataFolder, "regions")
 
     fun load() {
         regions.clear()
+        spatialIndex = null
         loadIssues.clear()
         if (!regionDirectory.exists()) regionDirectory.mkdirs()
         migrateLegacyConfig()
@@ -57,13 +61,37 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     override fun regionsAt(location: Location): List<RegionDefinition> = regionsAt(location, ::isAccessible)
 
-    fun regionsAt(location: Location, accessible: (String) -> Boolean): List<RegionDefinition> = regions.values
+    fun regionsAt(location: Location, accessible: (String) -> Boolean): List<RegionDefinition> = indexedCandidates(location)
         .filter { region -> region.worldName == location.world?.name && RegionGeometry.contains(region.bounds, location.toBlockPosition()) }
         .filter { accessible(it.id) }
         .sortedWith(compareBy<RegionDefinition> { depth(it.id) }.thenBy { it.priority }.thenBy { it.id.lowercase() })
 
+    private fun indexedCandidates(location: Location): List<RegionDefinition> {
+        val world = location.world?.name ?: return emptyList()
+        val key = SpatialKey(world, Math.floorDiv(location.blockX, INDEX_CELL_BLOCKS), Math.floorDiv(location.blockZ, INDEX_CELL_BLOCKS))
+        return spatialIndexOrBuild()[key].orEmpty()
+    }
+
+    private fun spatialIndexOrBuild(): Map<SpatialKey, List<RegionDefinition>> {
+        spatialIndex?.let { return it }
+        val built = linkedMapOf<SpatialKey, MutableList<RegionDefinition>>()
+        regions.values.forEach { region ->
+            val minCellX = Math.floorDiv(region.bounds.min.x.toInt(), INDEX_CELL_BLOCKS)
+            val maxCellX = Math.floorDiv(region.bounds.max.x.toInt(), INDEX_CELL_BLOCKS)
+            val minCellZ = Math.floorDiv(region.bounds.min.z.toInt(), INDEX_CELL_BLOCKS)
+            val maxCellZ = Math.floorDiv(region.bounds.max.z.toInt(), INDEX_CELL_BLOCKS)
+            for (cellX in minCellX..maxCellX) for (cellZ in minCellZ..maxCellZ) {
+                built.getOrPut(SpatialKey(region.worldName, cellX, cellZ), ::mutableListOf).add(region)
+            }
+        }
+        return built.mapValues { it.value.toList() }.also { spatialIndex = it }
+    }
+
+    private fun invalidateSpatialIndex() { spatialIndex = null }
+
     override fun save(region: RegionDefinition) {
         if (!isValidId(region.id)) return
+        invalidateSpatialIndex()
         if (!regionDirectory.exists()) regionDirectory.mkdirs()
         val data = YamlConfiguration()
         data.set("schema", 2)
@@ -125,6 +153,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     override fun delete(id: String): Boolean {
         val removed = regions.remove(id.trim().lowercase()) ?: return false
+        invalidateSpatialIndex()
         File(regionDirectory, "${removed.id}.yml").delete()
         regions.values.filter { it.parentId.equals(removed.id, true) }.toList().forEach { child ->
             val detached = child.copy(parentId = null)
@@ -141,6 +170,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         if (normalizedParent != null && (normalizedParent.equals(region.id, true) || createsCycle(region.id, normalizedParent))) return false
         val updated = region.copy(parentId = normalizedParent)
         regions[region.id.lowercase()] = updated
+        invalidateSpatialIndex()
         save(updated)
         return true
     }
@@ -150,6 +180,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         if (key.isBlank()) return false
         val updated = region.copy(variables = region.variables + (key.trim() to value))
         regions[region.id.lowercase()] = updated
+        invalidateSpatialIndex()
         save(updated)
         return true
     }
@@ -159,6 +190,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         val existing = region.variables.keys.firstOrNull { it.equals(key.trim(), true) } ?: return false
         val updated = region.copy(variables = region.variables.filterKeys { !it.equals(existing, true) })
         regions[region.id.lowercase()] = updated
+        invalidateSpatialIndex()
         save(updated)
         return true
     }
@@ -454,6 +486,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     }
 
     private companion object {
+        const val INDEX_CELL_BLOCKS = 128
         val PARTICLE_PRESETS = setOf("AMBIENT", "BORDER", "PORTAL", "ENTRANCE", "WARNING")
     }
 
