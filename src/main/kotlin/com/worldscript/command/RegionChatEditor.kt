@@ -390,13 +390,13 @@ class RegionChatEditor(
                 return@Runnable
             }
             if (pending.parameter == "__discovery_toast_title__") {
-                regions.updateDiscovery(pending.regionId) { it.copy(toastTitle = message) }
+                saveToastDiscovery(pending.regionId) { it.copy(toastTitle = message) }
                 sendEditor(player, "toast-title-saved", "&aToast title saved.")
                 open(player, pending.regionId, "discovery")
                 return@Runnable
             }
             if (pending.parameter == "__discovery_toast_description__") {
-                regions.updateDiscovery(pending.regionId) { it.copy(toastDescription = message) }
+                saveToastDiscovery(pending.regionId) { it.copy(toastDescription = message) }
                 sendEditor(player, "toast-description-saved", "&aToast description saved.")
                 open(player, pending.regionId, "discovery")
                 return@Runnable
@@ -406,7 +406,7 @@ class RegionChatEditor(
                 if (material == null) {
                     sendEditor(player, "toast-icon-invalid", "&cThis server does not support material: &f%value%", "value" to message)
                 } else {
-                    regions.updateDiscovery(pending.regionId) { it.copy(toastIcon = material.name) }
+                    saveToastDiscovery(pending.regionId) { it.copy(toastIcon = material.name) }
                     sendEditor(player, "toast-icon-saved", "&aToast icon saved: &f%value%", "value" to material.name)
                     open(player, pending.regionId, "discovery")
                 }
@@ -668,6 +668,13 @@ class RegionChatEditor(
             plugin.config.set(path, true)
             plugin.saveConfig()
         }
+    }
+
+    /** Any saved regional Toast value also enables the two prerequisites needed to display it. */
+    private fun saveToastDiscovery(regionId: String, update: (com.worldscript.foundation.model.DiscoveryDefinition) -> com.worldscript.foundation.model.DiscoveryDefinition) {
+        regions.updateDiscovery(regionId) { update(it.copy(enabled = true, toastEnabled = true)) }
+        enableGlobalSetting("discovery.enabled")
+        enableGlobalSetting("discovery.display.toast.enabled")
     }
 
     private fun cycleStatus(player: Player, region: RegionDefinition) {

@@ -107,12 +107,12 @@ internal class EditorDiscoveryController(
                 val item = player.inventory.itemInMainHand
                 if (item.type == org.bukkit.Material.AIR) send(player, "toast-icon-held-empty", "&cHold an item in your main hand first.")
                 else {
-                    regions.updateDiscovery(region.id) { it.copy(toastIcon = item.type.name) }
+                    activateToastDiscovery(region.id) { it.copy(toastIcon = item.type.name) }
                     send(player, "toast-icon-saved", "&aToast icon saved: &f%value%", "value" to item.type.name)
                 }
             }
             "toast-icon-reset" -> {
-                regions.updateDiscovery(region.id) { it.copy(toastIcon = "") }
+                activateToastDiscovery(region.id) { it.copy(toastIcon = "") }
                 send(player, "toast-icon-reset", "&eToast icon now uses the global default.")
             }
             "fade-in", "stay", "fade-out" -> {
@@ -125,5 +125,12 @@ internal class EditorDiscoveryController(
             }
         }
         open(player, region.id, "discovery")
+    }
+
+    /** Saving a Toast value must also make its discovery pipeline executable. */
+    private fun activateToastDiscovery(id: String, update: (DiscoveryDefinition) -> DiscoveryDefinition) {
+        regions.updateDiscovery(id) { update(it.copy(enabled = true, toastEnabled = true)) }
+        enableGlobal("discovery.enabled")
+        enableGlobal("discovery.display.toast.enabled")
     }
 }

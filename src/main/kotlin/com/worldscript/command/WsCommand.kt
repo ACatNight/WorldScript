@@ -128,6 +128,10 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
                 if (player is Player) playerRefresh?.invoke(player)
             }
             "complete" -> state.markRegionCompleted(player.uniqueId, args[2])
+            "reset" -> {
+                state.resetRegionProgress(player.uniqueId, args[2])
+                if (player is Player) playerRefresh?.invoke(player)
+            }
             else -> { lang.send(sender, "progress-usage"); return }
         }
         lang.send(sender, "progress-success", "player" to (player.name ?: args[1]), "region" to args[2], "status" to args[3].lowercase())
@@ -186,7 +190,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         args.size == 3 && args[0].equals("polygon", true) && args[1].equals("reset", true) -> regions.all().map { it.id }
         args.size == 2 && args[0].equals("validate", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("progress", true) -> regions.all().map { it.id }
-        args.size == 4 && args[0].equals("progress", true) -> listOf("unlock", "complete")
+        args.size == 4 && args[0].equals("progress", true) -> listOf("unlock", "complete", "reset")
         args.size == 2 && args[0].equals("language", true) -> listOf("reload", "en_US", "zh_CN", "zh_TW")
         args.size == 2 -> regions.all().map { it.id }
         else -> emptyList()

@@ -109,6 +109,16 @@ class PlayerVariableService(private val plugin: JavaPlugin) : Listener, PlayerRe
         markDirty(playerId)
     }
 
+    /** Clears all per-player discovery state for one region so it can be tested again. */
+    fun resetRegionProgress(playerId: UUID, regionId: String) {
+        val key = regionId.trim().lowercase()
+        val progress = stateFor(playerId).progress
+        progress.unlockedRegions.remove(key)
+        progress.enteredRegions.remove(key)
+        progress.completedRegions.remove(key)
+        markDirty(playerId)
+    }
+
     fun claimReward(player: Player, rewardKey: String): Boolean {
         val claimed = stateFor(player.uniqueId).progress.claimedRewards
         if (!claimed.add(rewardKey)) return false
