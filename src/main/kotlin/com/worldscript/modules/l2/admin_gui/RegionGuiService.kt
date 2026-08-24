@@ -40,8 +40,11 @@ class RegionGuiService(
         )
         fillBackground(inventory)
         inventory.setItem(4, item(material("MAP"), lang.text("gui-list-title", "WorldScript Regions"), listOf(
-            lang.text("gui-list-hint", "Left-click edit | Right-click teleport | Middle-click settings"),
-            "${page + 1} / $pageCount",
+            lang.text("gui-list-left", "Left-click: Edit"),
+            lang.text("gui-list-right", "Right-click: Teleport"),
+            lang.text("gui-list-middle", "Middle-click: Global settings"),
+            lang.text("gui-list-map", "Map: Open settings"),
+            "&8${page + 1} / $pageCount",
         )))
 
         entries.drop(page * PAGE_SIZE).take(PAGE_SIZE).forEachIndexed { index, region ->
@@ -190,7 +193,10 @@ class RegionGuiService(
         parent?.let { lore += "&7${lang.text("gui-region-parent", "Parent")}: &f${it.displayName}" }
         if (region.contentId.isNotBlank()) lore += "&7${lang.text("gui-region-content", "Content")}: &f${region.contentId}"
         lore += ""
-        lore += lang.text("gui-list-hint", "Left-click edit | Right-click teleport | Middle-click settings")
+        lore += lang.text("gui-list-left", "Left-click: Edit")
+        lore += lang.text("gui-list-right", "Right-click: Teleport")
+        lore += lang.text("gui-list-middle", "Middle-click: Global settings")
+        lore += lang.text("gui-list-map", "Map: Open settings")
         return item(roleMaterial(region.role), region.id, lore)
     }
 
