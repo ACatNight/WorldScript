@@ -34,6 +34,8 @@ class RegionChatEditor(
     private val particleController = EditorParticleController(regions, renderer, ::sendEditor, ::editorMessage)
     private val inputTimeoutMillis: Long
         get() = plugin.config.getLong("editor.input-timeout-seconds", 120).coerceIn(15, 600) * 1000
+    private val pageTopSpacerLines: Int
+        get() = plugin.config.getInt("editor.page-top-spacer-lines", 12).coerceIn(0, 40)
 
     private fun editorText(key: String, fallback: String): String = renderer.text(key, fallback)
 
@@ -70,6 +72,7 @@ class RegionChatEditor(
             }
         }
 
+        repeat(pageTopSpacerLines) { spacer(player) }
         header(player, region, section)
         when {
             section == "main" -> main(player, region)

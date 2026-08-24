@@ -30,6 +30,8 @@ placeholders:
   region-name-format: '{parent} / {current}'
 editor:
   input-timeout-seconds: 120
+  # Empty chat lines inserted before every editor page, keeping consecutive edits visually separate.
+  page-top-spacer-lines: 12
 discovery:
   enabled: false
   title:
