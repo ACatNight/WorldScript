@@ -26,6 +26,7 @@ internal object EditorCatalog {
 
     val actionFallbacks = mapOf(
         ActionType.TEXT_DISPLAY to "Title display",
+        ActionType.TOAST to "Toast notification",
         ActionType.SOUND to "Sound",
         ActionType.MESSAGE to "Chat message",
         ActionType.PLAYER_COMMAND to "Player command",

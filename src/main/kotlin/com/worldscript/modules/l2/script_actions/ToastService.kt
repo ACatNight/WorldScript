@@ -51,6 +51,32 @@ class ToastService(private val plugin: JavaPlugin) {
         showNext(player)
     }
 
+    /** Queues a Toast from any region event action, independent of first discovery. */
+    fun showAction(
+        player: Player,
+        regionId: String,
+        regionName: String,
+        regionRole: RegionRole,
+        title: String,
+        description: String,
+        icon: String,
+        frame: String,
+    ) {
+        if (!plugin.config.getBoolean("discovery.display.toast.enabled", false)) return
+        queues.getOrPut(player.uniqueId) { ArrayDeque() }.addLast(
+            ToastRequest(
+                regionId = regionId,
+                regionName = regionName,
+                regionRole = regionRole,
+                title = template(title.ifBlank { plugin.config.getString("discovery.display.toast.title").orEmpty() }, regionName),
+                description = template(description.ifBlank { plugin.config.getString("discovery.display.toast.description").orEmpty() }, regionName),
+                frame = frame.ifBlank { plugin.config.getString("discovery.display.toast.frame").orEmpty() }.lowercase(Locale.ROOT),
+                icon = icon.ifBlank { plugin.config.getString("discovery.display.toast.icon").orEmpty() },
+            ),
+        )
+        showNext(player)
+    }
+
     fun close() {
         loadedKeys.forEach { key -> runCatching { removeMethod?.invoke(Bukkit.getUnsafe(), key) } }
         loadedKeys.clear()

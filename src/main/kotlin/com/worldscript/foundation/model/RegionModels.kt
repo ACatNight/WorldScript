@@ -17,6 +17,7 @@ enum class RegionEventType {
 enum class ActionType {
     KETHER,
     TEXT_DISPLAY,
+    TOAST,
     SOUND,
     PLAYER_COMMAND,
     CONSOLE_COMMAND,

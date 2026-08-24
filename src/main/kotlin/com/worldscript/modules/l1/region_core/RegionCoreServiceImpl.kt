@@ -691,6 +691,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     private fun parseActionType(rawType: String?, preset: String?): ActionType? = when (preset) {
         "title", "text-display" -> ActionType.TEXT_DISPLAY
+        "toast" -> ActionType.TOAST
         "sound" -> ActionType.SOUND
         "message" -> ActionType.MESSAGE
         "player-command" -> ActionType.PLAYER_COMMAND

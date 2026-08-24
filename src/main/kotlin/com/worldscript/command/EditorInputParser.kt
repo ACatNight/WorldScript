@@ -56,6 +56,7 @@ internal object EditorInputParser {
         "player", "player-command" -> ActionType.PLAYER_COMMAND
         "message", "msg", "text" -> ActionType.MESSAGE
         "title", "text-display" -> ActionType.TEXT_DISPLAY
+        "toast" -> ActionType.TOAST
         "sound" -> ActionType.SOUND
         "kether", "script" -> ActionType.KETHER
         else -> ActionType.parseYaml(raw)

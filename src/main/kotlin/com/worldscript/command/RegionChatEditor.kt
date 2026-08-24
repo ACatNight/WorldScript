@@ -184,12 +184,14 @@ class RegionChatEditor(
             if (key.equals("discovery", true)) {
                 val action = presets.create(parts[1]) ?: return open(player, region.id, "add:discovery")
                 actionStore.add(region.id, key, action)
+                if (action.type == ActionType.TOAST) enableGlobalSetting("discovery.display.toast.enabled")
                 sendEditor(player, "action-added", "&aAction added: &f%value%", "value" to parts[1])
                 return open(player, region.id, "discovery")
             }
             if (!actionStore.isKnown(key)) return open(player, region.id, "events")
             val action = presets.create(parts[1]) ?: return open(player, region.id, "add:$key")
             actionStore.add(region.id, key, action)
+            if (action.type == ActionType.TOAST) enableGlobalSetting("discovery.display.toast.enabled")
             sendEditor(player, "action-added", "&aAction added: &f%value%", "value" to parts[1])
             return open(player, region.id, key)
         }

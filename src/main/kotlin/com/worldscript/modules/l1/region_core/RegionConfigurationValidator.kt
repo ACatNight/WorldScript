@@ -100,6 +100,12 @@ internal class RegionConfigurationValidator(
         when (action.type) {
             ActionType.KETHER -> if (action.value.isBlank()) issues += "$path: script is empty"
             ActionType.TEXT_DISPLAY -> if (value("title").isBlank()) issues += "$path: title is empty"
+            ActionType.TOAST -> {
+                val frame = value("frame").lowercase()
+                if (frame.isNotBlank() && frame !in setOf("task", "goal", "challenge")) issues += "$path: Toast frame must be task, goal, or challenge"
+                val icon = value("icon")
+                if (icon.isNotBlank() && !icon.equals("region", true) && Material.matchMaterial(icon) == null) issues += "$path: Toast icon '$icon' is invalid"
+            }
             ActionType.SOUND -> if (value("sound").isBlank()) issues += "$path: sound is empty"
             ActionType.TELEPORT -> {
                 val parts = value("location").split(',').map(String::trim)

@@ -9,6 +9,16 @@ actions:
       fade-in: "20"
       stay: "100"
       fade-out: "20"
+  toast:
+    name: "Toast 提示"
+    type: toast
+    defaults:
+      # discovery reuses this region's discovery Toast values when title/description/icon are blank.
+      source: "discovery"
+      title: ""
+      description: ""
+      icon: ""
+      frame: ""
   message:
     name: "聊天消息"
     type: message
