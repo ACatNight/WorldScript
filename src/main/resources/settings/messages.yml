@@ -1,0 +1,4 @@
+region-enter-enabled: false
+region-leave-enabled: false
+enter: '&aEntering region: &f%region%'
+leave: '&7Leaving region: &f%region%'

@@ -1,0 +1,8 @@
+event-icon: PAPER
+layout:
+  list: { size: 54, header-slot: 4, region-first-slot: 9, region-last-slot: 44, previous-slot: 45, close-slot: 49, next-slot: 53, border-slots: [0, 1, 2, 3, 5, 6, 7, 8, 45, 46, 47, 48, 50, 51, 52, 53] }
+  settings: { size: 27, discovery-slot: 10, title-slot: 12, sound-slot: 14, reward-slot: 16, conditions-slot: 22, toast-slot: 20, back-slot: 18, close-slot: 26, border-slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 17, 19, 20, 21, 23, 24, 25] }
+  toast-icons: { size: 27, hub-slot: 10, open-zone-slot: 12, point-of-interest-slot: 14, danger-zone-slot: 16, gate-slot: 22, back-slot: 18, close-slot: 26, border-slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 17, 19, 20, 21, 23, 24, 25] }
+materials: { header: MAP, previous: ARROW, next: ARROW, close: BARRIER, background: GRAY_STAINED_GLASS_PANE, enabled: LIME_DYE, disabled: GRAY_DYE, hub: COMPASS, open-zone: GRASS_BLOCK, point-of-interest: MAP, danger-zone: REDSTONE, gate: IRON_BARS }
+custom-model-data: { enabled: false, default: 0, hub: 0, open-zone: 0, point-of-interest: 0, danger-zone: 0, gate: 0 }
+sounds: { open: UI_BUTTON_CLICK, close: BLOCK_CHEST_CLOSE, click: UI_BUTTON_CLICK, success: ENTITY_PLAYER_LEVELUP, error: BLOCK_NOTE_BLOCK_BASS }

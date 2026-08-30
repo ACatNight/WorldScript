@@ -1,0 +1,38 @@
+tool: GOLD_AXE
+polygon:
+  tool: STICK
+  point-select-radius: 1.0
+  max-points: 128
+  history-limit: 32
+  drafts:
+    enabled: true
+    save-delay-ticks: 20
+  insufficient-points-feedback:
+    enabled: true
+    particle: REDSTONE
+    count: 6
+    offset: 0.25
+    height: 0.7
+    speed: 0.0
+  preview:
+    particle: END_ROD
+    vertex-particle: VILLAGER_HAPPY
+    selected-particle: GLOW
+    invalid-particle: REDSTONE
+    duration-ticks: 100
+    interval-ticks: 10
+    spacing: 0.75
+    max-particles: 512
+    count: 1
+    y-offset: 0.15
+    speed: 0.0
+preview:
+  enabled: true
+  particle: END_ROD
+  duration-ticks: 100
+  interval-ticks: 10
+  spacing: 1.0
+  max-particles: 512
+  count: 1
+  y-offset: 0.0
+  speed: 0.0

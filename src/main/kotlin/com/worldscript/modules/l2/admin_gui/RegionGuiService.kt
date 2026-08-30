@@ -4,11 +4,15 @@ package com.worldscript.modules.l2.admin_gui
 
 import com.worldscript.foundation.Lang
 import com.worldscript.foundation.MaterialResolver
+import com.worldscript.foundation.SettingsLayout
 import com.worldscript.foundation.BukkitCompatibility
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionRole
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
+import com.worldscript.modules.l1.region_core.RegionGeometry
+import com.worldscript.foundation.model.BlockPosition
+import com.worldscript.foundation.model.RegionShape
 import org.bukkit.Bukkit
 import net.md_5.bungee.api.ChatColor
 import org.bukkit.Material
@@ -151,14 +155,37 @@ class RegionGuiService(
             lang.send(player, "region-world-not-found", "world" to region.worldName)
             return
         }
+        val target = findSafeTeleport(world, region)
+        if (target == null) {
+            lang.send(player, "gui-teleport-no-safe-point", "region" to region.id)
+            return
+        }
+        player.teleport(target)
+        lang.send(player, "gui-teleported", "region" to region.id)
+    }
+
+    private fun findSafeTeleport(world: org.bukkit.World, region: RegionDefinition): org.bukkit.Location? {
         val min = region.bounds.min
         val max = region.bounds.max
-        player.teleport(org.bukkit.Location(world,
-            (min.x + max.x) / 2.0 + 0.5,
-            (min.y + max.y).toDouble() / 2.0 + 0.1,
-            (min.z + max.z) / 2.0 + 0.5,
-        ))
-        lang.send(player, "gui-teleported", "region" to region.id)
+        val cx = (min.x + max.x) / 2
+        val cz = (min.z + max.z) / 2
+        val candidates = sequence {
+            yield(cx to cz)
+            for (radius in 1..16) for (dx in -radius..radius) for (dz in -radius..radius)
+                if (kotlin.math.abs(dx) == radius || kotlin.math.abs(dz) == radius) yield((cx + dx) to (cz + dz))
+        }
+        for ((x, z) in candidates) {
+            if (!RegionGeometry.contains(region, BlockPosition(x, min.y, z))) continue
+            val y = world.getHighestBlockYAt(x, z) + 1
+            if (y < min.y || y > max.y + 1) continue
+            val feet = world.getBlockAt(x, y, z)
+            val head = world.getBlockAt(x, y + 1, z)
+            val ground = world.getBlockAt(x, y - 1, z)
+            if (ground.type.isSolid && feet.isPassable && head.isPassable) {
+                return org.bukkit.Location(world, x + 0.5, y.toDouble(), z + 0.5)
+            }
+        }
+        return null
     }
 
     private fun handleRegionClick(player: Player, region: RegionDefinition, click: ClickType) {
@@ -191,7 +218,7 @@ class RegionGuiService(
         if (enabled && path.startsWith("discovery.") && path != "discovery.enabled") {
             plugin.config.set("discovery.enabled", true)
         }
-        plugin.saveConfig()
+        SettingsLayout.saveForPath(plugin, path)
         playSound(player, "success")
         openSettings(player)
     }
@@ -201,11 +228,11 @@ class RegionGuiService(
         if (role != null) {
             if (event.click.isRightClick && isEmpty(event.cursor)) {
                 plugin.config.set("discovery.display.toast.role-items.${roleKey(role)}", null)
-                plugin.saveConfig()
+                SettingsLayout.save(plugin, "discovery")
                 lang.send(player, "gui-toast-icon-reset", "role" to roleText(role))
             } else if (!isEmpty(event.cursor)) {
                 plugin.config.set("discovery.display.toast.role-items.${roleKey(role)}", event.cursor.clone().apply { amount = 1 })
-                plugin.saveConfig()
+                SettingsLayout.save(plugin, "discovery")
                 lang.send(player, "gui-toast-icon-saved", "role" to roleText(role))
             } else {
                 lang.send(player, "gui-toast-icon-place")

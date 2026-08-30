@@ -8,6 +8,7 @@ import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l1.region_events.RegionEventServiceImpl
 import com.worldscript.modules.l1.region_core.SelectionService
 import com.worldscript.modules.l1.region_core.PolygonEditingService
+import com.worldscript.modules.l1.region_core.EditorToolService
 import com.worldscript.modules.l1.region_events.RegionSelectionListener
 import com.worldscript.modules.l2.script_actions.ScriptActionServiceImpl
 import com.worldscript.modules.l2.script_actions.ToastService
@@ -19,7 +20,9 @@ import com.worldscript.modules.l2.atmosphere.RegionParticleService
 import com.worldscript.integration.placeholder.WorldScriptPlaceholderExpansion
 import com.worldscript.integration.taboolib.TabooLibBridge
 import com.worldscript.foundation.MaterialResolver
+import com.worldscript.foundation.SettingsLayout
 import com.worldscript.foundation.api.PlayerRegionProgressService
+import com.worldscript.foundation.module.WorldScriptModuleManager
 import org.bukkit.Material
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -39,6 +42,9 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         private set
     private lateinit var particles: RegionParticleService
     private lateinit var toasts: ToastService
+    private lateinit var polygons: PolygonEditingService
+    private lateinit var editorTools: EditorToolService
+    private lateinit var moduleManager: WorldScriptModuleManager
     private var placeholderExpansion: WorldScriptPlaceholderExpansion? = null
 
     override fun onEnable() {
@@ -53,9 +59,13 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         saveResource("lang/zh_CN.yml", false)
         saveResource("lang/zh_TW.yml", false)
         saveResource("presets/actions.yml", false)
+        SettingsLayout.initialize(this)
+        moduleManager = WorldScriptModuleManager(this)
+        moduleManager.initialize()
         taboolib = TabooLibBridge(this)
         taboolib.report()
         validateMaterialConfig()
+        editorTools = EditorToolService(this)
         lang = com.worldscript.foundation.Lang(this)
         regionCore = RegionCoreServiceImpl(this)
         regionCore.load()
@@ -66,18 +76,22 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         val conditions = ConditionEvaluator(this, regionCore, playerVariables)
         toasts = ToastService(this)
         val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards, toasts)
-        val events = RegionEventServiceImpl(this, regionCore, playerVariables, conditions, actions::executeConditionFailure)
+        val events = RegionEventServiceImpl(this, regionCore, playerVariables, conditions, actions::executeConditionFailure, editorTools)
         val gui = RegionGuiService(this, regionCore)
         val selection = SelectionService(this)
-        val polygons = PolygonEditingService(this, regionCore)
-        val command = WsCommand(this, regionCore, selection, polygons, playerVariables)
+        polygons = PolygonEditingService(this, regionCore, editorTools)
+        val command = WsCommand(this, regionCore, selection, polygons, playerVariables, toasts, editorTools, moduleManager)
         command.guiOpener = { player -> gui.openList(player) }
         command.settingsOpener = { player -> gui.openSettings(player) }
         val presets = ActionPresetCatalog(this)
-        val chatEditor = RegionChatEditor(this, regionCore, presets)
+        val chatEditor = RegionChatEditor(this, regionCore, presets, toasts)
         command.chatEditor = chatEditor
         gui.editorOpener = { player, regionId -> chatEditor.open(player, regionId) }
         command.reloadHandler = {
+            polygons.clear()
+            SettingsLayout.reload(this)
+            moduleManager.reload()
+            particles.invalidate()
             events.reset()
             actions.reset()
             chatEditor.reset()
@@ -94,7 +108,7 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         server.pluginManager.registerEvents(actions, this)
         server.pluginManager.registerEvents(gui, this)
         server.pluginManager.registerEvents(chatEditor, this)
-        server.pluginManager.registerEvents(RegionSelectionListener(this, selection, polygons), this)
+        server.pluginManager.registerEvents(RegionSelectionListener(this, selection, polygons, editorTools), this)
         registerPlaceholderExpansion()
         logger.info("WorldScript enabled with ${regionCore.all().size} regions.")
     }
@@ -104,6 +118,8 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         placeholderExpansion = null
         if (::particles.isInitialized) particles.close()
         if (::toasts.isInitialized) toasts.close()
+        if (::polygons.isInitialized) polygons.close()
+        if (::moduleManager.isInitialized) moduleManager.close()
         if (::playerVariables.isInitialized) playerVariables.saveAll()
         logger.info("WorldScript disabled.")
     }
@@ -145,11 +161,17 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
             logger.warning("Invalid selection.tool '$tool'; using GOLD_AXE.")
             config.set("selection.tool", "GOLD_AXE")
         }
+        val polygonTool = config.getString("selection.polygon.tool", "STICK") ?: "STICK"
+        if (MaterialResolver.find(polygonTool, "STICK") == null) {
+            logger.warning("Invalid selection.polygon.tool '$polygonTool'; using STICK.")
+            config.set("selection.polygon.tool", "STICK")
+        }
         val icon = config.getString("gui.event-icon", "PAPER") ?: "PAPER"
         if (MaterialResolver.find(icon, "PAPER") == null) {
             logger.warning("Invalid gui.event-icon '$icon'; using PAPER.")
             config.set("gui.event-icon", "PAPER")
         }
-        saveConfig()
+        SettingsLayout.save(this, "selection")
+        SettingsLayout.save(this, "gui")
     }
 }

@@ -5,12 +5,17 @@ import com.worldscript.foundation.model.ActionDefinition
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.model.GlobalRegionStatus
 import com.worldscript.foundation.model.RegionParticleDefinition
+import org.bukkit.Location
 
 interface RegionCoreService {
     fun find(id: String): RegionDefinition?
     fun effective(id: String): RegionDefinition?
     fun all(): Collection<RegionDefinition>
-    fun regionsAt(location: org.bukkit.Location): List<RegionDefinition>
+    fun regionsAt(location: Location): List<RegionDefinition>
+    fun regionsAt(location: Location, accessible: (String) -> Boolean): List<RegionDefinition>
+    fun isAccessible(id: String): Boolean
+    fun isAccessible(id: String, playerUnlocked: Boolean): Boolean
+    fun depth(id: String): Int
     fun save(region: RegionDefinition)
     fun delete(id: String): Boolean
     fun setParent(id: String, parentId: String?): Boolean

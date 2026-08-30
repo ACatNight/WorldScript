@@ -20,6 +20,7 @@ import com.worldscript.modules.l2.rpg.PlayerRegionProgress
 import com.worldscript.modules.l2.script_actions.AdvancementToastPayload
 import com.worldscript.integration.placeholder.PlaceholderRequest
 import com.worldscript.integration.placeholder.RegionNameFormatter
+import com.worldscript.foundation.module.WorldScriptModuleManager
 
 object WorldScriptTestRunner {
     @JvmStatic
@@ -132,6 +133,17 @@ object WorldScriptTestRunner {
         check(RegionNameFormatter.format("当前位置：{parent} / {current}", "", "初始山谷", "starter_valley", "初始山谷") == "当前位置：初始山谷") { "root region path should not keep an empty parent separator" }
         check(RegionNameFormatter.format("{path} · {id}", "低语森林", "森林入口", "forest_entrance", "低语森林 / 森林入口") == "低语森林 / 森林入口 · forest_entrance") { "path and id tokens failed" }
         println("[TEST] PASS placeholder.request: fixed and variable parameters are parsed consistently")
+
+        val officialIds = WorldScriptModuleManager.officialModules.map { it.id }
+        val toastDescriptor = WorldScriptModuleManager.officialModules.first { it.id == "toast" }
+        check(officialIds.containsAll(listOf("core", "editor", "toast", "atmosphere", "rpg", "placeholder"))) {
+            "official module descriptors must include the base WorldScript modules"
+        }
+        check("api-version: 1" in toastDescriptor.toYaml() && "dependencies:" in toastDescriptor.toYaml()) {
+            "official module descriptors must be serializable to module.yml"
+        }
+        println("[TEST] PASS modules.descriptor: module.yml and official descriptors are stable")
+
         check(EditorInputParser.condition("permission: region.enter.mine")?.key == "region.enter.mine")
         check(EditorInputParser.condition("%player_level% >= 10")?.value == "10")
         check(EditorInputParser.discoveryAction("/say Welcome")?.type == com.worldscript.foundation.model.ActionType.CONSOLE_COMMAND)
@@ -181,6 +193,6 @@ object WorldScriptTestRunner {
             "Toast payload text must be escaped and explicitly request client display"
         }
         println("[TEST] PASS editor.input-parser: conditions and discovery actions are parsed consistently")
-        println("[TEST] SUMMARY region-core: passed=8 failed=0 total=8")
+        println("[TEST] SUMMARY region-core: passed=9 failed=0 total=9")
     }
 }

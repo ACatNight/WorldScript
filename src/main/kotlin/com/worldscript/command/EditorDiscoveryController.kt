@@ -15,6 +15,7 @@ internal class EditorDiscoveryController(
     private val open: (Player, String, String) -> Unit,
     private val enableGlobal: (String) -> Unit,
     private val actionLabel: (com.worldscript.foundation.model.ActionDefinition) -> String,
+    private val previewToast: (Player, RegionDefinition) -> Unit,
 ) {
     private fun text(key: String, fallback: String) = renderer.text(key, fallback)
     private fun send(player: Player, key: String, fallback: String, vararg replacements: Pair<String, Any?>) = renderer.send(player, key, fallback, *replacements)
@@ -37,6 +38,7 @@ internal class EditorDiscoveryController(
                 ChatEditorButton(text("button-input", "&e[Input]"), text("hint-toast-icon-input", "&7Enter a Bukkit material name"), "/ws edit ${region.id} discovery:toast-icon-input"),
                 ChatEditorButton(text("button-reset", "&c[Reset]"), text("hint-toast-reset", "&7Use the global default icon again"), "/ws edit ${region.id} discovery:toast-icon-reset"),
             ))
+            renderer.operation(player, text("button-preview", "&d[Preview]"), text("hint-toast-preview", "&7Show this Toast only to you"), "/ws edit ${region.id} discovery:preview")
         }
         if (discovery.titleEnabled) {
             renderer.group(player, text("group-discovery-title", "&5Title feedback"))
@@ -110,6 +112,10 @@ internal class EditorDiscoveryController(
                     activateToastDiscovery(region.id) { it.copy(toastIcon = item.type.name) }
                     send(player, "toast-icon-saved", "&aToast icon saved: &f%value%", "value" to item.type.name)
                 }
+            }
+            "preview" -> {
+                previewToast(player, regions.effective(region.id) ?: region)
+                send(player, "toast-preview-sent", "&aToast preview sent.")
             }
             "toast-icon-reset" -> {
                 activateToastDiscovery(region.id) { it.copy(toastIcon = "") }

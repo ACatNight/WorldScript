@@ -1,0 +1,18 @@
+enabled: false
+deny:
+  notice-cooldown-millis: 1000
+  particle:
+    enabled: true
+    type: REDSTONE
+    count: 8
+    offset-x: 0.35
+    offset-y: 0.55
+    offset-z: 0.35
+    speed: 0.0
+  title:
+    enabled: true
+    text: '&cAccess denied'
+    subtitle: '&7%reason%'
+    fade-in: 5
+    stay: 30
+    fade-out: 5

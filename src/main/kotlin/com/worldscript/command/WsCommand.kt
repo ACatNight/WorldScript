@@ -5,7 +5,11 @@ import com.worldscript.foundation.Lang
 import com.worldscript.foundation.MaterialResolver
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l1.region_core.PolygonEditingService
+import com.worldscript.foundation.SettingsLayout
+import com.worldscript.foundation.module.ModuleState
+import com.worldscript.foundation.module.WorldScriptModuleManager
 import com.worldscript.modules.l2.rpg.PlayerVariableService
+import com.worldscript.modules.l2.script_actions.ToastService
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.command.Command
@@ -16,7 +20,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.io.File
 
-class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val polygons: PolygonEditingService, private val state: PlayerVariableService) : CommandExecutor, TabCompleter {
+class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val polygons: PolygonEditingService, private val state: PlayerVariableService, private val toasts: ToastService, private val editorTools: com.worldscript.modules.l1.region_core.EditorToolService, private val moduleManager: WorldScriptModuleManager) : CommandExecutor, TabCompleter {
     private val lang = Lang(plugin)
     var guiOpener: ((Player) -> Unit)? = null
     var settingsOpener: ((Player) -> Unit)? = null
@@ -27,7 +31,8 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (!sender.hasPermission("worldscript.admin")) return reply(sender, "no-permission")
         when (args.firstOrNull()?.lowercase()) {
-            "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK)); reply(it, "wand-given") } ?: reply(sender, "only-player")
+            "wand" -> (sender as? Player)?.let { it.inventory.addItem(ItemStack(editorTools.selectionTool())); reply(it, "wand-given") } ?: reply(sender, "only-player")
+            "selection" -> selection(sender, args)
             "list" -> (sender as? Player)?.let { guiOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
             "settings" -> (sender as? Player)?.let { settingsOpener?.invoke(it) ?: reply(it, "gui-unavailable") } ?: reply(sender, "only-player")
             "polygon" -> polygon(sender, args)
@@ -36,6 +41,9 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "language" -> language(sender, args)
             "validate" -> validate(sender, args.getOrNull(1)?.takeUnless { it.isBlank() })
             "progress" -> progress(sender, args)
+            "toast" -> toast(sender, args)
+            "modules" -> modules(sender, args)
+            "test" -> test(sender, args)
             "help" -> sendUsage(sender)
             "create" -> create(sender, args)
             "delete" -> if (args.size > 1 && regions.delete(args[1])) reply(sender, "region-deleted", args[1]) else reply(sender, "region-not-found", args.getOrNull(1) ?: "")
@@ -63,14 +71,34 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         } else reply(player, "region-create-failed", args[1])
     }
 
+    private fun selection(sender: CommandSender, args: Array<out String>) {
+        val player = sender as? Player ?: run { reply(sender, "only-player"); return }
+        when (args.getOrNull(1)?.lowercase()) {
+            "preview" -> if (selection.preview(player)) lang.send(player, "selection-preview-shown") else lang.send(player, "selection-empty")
+            "cancel", "clear" -> {
+                selection.clear(player)
+                lang.send(player, "selection-cleared")
+            }
+            else -> lang.send(player, "selection-usage")
+        }
+    }
+
     private fun polygon(sender: CommandSender, args: Array<out String>) {
         val player = sender as? Player ?: run { reply(sender, "only-player"); return }
         when (val operation = args.getOrNull(1)?.lowercase()) {
             null -> lang.send(player, "polygon-usage")
+            "start" -> {
+                val regionId = args.getOrNull(2)
+                if (regionId == null) lang.send(player, "polygon-start-usage")
+                else if (regions.find(regionId) == null) reply(player, "region-not-found", regionId)
+                else polygons.start(player, regionId)
+            }
             "cancel" -> if (!polygons.cancel(player)) lang.send(player, "polygon-not-editing")
             "status" -> polygons.status(player)
             "preview" -> polygons.preview(player)
             "finish" -> polygons.finish(player)
+            "undo" -> polygons.undo(player)
+            "redo" -> polygons.redo(player)
             "remove" -> args.getOrNull(2)?.toIntOrNull()?.let { polygons.removePoint(player, it) }
                 ?: lang.send(player, "polygon-remove-usage")
             "move" -> {
@@ -137,11 +165,122 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         lang.send(sender, "progress-success", "player" to (player.name ?: args[1]), "region" to args[2], "status" to args[3].lowercase())
     }
 
+    private fun toast(sender: CommandSender, args: Array<out String>) {
+        if (args.getOrNull(1).equals("diagnose", true)) {
+            val regionId = args.getOrNull(2) ?: run { lang.send(sender, "toast-diagnose-usage"); return }
+            val region = regions.effective(regionId) ?: run { reply(sender, "region-not-found", regionId); return }
+            val discovery = region.discovery
+            val diagnostic = toasts.diagnose(
+                regionName = region.displayName,
+                role = region.role,
+                regionEnabled = discovery?.toastEnabled ?: true,
+                titleOverride = discovery?.toastTitle.orEmpty(),
+                descriptionOverride = discovery?.toastDescription.orEmpty(),
+                iconOverride = discovery?.toastIcon.orEmpty(),
+            )
+            lang.send(sender, "toast-diagnose-header", "region" to region.id)
+            lang.send(sender, "toast-diagnose-switches", "global" to diagnostic.globalEnabled, "region" to diagnostic.regionEnabled, "api" to diagnostic.loadApiAvailable)
+            lang.send(sender, "toast-diagnose-content", "frame" to diagnostic.frame, "frame-valid" to diagnostic.frameValid, "icon" to diagnostic.requestedIcon, "resolved-icon" to diagnostic.resolvedIcon.ifBlank { "-" }, "icon-valid" to diagnostic.iconValid)
+            lang.send(sender, "toast-diagnose-text", "title" to diagnostic.title, "description" to diagnostic.description.ifBlank { "-" }, "display" to diagnostic.descriptionDisplay)
+            return
+        }
+        if (!args.getOrNull(1).equals("test", true)) {
+            lang.send(sender, "toast-test-usage")
+            return
+        }
+        val regionId: String
+        val target: Player
+        when (args.size) {
+            3 -> {
+                target = sender as? Player ?: run { reply(sender, "only-player"); return }
+                regionId = args[2]
+            }
+            4 -> {
+                target = Bukkit.getPlayerExact(args[2]) ?: run {
+                    lang.send(sender, "toast-test-player-not-found", "player" to args[2])
+                    return
+                }
+                regionId = args[3]
+            }
+            else -> {
+                lang.send(sender, "toast-test-usage")
+                return
+            }
+        }
+        val region = regions.effective(regionId) ?: run {
+            reply(sender, "region-not-found", regionId)
+            return
+        }
+        toasts.showPreview(target, region.id, region.displayName, region.role)
+        lang.send(sender, "toast-test-sent", "player" to target.name, "region" to region.id)
+    }
+
+    private fun modules(sender: CommandSender, args: Array<out String>) {
+        when (args.getOrNull(1)?.lowercase()) {
+            "list", null -> {
+                val reports = moduleManager.all()
+                lang.send(sender, "modules-list-header", "count" to reports.size)
+                reports.forEach { report ->
+                    lang.send(
+                        sender,
+                        "modules-list-item",
+                        "id" to report.descriptor.id,
+                        "name" to report.descriptor.name,
+                        "version" to report.descriptor.version,
+                        "state" to moduleStateKey(report.state),
+                        "reason" to report.reason,
+                    )
+                }
+            }
+            "info" -> {
+                val id = args.getOrNull(2) ?: run {
+                    lang.send(sender, "modules-info-usage")
+                    return
+                }
+                val report = moduleManager.find(id) ?: run {
+                    lang.send(sender, "modules-not-found", "module" to id)
+                    return
+                }
+                lang.send(sender, "modules-info-header", "id" to report.descriptor.id, "name" to report.descriptor.name)
+                lang.send(sender, "modules-info-version", "version" to report.descriptor.version, "api" to report.descriptor.apiVersion, "state" to moduleStateKey(report.state))
+                lang.send(sender, "modules-info-source", "source" to report.source, "reason" to report.reason)
+                lang.send(sender, "modules-info-dependencies", "dependencies" to report.descriptor.dependencies.joinToString(", ").ifBlank { "-" })
+            }
+            "reload" -> {
+                moduleManager.reload()
+                lang.send(sender, "modules-reloaded", "count" to moduleManager.all().size)
+            }
+            else -> lang.send(sender, "modules-usage")
+        }
+    }
+
+    private fun test(sender: CommandSender, args: Array<out String>) {
+        val player = sender as? Player ?: run { reply(sender, "only-player"); return }
+        val regionId = args.getOrNull(1) ?: run { lang.send(player, "test-usage"); return }
+        val region = regions.effective(regionId) ?: run { reply(player, "region-not-found", regionId); return }
+        val validationIssues = regions.validate().filter { it.startsWith("${region.id}.", true) || it.startsWith("${region.id}:", true) }
+        val shape = if (region.shape is com.worldscript.foundation.model.RegionShape.Polygon) "polygon" else "cuboid"
+        val enter = region.events[RegionEventType.ENTER]
+        val conditionState = when {
+            !plugin.config.getBoolean("conditions.enabled", false) -> "global-disabled"
+            enter?.conditionsEnabled != true || enter.conditions.isEmpty() -> "not-configured"
+            else -> "configured"
+        }
+        lang.send(player, "test-header", "region" to region.id)
+        lang.send(player, "test-shape", "shape" to shape, "world" to region.worldName)
+        lang.send(player, "test-enter", "enabled" to (enter?.enabled ?: true), "conditions" to conditionState, "actions" to (enter?.actions?.size ?: 0))
+        lang.send(player, if (validationIssues.isEmpty()) "test-validation-clean" else "test-validation-issues", "count" to validationIssues.size)
+        validationIssues.forEach { lang.send(player, "validation-issue", "issue" to it) }
+        toasts.showDiscoveryPreview(player, region.id, region.displayName, region.role, region.discovery?.toastTitle.orEmpty(), region.discovery?.toastDescription.orEmpty(), region.discovery?.toastIcon.orEmpty())
+        lang.send(player, "test-toast-preview-sent")
+    }
+
     private fun sendUsage(sender: CommandSender) {
         listOf(
             "usage-header",
             "usage-root",
             "usage-wand",
+            "usage-selection",
             "usage-create",
             "usage-delete",
             "usage-list",
@@ -153,6 +292,9 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "usage-language",
             "usage-validate",
             "usage-progress",
+            "usage-toast",
+            "usage-modules",
+            "usage-test",
             "usage-footer",
         ).forEachIndexed { index, key -> lang.send(sender, key, index == 0) }
     }
@@ -180,19 +322,34 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             return
         }
         plugin.config.set("language", requested)
-        plugin.saveConfig()
+        SettingsLayout.saveRoot(plugin)
         Lang.reloadAll()
         lang.send(sender, "language-changed", "language" to requested)
     }
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> = when {
-        args.size == 1 -> listOf("wand", "create", "polygon", "delete", "list", "settings", "info", "edit", "reload", "language", "validate", "progress", "help")
-        args.size == 2 && args[0].equals("polygon", true) -> listOf("cancel", "status", "preview", "finish", "remove", "move", "reset") + regions.all().map { it.id }
+        args.size == 1 -> listOf("wand", "selection", "create", "polygon", "delete", "list", "settings", "info", "edit", "reload", "language", "validate", "progress", "toast", "modules", "test", "help")
+        args.size == 2 && args[0].equals("selection", true) -> listOf("preview", "cancel")
+        args.size == 2 && args[0].equals("polygon", true) -> listOf("start", "cancel", "status", "preview", "finish", "undo", "redo", "remove", "move", "reset") + regions.all().map { it.id }
+        args.size == 3 && args[0].equals("polygon", true) && args[1].equals("start", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("polygon", true) && args[1].equals("reset", true) -> regions.all().map { it.id }
         args.size == 2 && args[0].equals("validate", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("progress", true) -> regions.all().map { it.id }
         args.size == 4 && args[0].equals("progress", true) -> listOf("unlock", "complete", "reset")
+        args.size == 2 && args[0].equals("toast", true) -> listOf("test", "diagnose")
+        args.size == 3 && args[0].equals("toast", true) && args[1].equals("diagnose", true) -> regions.all().map { it.id }
+        args.size == 3 && args[0].equals("toast", true) && args[1].equals("test", true) -> Bukkit.getOnlinePlayers().map { it.name }
+        args.size == 2 && args[0].equals("modules", true) -> listOf("list", "info", "reload")
+        args.size == 3 && args[0].equals("modules", true) && args[1].equals("info", true) -> moduleManager.all().map { it.descriptor.id }
         args.size == 2 && args[0].equals("language", true) -> listOf("reload", "en_US", "zh_CN", "zh_TW")
+        args.size == 2 && args[0].equals("test", true) -> regions.all().map { it.id }
         args.size == 2 -> regions.all().map { it.id }
         else -> emptyList()
+    }
+
+    private fun moduleStateKey(state: ModuleState): String = when (state) {
+        ModuleState.BUILTIN -> lang.text("modules-state-builtin", "built-in")
+        ModuleState.ENABLED -> lang.text("modules-state-enabled", "enabled")
+        ModuleState.DISABLED -> lang.text("modules-state-disabled", "disabled")
+        ModuleState.FAILED -> lang.text("modules-state-failed", "failed")
     }
 }

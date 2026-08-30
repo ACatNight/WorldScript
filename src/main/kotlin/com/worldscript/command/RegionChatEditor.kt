@@ -9,7 +9,9 @@ import com.worldscript.foundation.model.RegionDefinition
 import com.worldscript.foundation.model.RegionEventType
 import com.worldscript.foundation.BukkitCompatibility
 import com.worldscript.foundation.Lang
+import com.worldscript.foundation.SettingsLayout
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
+import com.worldscript.modules.l2.script_actions.ToastService
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -24,13 +26,14 @@ class RegionChatEditor(
     private val plugin: JavaPlugin,
     private val regions: RegionCoreServiceImpl,
     private val presets: ActionPresetCatalog,
+    private val toasts: ToastService,
 ): Listener {
     private val sessions = EditorSessionStore()
     private val lang = Lang(plugin)
     private val renderer = EditorRenderer(lang)
     private val actionStore = RegionActionStore(regions)
     private val conditionController = EditorConditionController(regions, renderer, sessions, ::open, ::enableGlobalSetting, ::actionLabel)
-    private val discoveryController = EditorDiscoveryController(regions, renderer, sessions, ::open, ::enableGlobalSetting, ::actionLabel)
+    private val discoveryController = EditorDiscoveryController(regions, renderer, sessions, ::open, ::enableGlobalSetting, ::actionLabel, ::previewDiscoveryToast)
     private val particleController = EditorParticleController(regions, renderer, ::sendEditor, ::editorMessage)
     private val inputTimeoutMillis: Long
         get() = plugin.config.getLong("editor.input-timeout-seconds", 120).coerceIn(15, 600) * 1000
@@ -185,14 +188,12 @@ class RegionChatEditor(
             if (key.equals("discovery", true)) {
                 val action = presets.create(parts[1]) ?: return open(player, region.id, "add:discovery")
                 actionStore.add(region.id, key, action)
-                if (action.type == ActionType.TOAST) enableGlobalSetting("discovery.display.toast.enabled")
                 sendEditor(player, "action-added", "&aAction added: &f%value%", "value" to parts[1])
                 return open(player, region.id, "discovery")
             }
             if (!actionStore.isKnown(key)) return open(player, region.id, "events")
             val action = presets.create(parts[1]) ?: return open(player, region.id, "add:$key")
             actionStore.add(region.id, key, action)
-            if (action.type == ActionType.TOAST) enableGlobalSetting("discovery.display.toast.enabled")
             sendEditor(player, "action-added", "&aAction added: &f%value%", "value" to parts[1])
             return open(player, region.id, key)
         }
@@ -276,13 +277,14 @@ class RegionChatEditor(
         val icon = action.parameters["icon"].orEmpty()
         val frame = action.parameters["frame"].orEmpty().ifBlank { editorText("value-global-default", "Global default") }
         property(player, editorText("editor-parameter-source", "&7Toast source"), source.ifBlank { editorText("value-global-default", "Global default") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:source")
-        property(player, editorText("editor-parameter-title", "&7Toast title"), title.ifBlank { editorText("value-global-default", "Global default") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:title")
-        property(player, editorText("editor-parameter-description", "&7Toast description"), description.ifBlank { editorText("value-global-default", "Global default") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:description")
-        property(player, editorText("editor-parameter-icon", "&7Toast icon"), icon.ifBlank { editorText("value-region-default", "Region default") }, editorText("button-use-held-item", "&b[Use held item]"), "/ws edit ${region.id} $key toast:$index:held-item", listOf(
+        property(player, editorText("editor-parameter-toast-title", "&7Toast title"), title.ifBlank { editorText("value-global-default", "Global default") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:title")
+        property(player, editorText("editor-parameter-toast-description", "&7Toast description"), description.ifBlank { editorText("value-global-default", "Global default") }, editorText("button-input", "&e[Input]"), "/ws edit ${region.id} $key set:$index:description")
+        property(player, editorText("editor-parameter-toast-icon", "&7Toast icon"), icon.ifBlank { editorText("value-region-default", "Region default") }, editorText("button-use-held-item", "&b[Use held item]"), "/ws edit ${region.id} $key toast:$index:held-item", listOf(
             ChatEditorButton(editorText("button-input", "&e[Input]"), editorText("hint-toast-icon-input", "&7Enter a Bukkit material name"), "/ws edit ${region.id} $key set:$index:icon"),
             ChatEditorButton(editorText("button-reset", "&c[Reset]"), editorText("hint-toast-reset", "&7Use the region default icon again"), "/ws edit ${region.id} $key toast:$index:reset-icon"),
         ))
         property(player, editorText("editor-parameter-frame", "&7Toast frame"), frame, editorText("button-cycle", "&e[Cycle]"), "/ws edit ${region.id} $key toast:$index:next-frame")
+        operation(player, editorText("button-preview", "&d[Preview]"), editorText("hint-toast-preview", "&7Show this Toast only to you"), "/ws edit ${region.id} $key toast:$index:preview")
     }
 
     private fun toastControl(player: Player, region: RegionDefinition, payload: String) {
@@ -302,6 +304,7 @@ class RegionChatEditor(
                 val current = frames.indexOf(action.parameters["frame"]).coerceAtLeast(0)
                 updateActionParameter(region, key, index, action.copy(parameters = action.parameters + ("frame" to frames[(current + 1) % frames.size])))
             }
+            "preview" -> previewActionToast(player, region, action)
         }
         open(player, region.id, key)
     }
@@ -712,13 +715,34 @@ class RegionChatEditor(
         actionStore.update(region.id, key, index, action)
     }
 
+    private fun previewDiscoveryToast(player: Player, region: RegionDefinition) {
+        val discovery = region.discovery
+        toasts.showDiscoveryPreview(
+            player, region.id, region.displayName, region.role,
+            discovery?.toastTitle.orEmpty(), discovery?.toastDescription.orEmpty(), discovery?.toastIcon.orEmpty(),
+        )
+    }
+
+    private fun previewActionToast(player: Player, requestedRegion: RegionDefinition, action: ActionDefinition) {
+        val region = regions.effective(requestedRegion.id) ?: requestedRegion
+        val values = action.parameters
+        toasts.showActionPreview(
+            player, region.id, region.displayName, region.role,
+            values["title"].orEmpty(),
+            values["description"].orEmpty(),
+            values["icon"].orEmpty(),
+            values["frame"].orEmpty(),
+        )
+        sendEditor(player, "toast-preview-sent", "&aToast preview sent.")
+    }
+
     private fun actionAt(region: RegionDefinition, key: String, index: Int): ActionDefinition? =
         actionStore.get(region, key, index)
 
     private fun enableGlobalSetting(path: String) {
         if (!plugin.config.getBoolean(path, false)) {
             plugin.config.set(path, true)
-            plugin.saveConfig()
+            SettingsLayout.saveForPath(plugin, path)
         }
     }
 

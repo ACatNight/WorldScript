@@ -19,6 +19,7 @@ import com.worldscript.foundation.model.RegionBounds
 import com.worldscript.foundation.model.RegionParticleDefinition
 import com.worldscript.foundation.model.PolygonPoint
 import com.worldscript.foundation.model.RegionShape
+import com.worldscript.foundation.SettingsLayout
 import com.worldscript.foundation.model.DiscoveryDefinition
 import com.worldscript.foundation.model.ScriptDefinition
 import org.bukkit.Location
@@ -63,7 +64,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
 
     override fun regionsAt(location: Location): List<RegionDefinition> = regionsAt(location, ::isAccessible)
 
-    fun regionsAt(location: Location, accessible: (String) -> Boolean): List<RegionDefinition> = indexedCandidates(location)
+    override fun regionsAt(location: Location, accessible: (String) -> Boolean): List<RegionDefinition> = indexedCandidates(location)
         .filter { region -> region.worldName == location.world?.name && RegionGeometry.contains(region, location.toBlockPosition()) }
         .filter { accessible(it.id) }
         .sortedWith(compareBy<RegionDefinition> { depth(it.id) }.thenBy { it.priority }.thenBy { it.id.lowercase() })
@@ -312,18 +313,18 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             else script.copy(actions = script.actions.toMutableList().also { it.removeAt(index) })
         }
 
-    fun isAccessible(id: String): Boolean {
+    override fun isAccessible(id: String): Boolean {
         val statuses = effective(id)?.statuses ?: return false
         return GlobalRegionStatus.LOCKED !in statuses || GlobalRegionStatus.OPEN in statuses
     }
 
-    fun isAccessible(id: String, playerUnlocked: Boolean): Boolean = playerUnlocked || isAccessible(id)
+    override fun isAccessible(id: String, playerUnlocked: Boolean): Boolean = playerUnlocked || isAccessible(id)
 
     fun validate(): List<String> {
         return RegionConfigurationValidator(::find, ::hasParentCycle).validate(all(), loadIssues)
     }
 
-    fun depth(id: String): Int {
+    override fun depth(id: String): Int {
         var current = find(id)
         var depth = 0
         val visited = mutableSetOf<String>()
@@ -744,7 +745,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
         }
         if (legacy.getKeys(false).isNotEmpty()) {
             plugin.config.set("regions", null)
-            plugin.saveConfig()
+            SettingsLayout.saveRoot(plugin)
         }
     }
 

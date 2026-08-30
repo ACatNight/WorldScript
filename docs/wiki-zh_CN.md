@@ -213,9 +213,36 @@ particle:
 /ws reload
 /ws validate [区域ID]
 /ws progress <玩家> <区域ID> <unlock|complete>
+/ws modules list
+/ws modules info <模块ID>
 ```
 
-## 10. 排错顺序
+## 10. 模块系统
+
+WorldScript 从 0.1.0 模块系统开始，会在第一次启动时生成 `plugins/WorldScript/modules/`。当前默认生成官方基础模块描述 JAR：
+
+```text
+worldscript-core.jar
+worldscript-editor.jar
+worldscript-toast.jar
+worldscript-atmosphere.jar
+worldscript-rpg.jar
+worldscript-placeholder.jar
+```
+
+当前这些基础功能仍由主插件内置运行，模块 JAR 主要用于模块识别、状态诊断和后续拆分。执行 `/ws modules list` 可以查看模块状态，执行 `/ws modules info toast` 可以查看单个模块详情。
+
+模块配置位于 `plugins/WorldScript/settings/modules.yml`：
+
+```yaml
+auto-install-official: true
+load-external: false
+disabled: []
+```
+
+外置模块执行默认关闭，当前版本只识别官方基础模块描述。官方基础模块仍由主插件内置运行，`disabled` 不会关闭现有功能；真正外置模块拆分后再开放禁用行为。
+
+## 11. 排错顺序
 
 1. 先执行 `/ws validate [区域ID]`。
 2. 检查区域文件是否放在 `plugins/WorldScript/regions/`。
@@ -224,8 +251,9 @@ particle:
 5. 检查事件是否 `enabled: true`，以及 `mode` 和冷却时间。
 6. 如果使用外部命令，先在控制台单独测试命令格式。
 7. 如果使用 Kether，先用一条简单的 `message` 验证触发，再逐步增加脚本内容。
+8. 如果模块相关功能异常，执行 `/ws modules list` 和 `/ws modules info <模块ID>` 查看状态。
 
-## 11. 兼容性和构建
+## 12. 兼容性和构建
 
 目标平台为 Paper 1.12.2 至 1.21.8。不同 Minecraft 版本需要对应 Java：1.12.2-1.16.x 使用 Java 8，1.17-1.20.4 使用 Java 17，1.20.5-1.21.8 使用 Java 21。发布前应在目标服务器版本进行实际冒烟测试。
 
@@ -237,7 +265,7 @@ gradlew.bat clean build
 
 项目使用 MIT License，欢迎提交 Issue、配置示例和 Pull Request。
 
-## 12. 语言文件
+## 13. 语言文件
 
 语言文件位于插件目录的 `lang/`：
 

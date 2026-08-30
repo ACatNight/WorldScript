@@ -1,0 +1,5 @@
+auto-install-official: true
+# Current 0.1.0 module system only scans official built-in module descriptors.
+# Do not enable arbitrary external module execution until the module API is stable.
+load-external: false
+disabled: []

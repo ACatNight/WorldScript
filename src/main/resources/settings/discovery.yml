@@ -1,0 +1,28 @@
+enabled: false
+display:
+  toast:
+    enabled: false
+    frame: task
+    icon: region
+    fallback-icon: PAPER
+    role-icons:
+      hub: COMPASS
+      open-zone: GRASS
+      point-of-interest: MAP
+      danger-zone: REDSTONE
+      gate: IRON_BARS
+    role-items: {}
+    title: '&6发现新区域'
+    description: '&f%region%'
+    description-display: toast-and-action-bar
+    revoke-delay-ticks: 5
+    queue-interval-ticks: 50
+    # If discovery and an event request exactly the same Toast immediately,
+    # keep one notification instead of displaying duplicates.
+    duplicate-window-millis: 750
+title:
+  enabled: false
+sound:
+  enabled: false
+reward:
+  enabled: false

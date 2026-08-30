@@ -17,14 +17,14 @@ class RegionSelectionListener(
     private val plugin: JavaPlugin,
     private val selection: SelectionService,
     private val polygons: PolygonEditingService,
+    private val editorTools: com.worldscript.modules.l1.region_core.EditorToolService,
 ) : Listener {
     @EventHandler
     fun onInteract(event: PlayerInteractEvent) {
         if (event.hand != null && event.hand != EquipmentSlot.HAND) return
         if (handlePolygon(event)) return
         val item = event.item ?: return
-        val configured = MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK
-        if (item.type != configured || event.clickedBlock == null || !event.player.hasPermission("worldscript.admin")) return
+        if (!editorTools.isSelectionTool(item) || event.clickedBlock == null || !event.player.hasPermission("worldscript.admin")) return
         val index = when (event.action) { Action.LEFT_CLICK_BLOCK -> 1; Action.RIGHT_CLICK_BLOCK -> 2; else -> return }
         event.isCancelled = true
         val block = event.clickedBlock ?: return
@@ -35,7 +35,8 @@ class RegionSelectionListener(
     @EventHandler
     fun onSwapHands(event: PlayerSwapHandItemsEvent) {
         if (!event.player.isSneaking || !event.player.hasPermission("worldscript.admin")) return
-        if (!polygons.isEditingTool(event.player, event.mainHandItem)) return
+        if (!polygons.isEditingTool(event.player, event.offHandItem) &&
+            !polygons.isEditingTool(event.player, event.mainHandItem)) return
         event.isCancelled = true
         polygons.finish(event.player)
     }
@@ -46,12 +47,29 @@ class RegionSelectionListener(
         when (event.action) {
             Action.LEFT_CLICK_AIR, Action.LEFT_CLICK_BLOCK -> {
                 event.isCancelled = true
-                if (player.isSneaking) polygons.undo(player)
-                else event.clickedBlock?.let { polygons.addPoint(player, it.x, it.z) }
+                val block = event.clickedBlock
+                if (block == null) { if (player.isSneaking) polygons.undo(player) }
+                else {
+                    val point = polygons.nearestPoint(player, block.x, block.z)
+                    if (player.isSneaking && point != null) polygons.deletePoint(player, point)
+                    else if (!player.isSneaking && point != null) polygons.selectPoint(player, point)
+                    else if (!player.isSneaking) polygons.addPoint(player, block.x, block.z)
+                }
             }
-            Action.RIGHT_CLICK_AIR, Action.RIGHT_CLICK_BLOCK -> {
+            Action.RIGHT_CLICK_AIR -> {
                 event.isCancelled = true
                 polygons.finish(player)
+            }
+            Action.RIGHT_CLICK_BLOCK -> {
+                event.isCancelled = true
+                if (player.isSneaking) {
+                    polygons.finish(player)
+                    return true
+                }
+                val block = event.clickedBlock ?: return true
+                val selected = polygons.activeSelectedPoint(player)
+                if (selected != null) polygons.moveSelected(player, block.x, block.z)
+                else polygons.nearestPoint(player, block.x, block.z)?.let { polygons.selectPoint(player, it) }
             }
             else -> return false
         }
@@ -61,6 +79,6 @@ class RegionSelectionListener(
     @EventHandler
     fun onQuit(event: org.bukkit.event.player.PlayerQuitEvent) {
         selection.clear(event.player.uniqueId)
-        polygons.cancel(event.player, notify = false)
+        polygons.disconnect(event.player)
     }
 }

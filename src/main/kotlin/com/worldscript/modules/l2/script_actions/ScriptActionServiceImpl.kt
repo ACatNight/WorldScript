@@ -215,16 +215,14 @@ class ScriptActionServiceImpl(
 
     private fun showActionToast(player: Player, regionId: String, values: Map<String, String>) {
         val region = regions.effective(regionId) ?: return
-        val discovery = region.discovery
-        val useDiscoveryDefaults = values["source"].equals("discovery", true)
         toasts.showAction(
             player = player,
             regionId = region.id,
             regionName = region.displayName,
             regionRole = region.role,
-            title = values["title"].orEmpty().ifBlank { if (useDiscoveryDefaults) discovery?.toastTitle.orEmpty() else "" },
-            description = values["description"].orEmpty().ifBlank { if (useDiscoveryDefaults) discovery?.toastDescription.orEmpty() else "" },
-            icon = values["icon"].orEmpty().ifBlank { if (useDiscoveryDefaults) discovery?.toastIcon.orEmpty() else "region" },
+            title = values["title"].orEmpty(),
+            description = values["description"].orEmpty(),
+            icon = values["icon"].orEmpty(),
             frame = values["frame"].orEmpty(),
         )
     }

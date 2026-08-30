@@ -113,6 +113,37 @@ events:
 
 当前内置预设包括 `text-display`、`message`、`sound`、`player-command`、`console-command`、`teleport`、`set-variable`、`set-region-status`、`give-item`、`give-experience`、`give-money`、`unlock-region` 和 `complete-region`。完整默认参数位于插件目录的 `presets/actions.yml`；复杂流程仍可使用 `type: kether`。
 
+## 模块系统
+
+模块配置位于 `plugins/WorldScript/settings/modules.yml`。当前为 0.1.0 起步模块系统，主插件会默认生成官方基础模块描述 JAR 到 `plugins/WorldScript/modules/`。
+
+```yaml
+auto-install-official: true
+load-external: false
+disabled: []
+```
+
+`auto-install-official` 控制缺失官方基础模块时是否自动生成。`load-external` 当前为预留项，默认关闭，避免未知 JAR 在服务器上直接运行。`disabled` 预留给后续外置模块；当前官方基础模块仍由主插件内置运行，不会关闭现有功能。
+
+当前默认生成：
+
+```text
+worldscript-core.jar
+worldscript-editor.jar
+worldscript-toast.jar
+worldscript-atmosphere.jar
+worldscript-rpg.jar
+worldscript-placeholder.jar
+```
+
+查看状态：
+
+```text
+/ws modules list
+/ws modules info toast
+/ws modules reload
+```
+
 `kether` 用于复杂逻辑，脚本值可以使用 YAML 多行字符串。WorldScript 会自动提供 `player`、`uuid`、`region` 和 `world` 变量；玩家变量以 `ws_var_<变量名>` 提供，区域变量以 `ws_region_var_<变量名>` 提供。聊天编辑器适合短脚本，多行脚本请直接写入 YAML；简单消息、命令和状态更新优先使用原生动作，便于维护。
 
 ```yaml

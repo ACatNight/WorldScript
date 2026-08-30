@@ -13,8 +13,6 @@ actions:
     name: "Toast 提示"
     type: toast
     defaults:
-      # discovery reuses this region's discovery Toast values when title/description/icon are blank.
-      source: "discovery"
       title: ""
       description: ""
       icon: ""

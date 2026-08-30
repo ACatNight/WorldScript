@@ -3,13 +3,12 @@
 package com.worldscript.modules.l1.region_events
 
 import com.worldscript.foundation.Lang
-import com.worldscript.foundation.MaterialResolver
+import com.worldscript.foundation.api.RegionCoreService
 import com.worldscript.foundation.model.RegionEventType
-import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
-import com.worldscript.modules.l2.rpg.PlayerVariableService
+import com.worldscript.modules.l1.region_core.EditorToolService
 import com.worldscript.modules.l2.rpg.ConditionEvaluator
+import com.worldscript.modules.l2.rpg.PlayerVariableService
 import org.bukkit.Location
-import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
@@ -23,7 +22,6 @@ import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
-import net.md_5.bungee.api.ChatColor
 
 class RegionEnterEvent(val player: Player, val regionId: String) : Event() {
     override fun getHandlers() = handlerList
@@ -52,10 +50,12 @@ class RegionBlockClickEvent(val player: Player, val regionId: String, val type: 
 
 class RegionEventServiceImpl(
     private val plugin: JavaPlugin,
-    private val regions: RegionCoreServiceImpl,
+    private val regions: RegionCoreService,
     private val state: PlayerVariableService,
     private val conditions: ConditionEvaluator,
     private val conditionFailureFeedback: (Player, String, String, List<com.worldscript.foundation.model.ActionDefinition>) -> Unit,
+    private val editorTools: EditorToolService,
+    private val access: RegionAccessService = RegionAccessService(plugin, regions, state, conditions),
 ) : Listener {
     private val lang = Lang(plugin)
     private val current = mutableMapOf<UUID, Set<String>>()
@@ -74,34 +74,33 @@ class RegionEventServiceImpl(
         val to = event.to
         val sameWorld = event.from.world?.uid == to.world?.uid
         if (sameWorld && event.from.blockX == to.blockX && event.from.blockY == to.blockY && event.from.blockZ == to.blockZ) return
-        discoverAt(event.player, to)
-        if (plugin.config.getBoolean("conditions.enabled", false)) {
-            val fromIds = regions.regionsAt(event.from).map { it.id }.toSet()
-            val blocked = regions.regionsAt(to)
+        run {
+            // Include inaccessible regions in the lookup. The default regionsAt
+            // query filters them out, which made locked regions impossible to
+            // detect here and allowed players to walk into them.
+            val fromIds = regions.regionsAt(event.from) { true }.map { it.id }.toSet()
+            val blocked = regions.regionsAt(to) { true }
                 .asReversed()
                 .firstOrNull { region ->
                     if (region.id in fromIds) return@firstOrNull false
-                    val script = regions.effective(region.id)?.events?.get(RegionEventType.ENTER) ?: return@firstOrNull false
-                    script.conditionsEnabled && script.conditions.isNotEmpty() && !conditions.allMet(event.player, region.id, script.conditions, script.conditionMode)
+                    access.checkEnter(event.player, region) !is RegionAccessService.AccessResult.Allowed
                 }
             if (blocked != null) {
                 event.isCancelled = true
                 val now = System.currentTimeMillis()
-                if (now - (deniedNoticeAt[event.player.uniqueId] ?: 0L) >= 1000L) {
+                val cooldown = plugin.config.getLong("conditions.deny.notice-cooldown-millis", 1000L).coerceAtLeast(0L)
+                if (now - (deniedNoticeAt[event.player.uniqueId] ?: 0L) >= cooldown) {
                     deniedNoticeAt[event.player.uniqueId] = now
-                    conditions.firstFailure(
-                        event.player,
-                        blocked.id,
-                        regions.effective(blocked.id)?.events?.get(RegionEventType.ENTER)?.conditions.orEmpty(),
-                        regions.effective(blocked.id)?.events?.get(RegionEventType.ENTER)?.conditionMode ?: com.worldscript.foundation.model.ConditionMode.AND,
-                    )?.let { failed ->
-                        val reason = conditions.describe(failed)
-                        conditionFailureFeedback(event.player, blocked.id, reason, regions.effective(blocked.id)?.events?.get(RegionEventType.ENTER)?.conditionFailureActions.orEmpty())
+                    when (val result = access.checkEnter(event.player, blocked)) {
+                        is RegionAccessService.AccessResult.DeniedCondition ->
+                            conditionFailureFeedback(event.player, blocked.id, result.reason, result.actions)
+                        else -> Unit
                     }
                 }
                 return
             }
         }
+        discoverAt(event.player, to)
         updateRegions(event.player, to)
     }
 
@@ -120,6 +119,22 @@ class RegionEventServiceImpl(
     fun onTeleport(event: PlayerTeleportEvent) {
         if (event.isCancelled) return
         val destination = event.to
+        val fromIds = regions.regionsAt(event.from) { true }.map { it.id }.toSet()
+        val blocked = regions.regionsAt(destination) { true }
+            .asReversed()
+            .firstOrNull { region ->
+                if (region.id in fromIds) return@firstOrNull false
+                access.checkEnter(event.player, region) !is RegionAccessService.AccessResult.Allowed
+            }
+        if (blocked != null) {
+            event.isCancelled = true
+            when (val result = access.checkEnter(event.player, blocked)) {
+                is RegionAccessService.AccessResult.DeniedCondition ->
+                    conditionFailureFeedback(event.player, blocked.id, result.reason, result.actions)
+                else -> Unit
+            }
+            return
+        }
         plugin.server.scheduler.runTask(plugin, Runnable {
             if (!event.player.isOnline) return@Runnable
             discoverAt(event.player, destination)
@@ -129,10 +144,8 @@ class RegionEventServiceImpl(
 
     private fun updateRegions(player: Player, location: Location) {
         val next = regions.regionsAt(location) { id ->
-            if (!regions.isAccessible(id, state.isRegionUnlocked(player, id))) return@regionsAt false
-            if (!plugin.config.getBoolean("conditions.enabled", false)) return@regionsAt true
-            val script = regions.effective(id)?.events?.get(RegionEventType.ENTER) ?: return@regionsAt true
-            !script.conditionsEnabled || conditions.allMet(player, id, script.conditions, script.conditionMode)
+            val region = regions.find(id) ?: return@regionsAt false
+            access.checkEnter(player, region) is RegionAccessService.AccessResult.Allowed
         }.map { it.id }.toSet()
         val previous = current[player.uniqueId] ?: emptySet()
         if (previous == next) {
@@ -157,10 +170,7 @@ class RegionEventServiceImpl(
     private fun discoverAt(player: Player, location: Location) {
         regions.regionsAt(location).asReversed()
             .filter { region ->
-                if (state.isRegionUnlocked(player, region.id)) return@filter false
-                if (!plugin.config.getBoolean("conditions.enabled", false)) return@filter true
-                val script = regions.effective(region.id)?.events?.get(RegionEventType.ENTER) ?: return@filter true
-                !script.conditionsEnabled || script.conditions.isEmpty() || conditions.allMet(player, region.id, script.conditions, script.conditionMode)
+                access.canDiscover(player, region)
             }
             .forEach { plugin.server.pluginManager.callEvent(RegionDiscoverEvent(player, it.id)) }
     }
@@ -174,8 +184,12 @@ class RegionEventServiceImpl(
     @EventHandler(ignoreCancelled = true)
     fun onInteract(event: PlayerInteractEvent) {
         if (!RegionInteractionPolicy.shouldDispatch(event.hand == EquipmentSlot.HAND, event.isCancelled)) return
-        val selectionTool = MaterialResolver.find(plugin.config.getString("selection.tool", "GOLDEN_AXE") ?: "GOLDEN_AXE", "GOLD_AXE") ?: Material.STICK
-        if (event.item?.type == selectionTool) return
+        val selectionTool = editorTools.selectionTool()
+        val polygonTool = editorTools.polygonTool()
+        // Editor tools must never dispatch gameplay region interactions. The
+        // selection listener may cancel later in the same tick, so filter both
+        // materials here as well to avoid order-dependent side effects.
+        if (event.item?.type == selectionTool || event.item?.type == polygonTool) return
         val location = event.clickedBlock?.location ?: event.player.location
         val region = regions.regionsAt(location) { id ->
             regions.isAccessible(id, state.isRegionUnlocked(event.player, id))
@@ -199,9 +213,6 @@ class RegionEventServiceImpl(
             plugin.server.pluginManager.callEvent(RegionInteractEvent(player, regionId))
         }
     }
-
-    private fun color(value: String): String =
-        ChatColor.translateAlternateColorCodes('&', value)
 
     @EventHandler
     fun onEnter(event: RegionEnterEvent) {
