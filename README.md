@@ -64,6 +64,7 @@ With PlaceholderAPI: `%worldscript_region_id%`, `%worldscript_region_name%`, `%w
 
 - [Chinese Wiki](docs/wiki-zh_CN.md)
 - [English Wiki](docs/wiki.md)
+- [GitBook source](docs/gitbook/README.md)
 - [Modrinth description](docs/modrinth-description.md)
 - [Spigot description](docs/spigot-description.md)
 - [Chinese configuration reference](docs/config-reference-zh_CN.md)

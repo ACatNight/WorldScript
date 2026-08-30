@@ -68,6 +68,7 @@ messages:
 ## 文档
 
 - [中文 Wiki](docs/wiki-zh_CN.md)
+- [GitBook 中英文文档源](docs/gitbook/README.md)
 - [配置参考](docs/config-reference-zh_CN.md)
 - [外部整合](docs/integration-zh_CN.md)
 - [开放世界示例](examples/region-progression-template.yml)
