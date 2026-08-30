@@ -283,7 +283,7 @@ plugins/WorldScript/modules/spawn/config.yml
 
 ## 12. 区域保护
 
-Protect 模块可以按区域状态控制 PVP。默认规则是：`peaceful` 禁止 PVP，`dangerous` 允许 PVP。
+Protect 模块可以按区域状态控制 PVP。主城、安全区写 `peaceful`，玩家就不能互相打；野外、战场写 `dangerous`，PVP 正常保留。
 
 主城、安全区可以这样写：
 

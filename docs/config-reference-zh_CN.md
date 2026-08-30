@@ -152,7 +152,7 @@ worldscript-placeholder.jar
 
 ## Protect 区域保护
 
-保护配置位于 `plugins/WorldScript/settings/protect.yml`。第一期主要控制 PVP：
+保护配置位于 `plugins/WorldScript/settings/protect.yml`。现在主要用它处理主城禁 PVP、野外允许 PVP 这类规则：
 
 ```yaml
 enabled: true

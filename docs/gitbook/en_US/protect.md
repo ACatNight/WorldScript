@@ -1,38 +1,40 @@
 # Protect Module
 
-The first Protect feature is PVP control.
+This page is for a simple case: no fighting in town, fighting allowed in the wild.
 
-The rule is simple: WorldScript checks the region status and decides whether players can damage each other there.
+You do not need a separate protection rule for every region. Use the region status.
 
-## Default rules
+## Block PVP in towns
 
-- `peaceful`: blocks PVP
-- `dangerous`: allows PVP
-- no matched status: follows the default setting, which allows PVP by default
-
-For a town or safe zone:
+For towns, spawn areas, and safe zones, use `peaceful`:
 
 ```yaml
 state:
   statuses: [peaceful]
 ```
 
-For wilderness, arenas, or dangerous areas:
+Damage between players is cancelled there.
+
+## Allow PVP in dangerous areas
+
+For wilderness, arenas, and dangerous areas, use `dangerous`:
 
 ```yaml
 state:
   statuses: [dangerous]
 ```
 
-## Config
+Players can fight there.
 
-File:
+If a region has neither status, WorldScript uses the default config value. The default is to allow PVP.
+
+## Config file
+
+You usually do not need to edit this. Use it when you want to change the server-wide habit:
 
 ```text
 plugins/WorldScript/settings/protect.yml
 ```
-
-Default:
 
 ```yaml
 enabled: true
@@ -48,7 +50,7 @@ pvp:
     cooldown-ms: 1500
 ```
 
-If most regions should block PVP and only dangerous regions should allow it:
+If most regions should block PVP and only dangerous regions should allow it, change the default:
 
 ```yaml
 pvp:
@@ -57,7 +59,7 @@ pvp:
     - dangerous
 ```
 
-## Test
+## Test it
 
 Stand in a region and run:
 
@@ -71,15 +73,16 @@ Or test another player:
 /ws protect test <player>
 ```
 
-After editing the config:
+It tells you which region the player is in and whether PVP is allowed there.
+
+After editing `protect.yml`:
 
 ```text
 /ws protect reload
 ```
 
-## How damage is checked
+## What happens on the border?
 
 WorldScript checks both the attacker and the victim.
 
-If either side is standing in a region that blocks PVP, the damage is cancelled. This prevents players from standing outside a safe zone and attacking someone inside it.
-
+If either side is inside a safe zone, the damage is cancelled. This stops players from standing just outside town and hitting someone inside.
