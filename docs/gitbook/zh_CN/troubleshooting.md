@@ -1,5 +1,7 @@
 # 常见问题
 
+如果这里没找到答案，可以去 [Discord](https://discord.gg/NPSwPHG9R) 讨论，或者发邮件到 `acatnight@gmail.com`。
+
 ## 区域没触发
 
 先跑：

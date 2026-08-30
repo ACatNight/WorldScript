@@ -1,5 +1,7 @@
 # Troubleshooting
 
+If this page does not answer your question, join the [Discord](https://discord.gg/NPSwPHG9R) or email `acatnight@gmail.com`.
+
 ## Region does not trigger
 
 Start with:

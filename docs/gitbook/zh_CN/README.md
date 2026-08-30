@@ -22,6 +22,13 @@ WorldScript 是给 Paper 服务器做“区域玩法”的插件。
 
 - [SpigotMC 下载 WorldScript](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
 
+## 讨论与反馈
+
+遇到问题、想提建议，或者想聊后续功能，可以用这两个入口：
+
+- [加入 Discord 讨论](https://discord.gg/NPSwPHG9R)
+- 发邮件到 `acatnight@gmail.com`
+
 ## 第一次看文档，从这里开始
 
 1. [安装与兼容](install.md)

@@ -63,6 +63,7 @@ With PlaceholderAPI: `%worldscript_region_id%`, `%worldscript_region_name%`, `%w
 ## Documentation
 
 - [SpigotMC download](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
+- [Discord discussion](https://discord.gg/NPSwPHG9R)
 - [Chinese Wiki](docs/wiki-zh_CN.md)
 - [English Wiki](docs/wiki.md)
 - [GitBook source](docs/gitbook/README.md)
@@ -81,6 +82,8 @@ With PlaceholderAPI: `%worldscript_region_id%`, `%worldscript_region_name%`, `%w
 - bStats collects anonymous plugin and server statistics. Its opt-out setting is available in `plugins/bStats/config.yml`.
 
 The default language is `en_US`. Set `language: zh_CN` or `language: zh_TW` in `plugins/WorldScript/config.yml` and run `/ws reload` to use Chinese messages.
+
+For feedback, join the [Discord](https://discord.gg/NPSwPHG9R) or email `acatnight@gmail.com`.
 
 ## Build
 

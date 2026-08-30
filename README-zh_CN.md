@@ -68,6 +68,7 @@ messages:
 ## 文档
 
 - [SpigotMC 下载](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
+- [Discord 讨论](https://discord.gg/NPSwPHG9R)
 - [中文 Wiki](docs/wiki-zh_CN.md)
 - [GitBook 中英文文档源](docs/gitbook/README.md)
 - [配置参考](docs/config-reference-zh_CN.md)
@@ -90,3 +91,5 @@ gradlew.bat clean build
 WorldScript 当前完全免费，并使用 [MIT License](LICENSE) 开源发布。
 
 TabooLib 与 Kether 已随 WorldScript 打包，不需要服务器另外安装 TabooLib。简单逻辑建议使用原生动作，复杂逻辑再使用 `type: kether`。
+
+如果有反馈或建议，可以加入 [Discord](https://discord.gg/NPSwPHG9R)，或者发邮件到 `acatnight@gmail.com`。

@@ -22,6 +22,13 @@ In short: your quest plugin handles the quest flow; WorldScript handles where th
 
 - [Download WorldScript on SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
 
+## Discussion & Feedback
+
+Found a bug, have a suggestion, or want to talk about future features?
+
+- [Join the Discord](https://discord.gg/NPSwPHG9R)
+- Email `acatnight@gmail.com`
+
 ## Recommended Reading
 
 1. [Installation & Compatibility](install.md)
