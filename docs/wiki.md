@@ -1,6 +1,6 @@
 # WorldScript Wiki
 
-WorldScript adds named regions to a Paper server. A region is a box with a name, optional parent, state, variables, particles, and event actions. It is not a quest or combat plugin.
+WorldScript adds named regions to a Paper server. A region can have a name, optional parent, state, variables, particles, event actions, discovery prompts, and region-bound spawn rules. It is not a quest plugin; quest definitions and quest steps belong in a dedicated quest plugin.
 
 ## Install
 
@@ -12,7 +12,7 @@ WorldScript adds named regions to a Paper server. A region is a box with a name,
 
 TabooLib and Kether are included in the jar. PlaceholderAPI is optional and is only needed for HUD placeholders.
 
-This page describes WorldScript `0.1.93`.
+This page describes WorldScript `1.0.0`.
 
 ## Create A Region
 
@@ -198,9 +198,48 @@ Only the deepest active region displays particles. A child particle setting over
 /ws reload
 /ws validate [region-id]
 /ws progress <player> <region-id> <unlock|complete>
+/ws modules list
+/ws modules info <module-id>
+/ws modules enable <module-id>
+/ws modules disable <module-id>
+/ws spawn list
+/ws spawn test <rule-id>
+/ws spawn reload
 ```
 
 `/ws progress` is intended for external plugins. It does not define quests or objectives.
+
+## Modules
+
+WorldScript 1.0.0 creates `plugins/WorldScript/modules/` on first startup and installs the official built-in module descriptors:
+
+```text
+worldscript-core.jar
+worldscript-editor.jar
+worldscript-toast.jar
+worldscript-atmosphere.jar
+worldscript-spawn.jar
+worldscript-rpg.jar
+worldscript-placeholder.jar
+```
+
+These official modules are still executed by the main plugin. The descriptor JARs exist for module status, diagnostics, and the external module API. External module execution is disabled by default and must be explicitly enabled in `plugins/WorldScript/settings/modules.yml`.
+
+## Region Spawning
+
+Spawn rules belong to the WorldScript Spawn module and are stored in:
+
+```text
+plugins/WorldScript/modules/spawn/config.yml
+```
+
+The simplest path is:
+
+```text
+/ws edit <region-id> spawn
+```
+
+Click `[+ Select Mob]`, choose a MythicMobs mob from the GUI when MythicMobs is installed, then tune amount, interval, max alive, player range, and random spawn behavior from the chat editor.
 
 ## Troubleshooting
 

@@ -147,6 +147,9 @@ object WorldScriptTestRunner {
         check("api-version: 1" in toastDescriptor.toYaml() && "dependencies:" in toastDescriptor.toYaml()) {
             "official module descriptors must be serializable to module.yml"
         }
+        check(WorldScriptModuleManager.officialModules.all { it.version == "1.0.0" && it.worldScriptVersion == ">=1.0.0" }) {
+            "official module descriptors must match the stable 1.0.0 catalog"
+        }
         val exampleModuleFile = File("examples/modules/hello-worldscript-module/src/main/resources/module.yml")
         check(exampleModuleFile.isFile) { "external module example must provide a module.yml template" }
         val exampleDescriptor = exampleModuleFile.readText(Charsets.UTF_8)

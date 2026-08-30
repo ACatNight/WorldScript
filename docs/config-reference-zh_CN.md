@@ -115,7 +115,7 @@ events:
 
 ## 模块系统
 
-模块配置位于 `plugins/WorldScript/settings/modules.yml`。当前为 0.1.0 起步模块系统，主插件会默认生成官方基础模块描述 JAR 到 `plugins/WorldScript/modules/`。
+模块配置位于 `plugins/WorldScript/settings/modules.yml`。WorldScript 1.0.0 会默认生成官方基础模块描述 JAR 到 `plugins/WorldScript/modules/`，升级时也会刷新旧版官方描述 JAR。
 
 ```yaml
 auto-install-official: true

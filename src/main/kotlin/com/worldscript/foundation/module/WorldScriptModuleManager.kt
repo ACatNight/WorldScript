@@ -69,7 +69,7 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
     private fun installOfficialModules() {
         officialModules.forEach { descriptor ->
             val file = File(modulesDirectory, "worldscript-${descriptor.id}.jar")
-            if (file.isFile) return@forEach
+            if (!shouldWriteOfficialModule(file, descriptor)) return@forEach
             runCatching {
                 JarOutputStream(file.outputStream()).use { output ->
                     output.putNextEntry(JarEntry("module.yml"))
@@ -80,6 +80,13 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
                 plugin.logger.warning("Could not install official module ${descriptor.id}: ${error.message}")
             }
         }
+    }
+
+    private fun shouldWriteOfficialModule(file: File, official: ModuleDescriptor): Boolean {
+        if (!file.isFile) return true
+        val existing = readDescriptor(file) ?: return true
+        if (existing.id != official.id) return false
+        return (existing.official || existing.builtin || existing.required) && !matchesOfficialCatalog(existing, official)
     }
 
     private fun scanDescriptors(): List<ModuleCandidate> {
@@ -292,15 +299,17 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
 
     companion object {
         const val MODULE_API_VERSION = 1
+        private const val OFFICIAL_MODULE_VERSION = "1.0.0"
+        private const val OFFICIAL_WORLD_SCRIPT_REQUIREMENT = ">=1.0.0"
 
         val officialModules = listOf(
-            ModuleDescriptor("core", "WorldScript Core", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", emptyList(), emptyList(), true, true, true),
-            ModuleDescriptor("rpg", "WorldScript RPG", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core"), emptyList(), true, true, false),
-            ModuleDescriptor("toast", "WorldScript Toast", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core"), emptyList(), true, true, false),
-            ModuleDescriptor("atmosphere", "WorldScript Atmosphere", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core", "rpg"), emptyList(), true, true, false),
-            ModuleDescriptor("spawn", "WorldScript Spawn", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core"), listOf("MythicMobs"), true, true, false),
-            ModuleDescriptor("editor", "WorldScript Editor", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core", "rpg", "toast", "atmosphere", "spawn"), emptyList(), true, true, false),
-            ModuleDescriptor("placeholder", "WorldScript PlaceholderAPI", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core", "rpg"), listOf("PlaceholderAPI"), true, true, false),
+            ModuleDescriptor("core", "WorldScript Core", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", emptyList(), emptyList(), true, true, true),
+            ModuleDescriptor("rpg", "WorldScript RPG", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core"), emptyList(), true, true, false),
+            ModuleDescriptor("toast", "WorldScript Toast", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core"), emptyList(), true, true, false),
+            ModuleDescriptor("atmosphere", "WorldScript Atmosphere", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core", "rpg"), emptyList(), true, true, false),
+            ModuleDescriptor("spawn", "WorldScript Spawn", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core"), listOf("MythicMobs"), true, true, false),
+            ModuleDescriptor("editor", "WorldScript Editor", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core", "rpg", "toast", "atmosphere", "spawn"), emptyList(), true, true, false),
+            ModuleDescriptor("placeholder", "WorldScript PlaceholderAPI", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core", "rpg"), listOf("PlaceholderAPI"), true, true, false),
         )
         private val officialById = officialModules.associateBy { it.id }
 

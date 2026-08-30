@@ -6,7 +6,7 @@
 
 ```text
 需求状态：已确认
-实现状态：0.1.93 已实现并通过构建、JUnit 与回归检查：解锁 Placeholder、区域发现 Title/音效/首次奖励动作、区域级进入条件开关、全局设置入口、聊天编辑器、GUI 图标 Custom Model Data、多边形编辑优化，以及 modules/*.jar 起步模块系统。NBS、发现记录 GUI、保护 Addon 与完整外置官方模块拆分仍属后续规划。
+实现状态：1.0.0 稳定版整理中，已实现并通过构建、JUnit 与回归检查：解锁 Placeholder、区域发现 Title/音效/首次奖励动作、区域级进入条件开关、全局设置入口、聊天编辑器、GUI 图标 Custom Model Data、多边形编辑优化、modules/*.jar 模块目录、受保护外置模块加载，以及区域刷怪 Spawn 模块。NBS、发现记录 GUI、保护 Addon 与完整外置官方模块拆分仍属后续规划。
 ```
 
 ## 一、已确认的核心需求
