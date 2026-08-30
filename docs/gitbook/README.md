@@ -1,15 +1,8 @@
-# WorldScript Documentation
+# WorldScript
 
-Welcome to the WorldScript documentation.
+WorldScript 是一个给 Paper 服务器制作区域玩法的插件。
 
-Choose a language:
+请选择语言：
 
 - [简体中文](zh_CN/README.md)
 - [English](en_US/README.md)
-
-This directory is designed for GitBook Git Sync. In GitBook, set the project directory to:
-
-```text
-docs/gitbook
-```
-
