@@ -24,7 +24,7 @@ WorldScript is currently fully free and available under the [MIT License](LICENS
 
 ## Install
 
-1. Put the jar in the server `plugins` directory.
+1. Download the jar from [SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/) and put it in the server `plugins` directory.
 2. Start the server once.
 3. Add region files to `plugins/WorldScript/regions/`.
 4. Run `/ws validate`, then `/ws reload`.
@@ -62,6 +62,7 @@ With PlaceholderAPI: `%worldscript_region_id%`, `%worldscript_region_name%`, `%w
 
 ## Documentation
 
+- [SpigotMC download](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
 - [Chinese Wiki](docs/wiki-zh_CN.md)
 - [English Wiki](docs/wiki.md)
 - [GitBook source](docs/gitbook/README.md)

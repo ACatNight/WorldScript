@@ -2,7 +2,7 @@
 
 ## 安装
 
-1. 下载 `WorldScript-1.0.0.jar`。
+1. 从 [SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/) 下载 `WorldScript-1.0.0.jar`。
 2. 放入服务器的 `plugins/` 目录。
 3. 启动服务器一次，生成 `plugins/WorldScript/`。
 4. 执行 `/ws validate` 检查配置。
@@ -26,4 +26,3 @@ WorldScript 目标兼容 Paper 1.12.2 至 1.21.8。
 - 1.20.5 - 1.21.8：Java 21
 
 发布到正式服前，请至少在目标服务端版本做一次冒烟测试。
-

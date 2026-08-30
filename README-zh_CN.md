@@ -17,7 +17,7 @@ WorldScript 是一个面向 Paper 1.12.2 至 1.21.8 的区域脚本插件，用�
 
 ## 安装
 
-1. 将 `build/libs/WorldScript-<版本>.jar` 放入服务器的 `plugins/` 目录。
+1. 从 [SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/) 下载 `WorldScript-<版本>.jar`，放入服务器的 `plugins/` 目录。
 2. 启动一次服务器，让插件生成 `plugins/WorldScript/regions/`。
 3. 将 `examples/region-progression-template.yml` 复制到 `regions/` 作为 Schema 2 开放世界示例。
 4. 按服务器实际地图修改世界名、区域边界和外部插件命令。
@@ -67,6 +67,7 @@ messages:
 
 ## 文档
 
+- [SpigotMC 下载](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
 - [中文 Wiki](docs/wiki-zh_CN.md)
 - [GitBook 中英文文档源](docs/gitbook/README.md)
 - [配置参考](docs/config-reference-zh_CN.md)

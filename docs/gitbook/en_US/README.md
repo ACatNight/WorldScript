@@ -16,6 +16,10 @@ It works well for RPG servers, open-world servers, story servers, exploration se
 - Built-in module catalog and guarded external module loading
 - Spawn module with optional MythicMobs selection
 
+## Download
+
+- [Download WorldScript on SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
+
 ## Recommended Reading
 
 1. [Installation & Compatibility](install.md)
@@ -24,4 +28,3 @@ It works well for RPG servers, open-world servers, story servers, exploration se
 4. [Editor](editor.md)
 5. [Toast & Discovery](discovery-toast.md)
 6. [Spawn Module](spawn.md)
-

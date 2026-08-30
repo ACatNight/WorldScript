@@ -16,6 +16,10 @@ WorldScript 是一个面向 Paper 1.12.2 至 1.21.8 的区域脚本插件，用�
 - `modules/*.jar` 模块目录与受保护外置模块加载
 - Spawn 模块：绑定区域随机刷怪，支持 MythicMobs 怪物库点选
 
+## 下载
+
+- [SpigotMC 下载 WorldScript](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
+
 ## 推荐阅读顺序
 
 1. [安装与兼容](install.md)
@@ -24,4 +28,3 @@ WorldScript 是一个面向 Paper 1.12.2 至 1.21.8 的区域脚本插件，用�
 4. [编辑器](editor.md)
 5. [Toast 与发现提示](discovery-toast.md)
 6. [Spawn 怪物刷新](spawn.md)
-
