@@ -23,9 +23,8 @@ class MythicMobLibrary(private val plugin: JavaPlugin) {
         val instance = mythicBukkit.getMethod("inst").invoke(null)
         val mobManager = instance.javaClass.methods.firstOrNull { it.name == "getMobManager" && it.parameterTypes.isEmpty() }
             ?.invoke(instance) ?: return emptyList()
-        val namesMethod = mobManager.javaClass.methods.firstOrNull {
-            it.parameterTypes.isEmpty() && it.name.lowercase(Locale.ROOT) in setOf("getmobnames", "getmobtypes", "getmobnamespacedkeys")
-        } ?: return emptyList()
+        val namesMethod = mobManager.javaClass.methods.firstOrNull { it.name == "getMobNames" && it.parameterTypes.isEmpty() }
+            ?: return emptyList()
         toStringList(namesMethod.invoke(mobManager))
     }.onFailure {
         plugin.logger.fine("Could not read MythicMobs modern mob list: ${it.message}")

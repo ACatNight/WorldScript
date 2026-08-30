@@ -265,7 +265,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
                 val rules = spawn.rules()
                 lang.send(sender, "spawn-list-header", "count" to rules.size)
                 rules.forEach { rule ->
-                    lang.send(sender, "spawn-list-item", "rule" to rule.id, "region" to rule.regionId, "mob" to rule.mobId, "amount" to rule.amount.display(), "state" to if (rule.enabled) "on" else "off")
+                    lang.send(sender, "spawn-list-item", "rule" to rule.id, "region" to rule.regionId, "mob" to rule.mobId, "amount" to rule.amount.display(), "state" to if (rule.enabled) lang.text("editor-value-enabled", "enabled") else lang.text("editor-value-disabled", "disabled"))
                 }
             }
             "test" -> {

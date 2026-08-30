@@ -146,7 +146,11 @@ class SpawnService(
         repeat(amount) {
             val location = findSpawnLocation(world, region, rule, forcedPlayer ?: players.randomOrNull())
             if (location != null) {
-                spawnEntity(rule, location)?.let { spawned += it.uniqueId }
+                when (val result = spawnEntity(rule, location)) {
+                    is SpawnEntityResult.Spawned -> spawned += result.entity.uniqueId
+                    SpawnEntityResult.InvalidMob -> return SpawnResult.INVALID_MOB
+                    SpawnEntityResult.ProviderUnavailable -> return SpawnResult.PROVIDER_UNAVAILABLE
+                }
             }
         }
         if (spawned.isEmpty()) return if (providerAvailable(rule)) SpawnResult.NO_SAFE_LOCATION else SpawnResult.PROVIDER_UNAVAILABLE
@@ -155,10 +159,13 @@ class SpawnService(
         return SpawnResult.SUCCESS
     }
 
-    private fun spawnEntity(rule: SpawnRule, location: Location): Entity? {
+    private fun spawnEntity(rule: SpawnRule, location: Location): SpawnEntityResult {
         val provider = resolveProvider(rule)
         if (provider == SpawnProvider.MYTHICMOBS) {
-            if (!mythicMobs.available()) return null
+            if (!mythicMobs.available()) return SpawnEntityResult.ProviderUnavailable
+            if (!mythicMobs.contains(rule.mobId)) return SpawnEntityResult.InvalidMob
+            spawnMythicByApi(rule, location)?.let { return SpawnEntityResult.Spawned(it) }
+            val before = nearbyLivingIds(location, 3.0)
             val command = repository.defaults().mythicCommand
                 .replace("%mob%", rule.mobId)
                 .replace("%amount%", "1")
@@ -167,18 +174,52 @@ class SpawnService(
                 .replace("%y%", "%.2f".format(Locale.US, location.y))
                 .replace("%z%", "%.2f".format(Locale.US, location.z))
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
-            return nearestLiving(location, 2.5)
+            return nearestNewLiving(location, 3.0, before)?.let { SpawnEntityResult.Spawned(it) }
+                ?: SpawnEntityResult.ProviderUnavailable
         }
         val type = runCatching { EntityType.valueOf(rule.mobId.uppercase(Locale.ROOT)) }.getOrNull()
-            ?: return null
-        if (!type.isAlive || !type.isSpawnable) return null
-        return location.world?.spawnEntity(location, type)
+            ?: return SpawnEntityResult.InvalidMob
+        if (!type.isAlive || !type.isSpawnable) return SpawnEntityResult.InvalidMob
+        return location.world?.spawnEntity(location, type)?.let { SpawnEntityResult.Spawned(it) }
+            ?: SpawnEntityResult.ProviderUnavailable
     }
 
-    private fun nearestLiving(location: Location, radius: Double): LivingEntity? =
+    private fun spawnMythicByApi(rule: SpawnRule, location: Location): Entity? = runCatching {
+        val mythicBukkit = Class.forName("io.lumine.mythic.bukkit.MythicBukkit")
+        val instance = mythicBukkit.getMethod("inst").invoke(null)
+        val mobManager = instance.javaClass.methods.firstOrNull { it.name == "getMobManager" && it.parameterTypes.isEmpty() }
+            ?.invoke(instance) ?: return null
+        val optional = mobManager.javaClass.methods.firstOrNull { it.name == "getMythicMob" && it.parameterTypes.contentEquals(arrayOf(String::class.java)) }
+            ?.invoke(mobManager, rule.mobId) ?: return null
+        val mythicMob = optional.javaClass.methods.firstOrNull { it.name == "orElse" && it.parameterTypes.size == 1 }
+            ?.invoke(optional, *arrayOfNulls<Any>(1)) ?: return null
+        val adapter = Class.forName("io.lumine.mythic.bukkit.BukkitAdapter")
+        val abstractLocation = adapter.methods.firstOrNull { it.name == "adapt" && it.parameterTypes.contentEquals(arrayOf(Location::class.java)) }
+            ?.invoke(null, location) ?: return null
+        val activeMob = mythicMob.javaClass.methods.firstOrNull { it.name == "spawn" && it.parameterTypes.size == 2 && it.parameterTypes[1] == java.lang.Double.TYPE }
+            ?.invoke(mythicMob, abstractLocation, 1.0) ?: return null
+        val uuid = activeMob.javaClass.methods.firstOrNull { it.name == "getUniqueId" && it.parameterTypes.isEmpty() }
+            ?.invoke(activeMob) as? UUID ?: return null
+        Bukkit.getEntity(uuid)
+    }.onFailure {
+        plugin.logger.fine("Could not spawn MythicMobs mob ${rule.mobId} through API: ${it.message}")
+    }.getOrNull()
+
+    private fun nearbyLivingIds(location: Location, radius: Double): Set<UUID> =
         location.world?.entities
             ?.asSequence()
             ?.filterIsInstance<LivingEntity>()
+            ?.filter { it !is Player }
+            ?.filter { !it.isDead && it.location.world == location.world && it.location.distanceSquared(location) <= radius * radius }
+            ?.map { it.uniqueId }
+            ?.toSet()
+            .orEmpty()
+
+    private fun nearestNewLiving(location: Location, radius: Double, before: Set<UUID>): LivingEntity? =
+        location.world?.entities
+            ?.asSequence()
+            ?.filterIsInstance<LivingEntity>()
+            ?.filter { it !is Player && it.uniqueId !in before }
             ?.filter { !it.isDead && it.location.world == location.world && it.location.distanceSquared(location) <= radius * radius }
             ?.minByOrNull { it.location.distanceSquared(location) }
 
@@ -217,7 +258,7 @@ class SpawnService(
         val feet = location.block
         val head = feet.getRelative(0, 1, 0)
         val ground = feet.getRelative(0, -1, 0)
-        if (rule.safety.avoidSolidBody && (!feet.isPassable || !head.isPassable)) return false
+        if (rule.safety.avoidSolidBody && (feet.type.isSolid || head.type.isSolid)) return false
         if (rule.safety.groundRequired && !ground.type.isSolid) return false
         if (rule.safety.avoidLiquid && (feet.isLiquid || head.isLiquid || ground.isLiquid)) return false
         if (ground.type == Material.AIR) return false
@@ -272,4 +313,10 @@ class SpawnService(
     }
 
     private fun Location.toBlockPosition() = BlockPosition(blockX, blockY, blockZ)
+
+    private sealed class SpawnEntityResult {
+        data class Spawned(val entity: Entity) : SpawnEntityResult()
+        object ProviderUnavailable : SpawnEntityResult()
+        object InvalidMob : SpawnEntityResult()
+    }
 }

@@ -179,7 +179,7 @@ internal class SpawnEditorController(
     }
 
     private fun ruleSummary(rule: SpawnRule): String =
-        "${rule.mobId} &8· &f${rule.amount.display()} &8· &f${rule.intervalSeconds.display("s")} &8· &fmax ${rule.limits.maxAlive}"
+        "${rule.mobId} &8· &f${rule.amount.display()} &8· &f${rule.intervalSeconds.display("s")} &8· &f${renderer.text("spawn-summary-max", "max")} ${rule.limits.maxAlive}"
 
     private fun yesNo(value: Boolean): String =
         if (value) renderer.text("value-enabled", "Enabled") else renderer.text("value-disabled", "Disabled")
