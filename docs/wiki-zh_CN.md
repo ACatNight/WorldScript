@@ -244,6 +244,12 @@ disabled: []
 
 外置模块执行默认关闭。管理员明确设置 `load-external: true` 后，WorldScript 才会加载实现 `WorldScriptModule` 的外置模块入口。官方基础模块仍由主插件内置运行，`disabled` 不会关闭现有功能；外置模块可以通过 `disabled`、`/ws modules enable` 和 `/ws modules disable` 管理。
 
+如果要开发自己的外置模块，可以参考项目模板：
+
+```text
+examples/modules/hello-worldscript-module/
+```
+
 ## 11. 排错顺序
 
 1. 先执行 `/ws validate [区域ID]`。

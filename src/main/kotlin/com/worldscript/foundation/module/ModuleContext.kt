@@ -25,10 +25,21 @@ class ModuleContext(
     }
 
     fun config(moduleId: String): YamlConfiguration {
+        return YamlConfiguration.loadConfiguration(configFile(moduleId))
+    }
+
+    fun configFile(): File {
+        return configFile(moduleId)
+    }
+
+    fun configFile(moduleId: String): File {
         val directory = File(plugin.dataFolder, "modules/$moduleId")
         if (!directory.exists()) directory.mkdirs()
-        val file = File(directory, "config.yml")
-        return YamlConfiguration.loadConfiguration(file)
+        return File(directory, "config.yml")
+    }
+
+    fun saveConfig(config: YamlConfiguration) {
+        config.save(configFile())
     }
 
     internal fun unregisterListeners() {

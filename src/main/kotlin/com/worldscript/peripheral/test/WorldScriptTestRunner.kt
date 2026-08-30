@@ -21,6 +21,7 @@ import com.worldscript.modules.l2.script_actions.AdvancementToastPayload
 import com.worldscript.integration.placeholder.PlaceholderRequest
 import com.worldscript.integration.placeholder.RegionNameFormatter
 import com.worldscript.foundation.module.WorldScriptModuleManager
+import java.io.File
 
 object WorldScriptTestRunner {
     @JvmStatic
@@ -141,6 +142,15 @@ object WorldScriptTestRunner {
         }
         check("api-version: 1" in toastDescriptor.toYaml() && "dependencies:" in toastDescriptor.toYaml()) {
             "official module descriptors must be serializable to module.yml"
+        }
+        val exampleModuleFile = File("examples/modules/hello-worldscript-module/src/main/resources/module.yml")
+        check(exampleModuleFile.isFile) { "external module example must provide a module.yml template" }
+        val exampleDescriptor = exampleModuleFile.readText(Charsets.UTF_8)
+        check("id: hello" in exampleDescriptor && "official: false" in exampleDescriptor && "builtin: false" in exampleDescriptor && "required: false" in exampleDescriptor) {
+            "external module example must not declare official, built-in, or required flags"
+        }
+        check("main: com.worldscript.examples.hello.HelloWorldScriptModule" in exampleDescriptor && "  - core" in exampleDescriptor) {
+            "external module example must declare its entrypoint and core dependency"
         }
         println("[TEST] PASS modules.descriptor: module.yml and official descriptors are stable")
 

@@ -1,0 +1,12 @@
+id: hello
+name: WorldScript Hello Module
+version: 0.1.0
+api-version: 1
+worldscript-version: ">=0.1.93"
+main: com.worldscript.examples.hello.HelloWorldScriptModule
+official: false
+builtin: false
+required: false
+dependencies:
+  - core
+soft-dependencies: []

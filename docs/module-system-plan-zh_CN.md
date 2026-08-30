@@ -116,6 +116,16 @@ interface WorldScriptModule {
 
 模块可以通过 `ModuleContext` 访问主插件、日志、服务注册表、监听器注册和模块私有配置入口。
 
+## 示例模块
+
+项目提供了一个最小外置模块模板：
+
+```text
+examples/modules/hello-worldscript-module/
+```
+
+该模板包含独立 Gradle 构建脚本、`module.yml` 和 `WorldScriptModule` 入口类。它不会被主插件默认加载，也不会进入主插件发布包；需要手动构建后放入 `plugins/WorldScript/modules/`，并在确认来源可信后开启 `settings/modules.yml` 的 `load-external: true`。
+
 ## 外置模块加载
 
 外置模块满足以下条件后可以被加载：
