@@ -217,6 +217,9 @@ particle:
 /ws modules info <模块ID>
 /ws modules enable <模块ID>
 /ws modules disable <模块ID>
+/ws spawn list
+/ws spawn test <规则ID>
+/ws spawn reload
 ```
 
 ## 10. 模块系统
@@ -228,6 +231,7 @@ worldscript-core.jar
 worldscript-editor.jar
 worldscript-toast.jar
 worldscript-atmosphere.jar
+worldscript-spawn.jar
 worldscript-rpg.jar
 worldscript-placeholder.jar
 ```
@@ -250,7 +254,31 @@ disabled: []
 examples/modules/hello-worldscript-module/
 ```
 
-## 11. 排错顺序
+## 11. 区域刷怪
+
+刷怪配置属于 WorldScript Spawn 模块，文件位于：
+
+```text
+plugins/WorldScript/modules/spawn/config.yml
+```
+
+推荐从聊天栏编辑器进入：
+
+```text
+/ws edit <区域ID> spawn
+```
+
+基础流程：
+
+1. 点击 `[+ 选择怪物]`。
+2. 在 GUI 中点击要生成的 MythicMobs 怪物；如果没有安装 MythicMobs，会显示原版怪物。
+3. 自动创建刷怪规则并返回聊天栏规则页。
+4. 在规则页修改“每次数量”“刷新间隔”“最多存活”“附近玩家范围”等参数。
+5. 点击 `[测试]` 或执行 `/ws spawn test <规则ID>` 立即测试一次。
+
+默认规则会绑定当前区域 ID，在区域内随机找安全位置；每次随机生成 1~3 只，硬上限默认为 10。区域内或附近有玩家时才刷新，并默认避免刷在玩家脸上。
+
+## 12. 排错顺序
 
 1. 先执行 `/ws validate [区域ID]`。
 2. 检查区域文件是否放在 `plugins/WorldScript/regions/`。
@@ -260,8 +288,9 @@ examples/modules/hello-worldscript-module/
 6. 如果使用外部命令，先在控制台单独测试命令格式。
 7. 如果使用 Kether，先用一条简单的 `message` 验证触发，再逐步增加脚本内容。
 8. 如果模块相关功能异常，执行 `/ws modules list` 和 `/ws modules info <模块ID>` 查看状态。
+9. 如果刷怪不出现，先执行 `/ws spawn list` 查看规则，再执行 `/ws spawn test <规则ID>` 检查区域、世界、玩家距离、安全点和 MythicMobs 状态。
 
-## 12. 兼容性和构建
+## 13. 兼容性和构建
 
 目标平台为 Paper 1.12.2 至 1.21.8。不同 Minecraft 版本需要对应 Java：1.12.2-1.16.x 使用 Java 8，1.17-1.20.4 使用 Java 17，1.20.5-1.21.8 使用 Java 21。发布前应在目标服务器版本进行实际冒烟测试。
 
@@ -273,7 +302,7 @@ gradlew.bat clean build
 
 项目使用 MIT License，欢迎提交 Issue、配置示例和 Pull Request。
 
-## 13. 语言文件
+## 14. 语言文件
 
 语言文件位于插件目录的 `lang/`：
 

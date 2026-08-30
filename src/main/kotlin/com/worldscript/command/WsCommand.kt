@@ -11,6 +11,7 @@ import com.worldscript.foundation.module.ModuleToggleResult
 import com.worldscript.foundation.module.WorldScriptModuleManager
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import com.worldscript.modules.l2.script_actions.ToastService
+import com.worldscript.modules.l3.spawn.SpawnService
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.command.Command
@@ -21,7 +22,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.io.File
 
-class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val polygons: PolygonEditingService, private val state: PlayerVariableService, private val toasts: ToastService, private val editorTools: com.worldscript.modules.l1.region_core.EditorToolService, private val moduleManager: WorldScriptModuleManager) : CommandExecutor, TabCompleter {
+class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private val regions: RegionCoreServiceImpl, private val selection: com.worldscript.modules.l1.region_core.SelectionService, private val polygons: PolygonEditingService, private val state: PlayerVariableService, private val toasts: ToastService, private val editorTools: com.worldscript.modules.l1.region_core.EditorToolService, private val moduleManager: WorldScriptModuleManager, private val spawn: SpawnService) : CommandExecutor, TabCompleter {
     private val lang = Lang(plugin)
     var guiOpener: ((Player) -> Unit)? = null
     var settingsOpener: ((Player) -> Unit)? = null
@@ -44,6 +45,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "progress" -> progress(sender, args)
             "toast" -> toast(sender, args)
             "modules" -> modules(sender, args)
+            "spawn" -> spawn(sender, args)
             "test" -> test(sender, args)
             "help" -> sendUsage(sender)
             "create" -> create(sender, args)
@@ -257,6 +259,30 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         }
     }
 
+    private fun spawn(sender: CommandSender, args: Array<out String>) {
+        when (args.getOrNull(1)?.lowercase()) {
+            "list", null -> {
+                val rules = spawn.rules()
+                lang.send(sender, "spawn-list-header", "count" to rules.size)
+                rules.forEach { rule ->
+                    lang.send(sender, "spawn-list-item", "rule" to rule.id, "region" to rule.regionId, "mob" to rule.mobId, "amount" to rule.amount.display(), "state" to if (rule.enabled) "on" else "off")
+                }
+            }
+            "test" -> {
+                val ruleId = args.getOrNull(2) ?: run {
+                    lang.send(sender, "spawn-test-usage")
+                    return
+                }
+                spawn.test(sender, ruleId)
+            }
+            "reload" -> {
+                spawn.reload()
+                lang.send(sender, "spawn-reloaded")
+            }
+            else -> lang.send(sender, "spawn-usage")
+        }
+    }
+
     private fun toggleModule(sender: CommandSender, id: String?, enable: Boolean) {
         if (id.isNullOrBlank()) {
             lang.send(sender, if (enable) "modules-enable-usage" else "modules-disable-usage")
@@ -313,6 +339,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
             "usage-progress",
             "usage-toast",
             "usage-modules",
+            "usage-spawn",
             "usage-test",
             "usage-footer",
         ).forEachIndexed { index, key -> lang.send(sender, key, index == 0) }
@@ -346,7 +373,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         lang.send(sender, "language-changed", "language" to requested)
     }
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> = when {
-        args.size == 1 -> listOf("wand", "selection", "create", "polygon", "delete", "list", "settings", "info", "edit", "reload", "language", "validate", "progress", "toast", "modules", "test", "help")
+        args.size == 1 -> listOf("wand", "selection", "create", "polygon", "delete", "list", "settings", "info", "edit", "reload", "language", "validate", "progress", "toast", "modules", "spawn", "test", "help")
         args.size == 2 && args[0].equals("selection", true) -> listOf("preview", "cancel")
         args.size == 2 && args[0].equals("polygon", true) -> listOf("start", "cancel", "status", "preview", "finish", "undo", "redo", "remove", "move", "reset") + regions.all().map { it.id }
         args.size == 3 && args[0].equals("polygon", true) && args[1].equals("start", true) -> regions.all().map { it.id }
@@ -359,6 +386,8 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         args.size == 3 && args[0].equals("toast", true) && args[1].equals("test", true) -> Bukkit.getOnlinePlayers().map { it.name }
         args.size == 2 && args[0].equals("modules", true) -> listOf("list", "info", "enable", "disable", "reload")
         args.size == 3 && args[0].equals("modules", true) && args[1].lowercase() in setOf("info", "enable", "disable") -> moduleManager.all().map { it.descriptor.id }
+        args.size == 2 && args[0].equals("spawn", true) -> listOf("list", "test", "reload")
+        args.size == 3 && args[0].equals("spawn", true) && args[1].equals("test", true) -> spawn.rules().map { it.id }
         args.size == 2 && args[0].equals("language", true) -> listOf("reload", "en_US", "zh_CN", "zh_TW")
         args.size == 2 && args[0].equals("test", true) -> regions.all().map { it.id }
         args.size == 2 -> regions.all().map { it.id }

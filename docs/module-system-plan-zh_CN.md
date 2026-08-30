@@ -20,6 +20,7 @@ plugins/WorldScript/modules/
 ├── worldscript-editor.jar
 ├── worldscript-toast.jar
 ├── worldscript-atmosphere.jar
+├── worldscript-spawn.jar
 ├── worldscript-rpg.jar
 ├── worldscript-placeholder.jar
 └── disabled/
@@ -77,7 +78,8 @@ soft-dependencies: []
 ### 官方基础模块默认生成
 
 - `core` 为 required 模块，不允许通过配置禁用。
-- `editor`、`toast`、`atmosphere`、`rpg`、`placeholder` 默认生成并显示为内置模块。
+- `editor`、`toast`、`atmosphere`、`spawn`、`rpg`、`placeholder` 默认生成并显示为内置模块。
+- `spawn` 负责第一版区域刷怪能力，配置独立放在 `plugins/WorldScript/modules/spawn/config.yml`。
 - 缺失、格式不合法或版本不兼容的模块只会影响自身状态，不应导致主插件整体启动失败。
 - 非官方外置模块不能伪造 `official`、`builtin` 或 `required` 标记。
 

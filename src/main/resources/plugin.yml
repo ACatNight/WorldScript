@@ -2,11 +2,11 @@ name: WorldScript
 version: ${version}
 main: com.worldscript.WorldScriptPlugin
 description: RPG region scripting plugin for Paper 1.12.2 to 1.21.8.
-softdepend: [PlaceholderAPI]
+softdepend: [PlaceholderAPI, MythicMobs]
 commands:
   ws:
     description: WorldScript administration command
-    usage: /ws <wand|selection|create|polygon|delete|list|settings|info|edit|reload|language|validate|progress|toast|modules|test>
+    usage: /ws <wand|selection|create|polygon|delete|list|settings|info|edit|reload|language|validate|progress|toast|modules|spawn|test>
     permission: worldscript.admin
 permissions:
   worldscript.admin:

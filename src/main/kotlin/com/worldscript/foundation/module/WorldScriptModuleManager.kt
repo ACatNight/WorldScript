@@ -298,7 +298,8 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
             ModuleDescriptor("rpg", "WorldScript RPG", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core"), emptyList(), true, true, false),
             ModuleDescriptor("toast", "WorldScript Toast", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core"), emptyList(), true, true, false),
             ModuleDescriptor("atmosphere", "WorldScript Atmosphere", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core", "rpg"), emptyList(), true, true, false),
-            ModuleDescriptor("editor", "WorldScript Editor", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core", "rpg", "toast", "atmosphere"), emptyList(), true, true, false),
+            ModuleDescriptor("spawn", "WorldScript Spawn", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core"), listOf("MythicMobs"), true, true, false),
+            ModuleDescriptor("editor", "WorldScript Editor", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core", "rpg", "toast", "atmosphere", "spawn"), emptyList(), true, true, false),
             ModuleDescriptor("placeholder", "WorldScript PlaceholderAPI", "0.1.0", MODULE_API_VERSION, ">=0.1.0", "", listOf("core", "rpg"), listOf("PlaceholderAPI"), true, true, false),
         )
         private val officialById = officialModules.associateBy { it.id }

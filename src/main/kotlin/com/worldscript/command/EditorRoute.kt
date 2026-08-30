@@ -12,6 +12,7 @@ internal object EditorRoute {
         eventKey.equals("conditions", true) && actionPage?.startsWith("failure-edit:") == true -> "condition:failure-edit:${actionPage.orEmpty().removePrefix("failure-edit:")}"
         eventKey.equals("conditions", true) && actionPage?.startsWith("edit:") == true -> "condition:edit:${actionPage.orEmpty().removePrefix("edit:")}"
         eventKey.equals("conditions", true) && actionPage?.startsWith("remove:") == true -> "condition:remove:${actionPage.orEmpty().removePrefix("remove:")}"
+        eventKey.equals("spawn", true) -> actionPage?.let { "spawn:$it" } ?: "spawn"
         actionPage == null -> eventKey
         actionPage == "toggle" -> "toggle:$eventKey"
         actionPage.startsWith("cooldown:") -> "cooldown:$eventKey:${actionPage.removePrefix("cooldown:")}"
@@ -51,4 +52,5 @@ internal enum class EditorOperation(val prefix: String) {
     REMOVE("remove:"),
     DISCOVERY("discovery:"),
     CONDITION("condition:"),
+    SPAWN("spawn:"),
 }

@@ -12,6 +12,7 @@ import com.worldscript.foundation.Lang
 import com.worldscript.foundation.SettingsLayout
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l2.script_actions.ToastService
+import com.worldscript.modules.l3.spawn.SpawnService
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -27,6 +28,7 @@ class RegionChatEditor(
     private val regions: RegionCoreServiceImpl,
     private val presets: ActionPresetCatalog,
     private val toasts: ToastService,
+    private val spawn: SpawnService? = null,
 ): Listener {
     private val sessions = EditorSessionStore()
     private val lang = Lang(plugin)
@@ -35,6 +37,8 @@ class RegionChatEditor(
     private val conditionController = EditorConditionController(regions, renderer, sessions, ::open, ::enableGlobalSetting, ::actionLabel)
     private val discoveryController = EditorDiscoveryController(regions, renderer, sessions, ::open, ::enableGlobalSetting, ::actionLabel, ::previewDiscoveryToast)
     private val particleController = EditorParticleController(regions, renderer, ::sendEditor, ::editorMessage)
+    private val spawnController = spawn?.let { SpawnEditorController(it, renderer, sessions, ::open, ::openSpawnMobSelector) }
+    var spawnMobSelectorOpener: ((Player, String, String?) -> Unit)? = null
     private val inputTimeoutMillis: Long
         get() = plugin.config.getLong("editor.input-timeout-seconds", 120).coerceIn(15, 600) * 1000
     private val pageTopSpacerLines: Int
@@ -71,6 +75,7 @@ class RegionChatEditor(
                 EditorOperation.PARTICLE -> particleController.control(player, region, mutation.payload)
                 EditorOperation.DISCOVERY -> discoveryController.control(player, region, mutation.payload)
                 EditorOperation.CONDITION -> conditionController.control(player, region, mutation.payload)
+                EditorOperation.SPAWN -> spawnController?.control(player, region, mutation.payload) ?: open(player, region.id, "main")
                 EditorOperation.SET -> setInput(player, region, mutation.payload)
                 EditorOperation.REMOVE -> removeAction(player, region, mutation.payload)
             }
@@ -86,6 +91,8 @@ class RegionChatEditor(
             section == "particles" -> particleController.render(player, region)
             section == "discovery" -> discoveryController.render(player, region)
             section == "conditions" -> conditionController.render(player, region)
+            section == "spawn" -> spawnController?.render(player, region) ?: main(player, region)
+            section.startsWith("spawn-rule:") -> spawnController?.renderRule(player, region, section.removePrefix("spawn-rule:")) ?: main(player, region)
             section.startsWith("add:") -> addPreset(player, region, section.removePrefix("add:"))
             section.startsWith("action:") -> action(player, region, section.removePrefix("action:"))
             else -> event(player, region, section)
@@ -111,6 +118,7 @@ class RegionChatEditor(
             ChatEditorButton(editorText("tab-events", "&f[Events]"), editorText("hint-events", "&7Edit region events"), "/ws edit ${region.id} events"),
             ChatEditorButton(editorText("tab-discovery", "&f[Discovery]"), editorText("hint-discovery", "&7Edit first discovery feedback"), "/ws edit ${region.id} discovery"),
             ChatEditorButton(editorText("tab-conditions", "&f[Conditions]"), editorText("hint-conditions", "&7Edit entry conditions"), "/ws edit ${region.id} conditions"),
+            ChatEditorButton(editorText("tab-spawn", "&c[Spawns]"), editorText("hint-spawn", "&7Edit region spawns"), "/ws edit ${region.id} spawn"),
         )
         spacer(player)
         renderer.divider(player)
@@ -123,6 +131,9 @@ class RegionChatEditor(
         property(player, editorText("label-parent", "&eParent region"), region.parentId?.let { regions.find(it)?.displayName ?: it } ?: editorText("value-none", "None"), "&8—")
         property(player, editorText("label-children", "&eChild regions"), "${childCount(region)}", "&8—")
         property(player, editorText("label-inheritance", "&eInheritance"), if (region.inheritParent) editorText("value-inherited", "Inherited from parent") else editorText("value-independent", "Local configuration"), "&8—")
+        spawn?.let {
+            property(player, editorText("label-spawn-rules", "&cSpawn rules"), "${it.rules(region.id).size}", editorText("button-open", "&a[Open]"), "/ws edit ${region.id} spawn")
+        }
 
     }
 
@@ -394,6 +405,9 @@ class RegionChatEditor(
         val player = event.player
         Bukkit.getScheduler().runTask(plugin, Runnable {
             val region = regions.find(pending.regionId) ?: return@Runnable
+            if (pending.eventKey == "spawn" || pending.eventKey.startsWith("spawn:")) {
+                if (spawnController?.handleInput(player, pending, message) == true) return@Runnable
+            }
             if (pending.parameter == "__delete__") {
                 if (!EditorInputParser.isConfirmation(message)) {
                     sendEditor(player, "delete-cancelled", "&7Deletion cancelled.")
@@ -766,7 +780,8 @@ class RegionChatEditor(
         val back = when {
             section == "main" -> "main"
             section == "variables" -> "data"
-            section == "data" || section == "events" || section == "particles" || section == "discovery" || section == "conditions" -> "main"
+            section == "data" || section == "events" || section == "particles" || section == "discovery" || section == "conditions" || section == "spawn" -> "main"
+            section.startsWith("spawn-rule:") -> "spawn"
             section.startsWith("action:") -> section.removePrefix("action:").substringBefore(':')
             section.startsWith("add:") -> section.removePrefix("add:").substringBefore(':')
             RegionEventMenu.entries.any { it.key == section } -> "events"
@@ -841,11 +856,17 @@ class RegionChatEditor(
         section == "events" -> editorText("page-events", "Events")
         section == "particles" -> editorText("page-particles", "Region atmosphere")
         section == "discovery" -> editorText("page-discovery", "Discovery")
-        section == "conditions" -> editorText("page-conditions", "Conditions")
-        section.startsWith("action:") -> editorText("page-action", "Action parameters")
+            section == "conditions" -> editorText("page-conditions", "Conditions")
+            section == "spawn" -> editorText("page-spawn", "Region spawns")
+            section.startsWith("spawn-rule:") -> editorText("page-spawn-rule", "Spawn rule")
+            section.startsWith("action:") -> editorText("page-action", "Action parameters")
         section.startsWith("add:") -> editorText("page-add-action", "Add action")
         RegionEventMenu.entries.any { it.key == section } -> eventLabel(RegionEventMenu.entries.first { it.key == section })
         else -> editorText("page-editor", "Region editor")
+    }
+
+    private fun openSpawnMobSelector(player: Player, regionId: String, ruleId: String?) {
+        spawnMobSelectorOpener?.invoke(player, regionId, ruleId)
     }
 
     private fun color(value: String): String = renderer.color(value)

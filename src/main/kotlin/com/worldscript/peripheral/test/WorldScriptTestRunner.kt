@@ -88,6 +88,10 @@ object WorldScriptTestRunner {
         check(EditorRoute.fromCommand("conditions", "failure-add") == "condition:failure-add") { "condition failure add route should be recognized" }
         check(EditorRoute.fromCommand("enter", "toast:0:held-item") == "toast:enter:0:held-item") { "Toast held-item route should be recognized" }
         check(EditorRoute.mutation("toast:enter:0:next-frame")?.operation == EditorOperation.TOAST) { "Toast mutation should be recognized" }
+        check(EditorRoute.fromCommand("spawn", null) == "spawn") { "spawn editor page should be recognized" }
+        check(EditorRoute.fromCommand("spawn-rule:forest_wolf", null) == "spawn-rule:forest_wolf") { "spawn rule pages should be directly reachable" }
+        check(EditorRoute.fromCommand("spawn", "rule:forest_wolf") == "spawn:rule:forest_wolf") { "spawn rule routes should preserve rule ids" }
+        check(EditorRoute.mutation("spawn:test:forest_wolf")?.operation == EditorOperation.SPAWN) { "spawn mutations should be recognized" }
         check(EditorRoute.mutation("events") == null) { "page names must not be treated as mutations" }
         println("[TEST] PASS editor.route: command and mutation routes are parsed consistently")
 
@@ -137,7 +141,7 @@ object WorldScriptTestRunner {
 
         val officialIds = WorldScriptModuleManager.officialModules.map { it.id }
         val toastDescriptor = WorldScriptModuleManager.officialModules.first { it.id == "toast" }
-        check(officialIds.containsAll(listOf("core", "editor", "toast", "atmosphere", "rpg", "placeholder"))) {
+        check(officialIds.containsAll(listOf("core", "editor", "toast", "atmosphere", "spawn", "rpg", "placeholder"))) {
             "official module descriptors must include the base WorldScript modules"
         }
         check("api-version: 1" in toastDescriptor.toYaml() && "dependencies:" in toastDescriptor.toYaml()) {

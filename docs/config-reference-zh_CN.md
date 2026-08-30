@@ -134,6 +134,7 @@ worldscript-core.jar
 worldscript-editor.jar
 worldscript-toast.jar
 worldscript-atmosphere.jar
+worldscript-spawn.jar
 worldscript-rpg.jar
 worldscript-placeholder.jar
 ```
@@ -147,6 +148,27 @@ worldscript-placeholder.jar
 /ws modules disable toast
 /ws modules reload
 ```
+
+## 刷怪模块
+
+刷怪模块配置位于 `plugins/WorldScript/modules/spawn/config.yml`，不写入区域文件。推荐通过聊天栏编辑器管理：
+
+```text
+/ws edit <区域ID> spawn
+```
+
+默认生成逻辑：
+
+- 绑定区域 ID。
+- 在区域内随机刷新。
+- 每次数量默认 `1~3`，硬上限默认 `10`。
+- 刷新间隔默认 `30~60` 秒。
+- 需要区域内或附近有玩家。
+- 默认 8 格内不刷怪，避免刷脸。
+- 默认检查安全落点。
+- 默认最多存活 30 只。
+
+如果安装 MythicMobs，可以在怪物选择 GUI 中直接点击 MM 怪物创建规则；没有安装时会显示原版怪物列表。
 
 `kether` 用于复杂逻辑，脚本值可以使用 YAML 多行字符串。WorldScript 会自动提供 `player`、`uuid`、`region` 和 `world` 变量；玩家变量以 `ws_var_<变量名>` 提供，区域变量以 `ws_region_var_<变量名>` 提供。聊天编辑器适合短脚本，多行脚本请直接写入 YAML；简单消息、命令和状态更新优先使用原生动作，便于维护。
 
