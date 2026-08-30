@@ -123,7 +123,7 @@ load-external: false
 disabled: []
 ```
 
-`auto-install-official` 控制缺失官方基础模块时是否自动生成。`load-external` 当前为预留项，默认关闭，避免未知 JAR 在服务器上直接运行。`disabled` 预留给后续外置模块；当前官方基础模块仍由主插件内置运行，不会关闭现有功能。
+`auto-install-official` 控制缺失官方基础模块时是否自动生成。`load-external` 默认关闭，避免未知 JAR 在服务器上直接运行；只有明确改成 `true` 后，带入口类的外置模块才会执行。`disabled` 用于禁用外置模块；当前官方基础模块仍由主插件内置运行，不会关闭现有功能。
 
 当前默认生成：
 

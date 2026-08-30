@@ -4,6 +4,7 @@ import com.worldscript.foundation.SettingsLayout
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.net.URLClassLoader
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
@@ -12,6 +13,8 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
     private val modulesDirectory = File(plugin.dataFolder, "modules")
     private val disabledDirectory = File(modulesDirectory, "disabled")
     private val reports = mutableListOf<ModuleReport>()
+    private val services = ServiceRegistry()
+    private val loadedModules = mutableListOf<LoadedModule>()
 
     fun initialize() {
         if (!modulesDirectory.exists()) modulesDirectory.mkdirs()
@@ -23,6 +26,7 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
     }
 
     fun reload() {
+        unloadExternalModules()
         reports.clear()
         val descriptors = scanDescriptors()
         val ordered = order(descriptors)
@@ -30,6 +34,7 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
     }
 
     fun close() {
+        unloadExternalModules()
         reports.clear()
     }
 
@@ -39,7 +44,7 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
 
     fun disable(id: String): ModuleToggleResult {
         val normalized = id.trim().lowercase()
-        val descriptor = officialById[normalized] ?: return ModuleToggleResult.NOT_FOUND
+        val descriptor = find(normalized)?.descriptor ?: officialById[normalized] ?: return ModuleToggleResult.NOT_FOUND
         if (descriptor.required) return ModuleToggleResult.REQUIRED
         if (descriptor.builtin) return ModuleToggleResult.BUILTIN
         val disabled = disabledIds().toMutableSet()
@@ -52,8 +57,8 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
 
     fun enable(id: String): ModuleToggleResult {
         val normalized = id.trim().lowercase()
-        officialById[normalized] ?: return ModuleToggleResult.NOT_FOUND
         val disabled = disabledIds().toMutableSet()
+        if (normalized !in disabled && find(normalized) == null && officialById[normalized] == null) return ModuleToggleResult.NOT_FOUND
         if (!disabled.remove(normalized)) return ModuleToggleResult.UNCHANGED
         plugin.config.set("modules.disabled", disabled.sorted())
         SettingsLayout.save(plugin, "modules")
@@ -82,7 +87,7 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
         scanDirectory(modulesDirectory, false, result)
         scanDirectory(disabledDirectory, true, result)
         officialModules.filter { it.required && result.none { candidate -> candidate.descriptor.id == it.id } }
-            .forEach { result += ModuleCandidate(it, "builtin:${it.id}", false) }
+            .forEach { result += ModuleCandidate(it, "builtin:${it.id}", false, null) }
         return result
     }
 
@@ -96,11 +101,15 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
                 } else {
                     val official = officialById[descriptor.id]
                     if (official == null) {
-                        reports += ModuleReport(descriptor, file.name, ModuleState.FAILED, "modules-reason-unknown")
+                        if (descriptor.official || descriptor.builtin || descriptor.required) {
+                            reports += ModuleReport(descriptor, file.name, ModuleState.FAILED, "modules-reason-protected-flag")
+                        } else {
+                            result += ModuleCandidate(descriptor, file.name, disabledByDirectory, file)
+                        }
                     } else if (!matchesOfficialCatalog(descriptor, official)) {
                         reports += ModuleReport(descriptor, file.name, ModuleState.FAILED, "modules-reason-catalog-mismatch")
                     } else {
-                        result += ModuleCandidate(official, file.name, disabledByDirectory)
+                        result += ModuleCandidate(official, file.name, disabledByDirectory, file)
                     }
                 }
             }
@@ -122,7 +131,7 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
         candidates.forEach { candidate ->
             val previous = unique.putIfAbsent(candidate.descriptor.id, candidate)
             if (previous != null) {
-                reports += ModuleReport(candidate.descriptor, candidate.source, ModuleState.FAILED, "Duplicate module id")
+                reports += ModuleReport(candidate.descriptor, candidate.source, ModuleState.FAILED, "modules-reason-duplicate")
             }
         }
         val visited = mutableSetOf<String>()
@@ -149,7 +158,7 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
     private fun report(candidate: ModuleCandidate) {
         val descriptor = candidate.descriptor
         val disabled = candidate.disabledByDirectory || descriptor.id in disabledIds()
-        if (disabled && !descriptor.required && !descriptor.builtin) {
+        if (disabled && !descriptor.required) {
             reports += ModuleReport(descriptor, candidate.source, ModuleState.DISABLED, "modules-reason-disabled")
             return
         }
@@ -162,7 +171,71 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
             return
         }
         if (reports.any { it.descriptor.id == descriptor.id && it.state == ModuleState.FAILED }) return
-        reports += ModuleReport(descriptor, candidate.source, ModuleState.BUILTIN, "modules-reason-builtin")
+        if (descriptor.builtin) {
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.BUILTIN, "modules-reason-builtin")
+            return
+        }
+        if (!plugin.config.getBoolean("modules.load-external", false)) {
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.DISABLED, "modules-reason-external-disabled")
+            return
+        }
+        loadExternal(candidate)
+    }
+
+    private fun loadExternal(candidate: ModuleCandidate) {
+        val descriptor = candidate.descriptor
+        val file = candidate.file ?: run {
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "modules-reason-invalid-descriptor")
+            return
+        }
+        if (descriptor.main.isBlank()) {
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "modules-reason-main-missing")
+            return
+        }
+        val classLoader = URLClassLoader(arrayOf(file.toURI().toURL()), plugin.javaClass.classLoader)
+        val context = ModuleContext(plugin, descriptor.id, services)
+        val module = runCatching {
+            val type = Class.forName(descriptor.main, true, classLoader).asSubclass(WorldScriptModule::class.java)
+            val constructor = type.getDeclaredConstructor()
+            constructor.isAccessible = true
+            constructor.newInstance()
+        }.getOrElse { error ->
+            classLoader.close()
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "modules-reason-load-failed", error.message.orEmpty().ifBlank { error.javaClass.simpleName })
+            return
+        }
+        if (!module.id.equals(descriptor.id, ignoreCase = true)) {
+            runCatching { module.onDisable() }
+            context.unregisterListeners()
+            classLoader.close()
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "modules-reason-id-mismatch", module.id)
+            return
+        }
+        runCatching {
+            module.onLoad(context)
+            module.onEnable()
+        }.onSuccess {
+            loadedModules += LoadedModule(descriptor, module, context, classLoader)
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.ENABLED, "modules-reason-loaded")
+        }.onFailure { error ->
+            runCatching { module.onDisable() }
+            context.unregisterListeners()
+            classLoader.close()
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "modules-reason-load-failed", error.message.orEmpty().ifBlank { error.javaClass.simpleName })
+        }
+    }
+
+    private fun unloadExternalModules() {
+        loadedModules.asReversed().forEach { loaded ->
+            runCatching { loaded.module.onDisable() }.onFailure { error ->
+                plugin.logger.warning("Could not disable module ${loaded.descriptor.id}: ${error.message}")
+            }
+            loaded.context.unregisterListeners()
+            runCatching { loaded.classLoader.close() }.onFailure { error ->
+                plugin.logger.warning("Could not close module ${loaded.descriptor.id}: ${error.message}")
+            }
+        }
+        loadedModules.clear()
     }
 
     private fun disabledIds(): Set<String> =
@@ -207,6 +280,14 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
         val descriptor: ModuleDescriptor,
         val source: String,
         val disabledByDirectory: Boolean,
+        val file: File?,
+    )
+
+    private data class LoadedModule(
+        val descriptor: ModuleDescriptor,
+        val module: WorldScriptModule,
+        val context: ModuleContext,
+        val classLoader: URLClassLoader,
     )
 
     companion object {

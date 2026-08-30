@@ -2,7 +2,7 @@
 
 > 状态：0.1.0 起步实现
 >
-> 当前版本已经提供模块目录、官方基础模块生成、`module.yml` 扫描、依赖排序和 `/ws modules` 诊断命令。现有 Editor、Toast、Atmosphere、RPG、Placeholder 能力仍随主插件内置运行，后续再逐步迁出为可执行外置模块。
+> 当前版本已经提供模块目录、官方基础模块生成、`module.yml` 扫描、依赖排序、外置模块生命周期入口和 `/ws modules` 管理命令。现有 Editor、Toast、Atmosphere、RPG、Placeholder 能力仍随主插件内置运行，后续再逐步迁出为独立外置模块。
 
 ## 目标
 
@@ -36,8 +36,8 @@ disabled: []
 ```
 
 - `auto-install-official`：缺失官方基础模块 JAR 时自动生成。
-- `load-external`：是否执行带 `main` 类的外置模块，默认关闭。
-- `disabled`：预留给后续外置模块禁用。当前官方基础模块仍由主插件内置运行，不会关闭现有功能。
+- `load-external`：是否执行带 `main` 类的外置模块，默认关闭。只有明确开启后，WorldScript 才会加载第三方或后续拆分出的外置模块入口。
+- `disabled`：外置模块禁用列表。当前官方基础模块仍由主插件内置运行，不会关闭现有功能。
 
 ### 命令
 
@@ -49,7 +49,7 @@ disabled: []
 /ws modules reload
 ```
 
-`enable` 和 `disable` 会维护 `settings/modules.yml` 的禁用列表。当前官方基础模块仍由主插件内置运行，因此不能单独禁用；该命令主要为后续真实外置模块拆分预留。`reload` 会重新扫描模块描述。完整替换外置模块 JAR 仍建议重启服务器。
+`enable` 和 `disable` 会维护 `settings/modules.yml` 的禁用列表。当前官方基础模块仍由主插件内置运行，因此不能单独禁用；外置模块可以通过该命令启用或禁用。`reload` 会卸载已加载外置模块、重新扫描模块描述并按依赖顺序加载。完整替换外置模块 JAR 仍建议重启服务器。
 
 ### 模块描述
 
@@ -70,7 +70,7 @@ dependencies:
 soft-dependencies: []
 ```
 
-当前官方基础模块使用 `builtin: true`，代表功能仍由主插件内置提供。未来外置模块可填写 `main` 指向实现 `WorldScriptModule` 的入口类。
+当前官方基础模块使用 `builtin: true`，代表功能仍由主插件内置提供。外置模块必须使用 `official: false`、`builtin: false`、`required: false`，并填写 `main` 指向实现 `WorldScriptModule` 的入口类。
 
 ## 已确定的规则
 
@@ -79,6 +79,7 @@ soft-dependencies: []
 - `core` 为 required 模块，不允许通过配置禁用。
 - `editor`、`toast`、`atmosphere`、`rpg`、`placeholder` 默认生成并显示为内置模块。
 - 缺失、格式不合法或版本不兼容的模块只会影响自身状态，不应导致主插件整体启动失败。
+- 非官方外置模块不能伪造 `official`、`builtin` 或 `required` 标记。
 
 ### 模块依赖
 
@@ -115,13 +116,26 @@ interface WorldScriptModule {
 
 模块可以通过 `ModuleContext` 访问主插件、日志、服务注册表、监听器注册和模块私有配置入口。
 
+## 外置模块加载
+
+外置模块满足以下条件后可以被加载：
+
+- `module.yml` 中存在合法模块 ID。
+- `api-version` 与当前模块 API 一致。
+- `worldscript-version` 与当前 WorldScript 版本兼容。
+- `main` 指向的类实现 `WorldScriptModule`。
+- 入口实例的 `id` 与 `module.yml` 中的 `id` 一致。
+- `settings/modules.yml` 中 `load-external: true`。
+- 模块没有出现在 `disabled` 列表中，也没有放在 `modules/disabled/` 目录。
+
+加载失败只会让该模块显示为失败状态，不会中断主插件启动。模块通过 `ModuleContext.registerListener` 注册的监听器会在模块重载或关闭时清理。
+
 ## 非目标
 
 本规划暂不包含：
 
 - 默认执行第三方任意 JAR
 - 模块市场或在线下载
-- 不重启服务器的完整热更新
 - 将所有现有功能拆分为模块
 
 ## 后续讨论项

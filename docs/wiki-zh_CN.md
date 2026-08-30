@@ -242,7 +242,7 @@ load-external: false
 disabled: []
 ```
 
-外置模块执行默认关闭，当前版本只识别官方基础模块描述。官方基础模块仍由主插件内置运行，`disabled` 不会关闭现有功能；真正外置模块拆分后再开放禁用行为。
+外置模块执行默认关闭。管理员明确设置 `load-external: true` 后，WorldScript 才会加载实现 `WorldScriptModule` 的外置模块入口。官方基础模块仍由主插件内置运行，`disabled` 不会关闭现有功能；外置模块可以通过 `disabled`、`/ws modules enable` 和 `/ws modules disable` 管理。
 
 ## 11. 排错顺序
 
