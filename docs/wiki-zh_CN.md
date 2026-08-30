@@ -215,6 +215,8 @@ particle:
 /ws progress <玩家> <区域ID> <unlock|complete>
 /ws modules list
 /ws modules info <模块ID>
+/ws modules enable <模块ID>
+/ws modules disable <模块ID>
 ```
 
 ## 10. 模块系统

@@ -74,5 +74,6 @@ data class ModuleReport(
     val descriptor: ModuleDescriptor,
     val source: String,
     val state: ModuleState,
-    val reason: String,
+    val reasonKey: String,
+    val detail: String = "",
 )

@@ -7,6 +7,7 @@ import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l1.region_core.PolygonEditingService
 import com.worldscript.foundation.SettingsLayout
 import com.worldscript.foundation.module.ModuleState
+import com.worldscript.foundation.module.ModuleToggleResult
 import com.worldscript.foundation.module.WorldScriptModuleManager
 import com.worldscript.modules.l2.rpg.PlayerVariableService
 import com.worldscript.modules.l2.script_actions.ToastService
@@ -228,7 +229,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
                         "name" to report.descriptor.name,
                         "version" to report.descriptor.version,
                         "state" to moduleStateKey(report.state),
-                        "reason" to report.reason,
+                        "reason" to moduleReason(report),
                     )
                 }
             }
@@ -243,15 +244,33 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
                 }
                 lang.send(sender, "modules-info-header", "id" to report.descriptor.id, "name" to report.descriptor.name)
                 lang.send(sender, "modules-info-version", "version" to report.descriptor.version, "api" to report.descriptor.apiVersion, "state" to moduleStateKey(report.state))
-                lang.send(sender, "modules-info-source", "source" to report.source, "reason" to report.reason)
+                lang.send(sender, "modules-info-source", "source" to report.source, "reason" to moduleReason(report))
                 lang.send(sender, "modules-info-dependencies", "dependencies" to report.descriptor.dependencies.joinToString(", ").ifBlank { "-" })
             }
+            "enable" -> toggleModule(sender, args.getOrNull(2), enable = true)
+            "disable" -> toggleModule(sender, args.getOrNull(2), enable = false)
             "reload" -> {
                 moduleManager.reload()
                 lang.send(sender, "modules-reloaded", "count" to moduleManager.all().size)
             }
             else -> lang.send(sender, "modules-usage")
         }
+    }
+
+    private fun toggleModule(sender: CommandSender, id: String?, enable: Boolean) {
+        if (id.isNullOrBlank()) {
+            lang.send(sender, if (enable) "modules-enable-usage" else "modules-disable-usage")
+            return
+        }
+        val result = if (enable) moduleManager.enable(id) else moduleManager.disable(id)
+        val key = when (result) {
+            ModuleToggleResult.CHANGED -> if (enable) "modules-enabled" else "modules-disabled"
+            ModuleToggleResult.UNCHANGED -> if (enable) "modules-enable-unchanged" else "modules-disable-unchanged"
+            ModuleToggleResult.NOT_FOUND -> "modules-not-found"
+            ModuleToggleResult.REQUIRED -> "modules-disable-required"
+            ModuleToggleResult.BUILTIN -> "modules-disable-builtin"
+        }
+        lang.send(sender, key, "module" to id.trim())
     }
 
     private fun test(sender: CommandSender, args: Array<out String>) {
@@ -338,8 +357,8 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         args.size == 2 && args[0].equals("toast", true) -> listOf("test", "diagnose")
         args.size == 3 && args[0].equals("toast", true) && args[1].equals("diagnose", true) -> regions.all().map { it.id }
         args.size == 3 && args[0].equals("toast", true) && args[1].equals("test", true) -> Bukkit.getOnlinePlayers().map { it.name }
-        args.size == 2 && args[0].equals("modules", true) -> listOf("list", "info", "reload")
-        args.size == 3 && args[0].equals("modules", true) && args[1].equals("info", true) -> moduleManager.all().map { it.descriptor.id }
+        args.size == 2 && args[0].equals("modules", true) -> listOf("list", "info", "enable", "disable", "reload")
+        args.size == 3 && args[0].equals("modules", true) && args[1].lowercase() in setOf("info", "enable", "disable") -> moduleManager.all().map { it.descriptor.id }
         args.size == 2 && args[0].equals("language", true) -> listOf("reload", "en_US", "zh_CN", "zh_TW")
         args.size == 2 && args[0].equals("test", true) -> regions.all().map { it.id }
         args.size == 2 -> regions.all().map { it.id }
@@ -352,4 +371,7 @@ class WsCommand(private val plugin: org.bukkit.plugin.java.JavaPlugin, private v
         ModuleState.DISABLED -> lang.text("modules-state-disabled", "disabled")
         ModuleState.FAILED -> lang.text("modules-state-failed", "failed")
     }
+
+    private fun moduleReason(report: com.worldscript.foundation.module.ModuleReport): String =
+        lang.text(report.reasonKey, report.reasonKey, "detail" to report.detail)
 }

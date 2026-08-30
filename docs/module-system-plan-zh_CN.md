@@ -44,10 +44,12 @@ disabled: []
 ```text
 /ws modules list
 /ws modules info <模块ID>
+/ws modules enable <模块ID>
+/ws modules disable <模块ID>
 /ws modules reload
 ```
 
-`reload` 会重新扫描模块描述，并调用已加载外置模块的停用流程。完整替换外置模块 JAR 仍建议重启服务器。
+`enable` 和 `disable` 会维护 `settings/modules.yml` 的禁用列表。当前官方基础模块仍由主插件内置运行，因此不能单独禁用；该命令主要为后续真实外置模块拆分预留。`reload` 会重新扫描模块描述。完整替换外置模块 JAR 仍建议重启服务器。
 
 ### 模块描述
 

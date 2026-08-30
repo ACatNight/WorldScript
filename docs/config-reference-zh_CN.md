@@ -141,6 +141,8 @@ worldscript-placeholder.jar
 ```text
 /ws modules list
 /ws modules info toast
+/ws modules enable toast
+/ws modules disable toast
 /ws modules reload
 ```
 

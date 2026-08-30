@@ -1,5 +1,6 @@
 package com.worldscript.foundation.module
 
+import com.worldscript.foundation.SettingsLayout
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
@@ -36,6 +37,30 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
 
     fun find(id: String): ModuleReport? = reports.firstOrNull { it.descriptor.id.equals(id, true) }
 
+    fun disable(id: String): ModuleToggleResult {
+        val normalized = id.trim().lowercase()
+        val descriptor = officialById[normalized] ?: return ModuleToggleResult.NOT_FOUND
+        if (descriptor.required) return ModuleToggleResult.REQUIRED
+        if (descriptor.builtin) return ModuleToggleResult.BUILTIN
+        val disabled = disabledIds().toMutableSet()
+        if (!disabled.add(normalized)) return ModuleToggleResult.UNCHANGED
+        plugin.config.set("modules.disabled", disabled.sorted())
+        SettingsLayout.save(plugin, "modules")
+        reload()
+        return ModuleToggleResult.CHANGED
+    }
+
+    fun enable(id: String): ModuleToggleResult {
+        val normalized = id.trim().lowercase()
+        officialById[normalized] ?: return ModuleToggleResult.NOT_FOUND
+        val disabled = disabledIds().toMutableSet()
+        if (!disabled.remove(normalized)) return ModuleToggleResult.UNCHANGED
+        plugin.config.set("modules.disabled", disabled.sorted())
+        SettingsLayout.save(plugin, "modules")
+        reload()
+        return ModuleToggleResult.CHANGED
+    }
+
     private fun installOfficialModules() {
         officialModules.forEach { descriptor ->
             val file = File(modulesDirectory, "worldscript-${descriptor.id}.jar")
@@ -67,13 +92,13 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
             ?.forEach { file ->
                 val descriptor = readDescriptor(file)
                 if (descriptor == null) {
-                    reports += failedPlaceholder(file.name, "Missing or invalid module.yml")
+                    reports += failedPlaceholder(file.name, "modules-reason-invalid-descriptor")
                 } else {
                     val official = officialById[descriptor.id]
                     if (official == null) {
-                        reports += ModuleReport(descriptor, file.name, ModuleState.FAILED, "Unknown module id")
+                        reports += ModuleReport(descriptor, file.name, ModuleState.FAILED, "modules-reason-unknown")
                     } else if (!matchesOfficialCatalog(descriptor, official)) {
-                        reports += ModuleReport(descriptor, file.name, ModuleState.FAILED, "Official module descriptor does not match the catalog")
+                        reports += ModuleReport(descriptor, file.name, ModuleState.FAILED, "modules-reason-catalog-mismatch")
                     } else {
                         result += ModuleCandidate(official, file.name, disabledByDirectory)
                     }
@@ -107,11 +132,11 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
             val id = candidate.descriptor.id
             if (id in visited) return
             if (!visiting.add(id)) {
-                reports += ModuleReport(candidate.descriptor, candidate.source, ModuleState.FAILED, "Circular dependency")
+                reports += ModuleReport(candidate.descriptor, candidate.source, ModuleState.FAILED, "modules-reason-circular-dependency")
                 return
             }
             candidate.descriptor.dependencies.forEach { dependency ->
-                unique[dependency]?.let(::visit) ?: reports.add(ModuleReport(candidate.descriptor, candidate.source, ModuleState.FAILED, "Missing dependency: $dependency"))
+                unique[dependency]?.let(::visit) ?: reports.add(ModuleReport(candidate.descriptor, candidate.source, ModuleState.FAILED, "modules-reason-missing-dependency", dependency))
             }
             visiting.remove(id)
             visited += id
@@ -125,21 +150,49 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
         val descriptor = candidate.descriptor
         val disabled = candidate.disabledByDirectory || descriptor.id in disabledIds()
         if (disabled && !descriptor.required && !descriptor.builtin) {
-            reports += ModuleReport(descriptor, candidate.source, ModuleState.DISABLED, "Disabled by configuration")
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.DISABLED, "modules-reason-disabled")
             return
         }
         if (!supportsApi(descriptor.apiVersion)) {
-            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "Unsupported module API ${descriptor.apiVersion}")
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "modules-reason-api-unsupported", descriptor.apiVersion.toString())
+            return
+        }
+        if (!supportsWorldScriptVersion(descriptor.worldScriptVersion)) {
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "modules-reason-version-unsupported", descriptor.worldScriptVersion)
             return
         }
         if (reports.any { it.descriptor.id == descriptor.id && it.state == ModuleState.FAILED }) return
-        reports += ModuleReport(descriptor, candidate.source, ModuleState.BUILTIN, "Built-in module descriptor")
+        reports += ModuleReport(descriptor, candidate.source, ModuleState.BUILTIN, "modules-reason-builtin")
     }
 
     private fun disabledIds(): Set<String> =
         plugin.config.getStringList("modules.disabled").map { it.trim().lowercase() }.filter { it.isNotBlank() }.toSet()
 
     private fun supportsApi(apiVersion: Int): Boolean = apiVersion == MODULE_API_VERSION
+
+    private fun supportsWorldScriptVersion(requirement: String): Boolean {
+        val current = plugin.description.version
+        val trimmed = requirement.trim()
+        if (trimmed.isBlank()) return true
+        return when {
+            trimmed.startsWith(">=") -> compareVersions(current, trimmed.removePrefix(">=").trim()) >= 0
+            trimmed.startsWith("=") -> compareVersions(current, trimmed.removePrefix("=").trim()) == 0
+            else -> compareVersions(current, trimmed) == 0
+        }
+    }
+
+    private fun compareVersions(current: String, required: String): Int {
+        val left = versionParts(current)
+        val right = versionParts(required)
+        for (index in 0 until maxOf(left.size, right.size)) {
+            val difference = (left.getOrNull(index) ?: 0) - (right.getOrNull(index) ?: 0)
+            if (difference != 0) return difference
+        }
+        return 0
+    }
+
+    private fun versionParts(version: String): List<Int> =
+        version.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
 
     private fun failedPlaceholder(source: String, reason: String): ModuleReport {
         return ModuleReport(
@@ -182,4 +235,12 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
                 descriptor.required == official.required
         }
     }
+}
+
+enum class ModuleToggleResult {
+    CHANGED,
+    UNCHANGED,
+    NOT_FOUND,
+    REQUIRED,
+    BUILTIN,
 }
