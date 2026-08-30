@@ -135,6 +135,7 @@ worldscript-editor.jar
 worldscript-toast.jar
 worldscript-atmosphere.jar
 worldscript-spawn.jar
+worldscript-protect.jar
 worldscript-rpg.jar
 worldscript-placeholder.jar
 ```
@@ -148,6 +149,23 @@ worldscript-placeholder.jar
 /ws modules disable toast
 /ws modules reload
 ```
+
+## Protect 区域保护
+
+保护配置位于 `plugins/WorldScript/settings/protect.yml`。第一期主要控制 PVP：
+
+```yaml
+enabled: true
+pvp:
+  enabled: true
+  default-allow: true
+  blocked-statuses:
+    - peaceful
+  allowed-statuses:
+    - dangerous
+```
+
+默认情况下，区域状态包含 `peaceful` 时禁止 PVP，包含 `dangerous` 时允许 PVP。执行 `/ws protect test` 可以查看玩家当前位置的判断结果。
 
 ## 刷怪模块
 

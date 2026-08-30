@@ -17,6 +17,7 @@ In short: your quest plugin handles the quest flow; WorldScript handles where th
 - PlaceholderAPI variables
 - Built-in module catalog and guarded external module loading
 - Spawn module with optional MythicMobs selection
+- PVP protection controlled by region status
 
 ## Download
 
@@ -37,3 +38,4 @@ Found a bug, have a suggestion, or want to talk about future features?
 4. [Editor](editor.md)
 5. [Toast & Discovery](discovery-toast.md)
 6. [Spawn Module](spawn.md)
+7. [Protect Module](protect.md)

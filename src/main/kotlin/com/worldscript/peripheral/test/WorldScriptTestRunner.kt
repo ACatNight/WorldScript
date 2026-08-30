@@ -21,6 +21,8 @@ import com.worldscript.modules.l2.script_actions.AdvancementToastPayload
 import com.worldscript.integration.placeholder.PlaceholderRequest
 import com.worldscript.integration.placeholder.RegionNameFormatter
 import com.worldscript.foundation.module.WorldScriptModuleManager
+import com.worldscript.modules.l3.protect.ProtectPolicy
+import com.worldscript.modules.l3.protect.ProtectPvpSettings
 import java.io.File
 
 object WorldScriptTestRunner {
@@ -141,7 +143,7 @@ object WorldScriptTestRunner {
 
         val officialIds = WorldScriptModuleManager.officialModules.map { it.id }
         val toastDescriptor = WorldScriptModuleManager.officialModules.first { it.id == "toast" }
-        check(officialIds.containsAll(listOf("core", "editor", "toast", "atmosphere", "spawn", "rpg", "placeholder"))) {
+        check(officialIds.containsAll(listOf("core", "editor", "toast", "atmosphere", "spawn", "protect", "rpg", "placeholder"))) {
             "official module descriptors must include the base WorldScript modules"
         }
         check("api-version: 1" in toastDescriptor.toYaml() && "dependencies:" in toastDescriptor.toYaml()) {
@@ -160,6 +162,15 @@ object WorldScriptTestRunner {
             "external module example must declare its entrypoint and core dependency"
         }
         println("[TEST] PASS modules.descriptor: module.yml and official descriptors are stable")
+
+        val peacefulRegion = parent.copy(statuses = setOf(GlobalRegionStatus.PEACEFUL))
+        val dangerousRegion = parent.copy(statuses = setOf(GlobalRegionStatus.DANGEROUS))
+        val pvpSettings = ProtectPvpSettings(defaultAllow = true, blockedStatuses = setOf("peaceful"), allowedStatuses = setOf("dangerous"))
+        check(!ProtectPolicy.decidePvp(peacefulRegion, pvpSettings).allowed) { "peaceful regions should block PVP" }
+        check(ProtectPolicy.decidePvp(dangerousRegion, pvpSettings).allowed) { "dangerous regions should allow PVP" }
+        check(ProtectPolicy.decidePvp(parent.copy(statuses = emptySet()), pvpSettings).allowed) { "unknown status should follow the default PVP policy" }
+        check(ProtectPolicy.normalizeStatus("safe-zone") == "safe_zone") { "configured protect statuses should normalize consistently" }
+        println("[TEST] PASS protect.policy: status-based PVP decisions are stable")
 
         check(EditorInputParser.condition("permission: region.enter.mine")?.key == "region.enter.mine")
         check(EditorInputParser.condition("%player_level% >= 10")?.value == "10")
@@ -210,6 +221,6 @@ object WorldScriptTestRunner {
             "Toast payload text must be escaped and explicitly request client display"
         }
         println("[TEST] PASS editor.input-parser: conditions and discovery actions are parsed consistently")
-        println("[TEST] SUMMARY region-core: passed=9 failed=0 total=9")
+        println("[TEST] SUMMARY region-core: passed=10 failed=0 total=10")
     }
 }

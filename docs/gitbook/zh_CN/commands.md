@@ -53,3 +53,11 @@
 /ws spawn reload
 ```
 
+## Protect 模块
+
+```text
+/ws protect test [玩家]
+/ws protect reload
+```
+
+`test` 会告诉你玩家当前区域是否允许 PVP。

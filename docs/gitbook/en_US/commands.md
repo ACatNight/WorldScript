@@ -51,3 +51,11 @@
 /ws spawn reload
 ```
 
+## Protect
+
+```text
+/ws protect test [player]
+/ws protect reload
+```
+
+`test` tells you whether the player's current region allows PVP.

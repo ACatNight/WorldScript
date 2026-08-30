@@ -11,7 +11,7 @@ import java.util.WeakHashMap
 
 /** Keeps operator settings split by feature while retaining one runtime lookup tree. */
 object SettingsLayout {
-    private val groups = listOf("selection", "gui", "discovery", "conditions", "messages", "placeholders", "editor", "economy", "modules")
+    private val groups = listOf("selection", "gui", "discovery", "conditions", "messages", "placeholders", "editor", "economy", "modules", "protect")
     private val loaded = WeakHashMap<JavaPlugin, MutableMap<String, FileConfiguration>>()
 
     fun initialize(plugin: JavaPlugin) {

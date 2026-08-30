@@ -12,6 +12,7 @@ WorldScript 是一个面向 Paper 1.12.2 至 1.21.8 的区域脚本插件，用�
 - 选区工具、区域列表、聊天编辑器和 `/ws validate` 配置检查
 - 内置模块目录与受保护的外置模块加载
 - 绑定区域的刷怪规则，支持从 MythicMobs 怪物库点选怪物
+- 按区域状态控制 PVP 保护
 - 内置 TabooLib 6.3.0 与 Kether，可在区域事件中执行高级脚本
 - Kether 可读取玩家变量与区域变量
 
@@ -61,6 +62,8 @@ messages:
 /ws spawn list                   查看刷怪规则
 /ws spawn test <规则ID>          测试刷怪规则
 /ws spawn reload                 重载刷怪配置
+/ws protect test [玩家]          查看当前位置是否允许 PVP
+/ws protect reload               重载区域保护配置
 ```
 
 `/ws progress` 供外部插件回写玩家的区域解锁或完成状态。WorldScript 不管理任务定义和任务步骤。

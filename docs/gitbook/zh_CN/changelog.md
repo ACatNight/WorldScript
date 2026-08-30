@@ -12,6 +12,7 @@
 - 官方基础模块会显示在 `/ws modules list` 里，方便排查功能状态。
 - 旧版生成过的官方模块描述 JAR 会自动刷新，不需要手动删文件。
 - Spawn 模块可以给区域绑定刷怪规则，装了 MythicMobs 后可以直接在 GUI 里点选怪物。
+- Protect 模块加入 PVP 保护，可以用 `peaceful` 和 `dangerous` 这类区域状态控制能不能打人。
 - GitBook 文档补了中英文版本，安装、区域、多边形、Toast、变量、刷怪都有单独页面。
 
 升级后建议做三件事：
@@ -19,3 +20,4 @@
 1. 执行 `/ws validate` 看区域配置有没有旧问题。
 2. 执行 `/ws modules list` 看模块状态。
 3. 如果用了刷怪，执行 `/ws spawn test <规则ID>` 单独测一次。
+4. 如果用了 PVP 保护，站在区域里执行 `/ws protect test` 看判断结果。

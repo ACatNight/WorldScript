@@ -18,6 +18,7 @@ WorldScript is currently fully free and available under the [MIT License](LICENS
 - Selection tool, region list, chat editor, and configuration validation
 - Built-in module catalog with guarded external module loading
 - Region-bound spawn rules with optional MythicMobs mob selection
+- Region-status based PVP protection
 - Embedded TabooLib 6.3.0 runtime with Kether script actions
 - Kether context variables for player and region data
 - Anonymous server metrics through bStats (can be disabled in `plugins/bStats/config.yml`)
@@ -50,6 +51,8 @@ The starter files use the recommended Schema 2 format: [examples](examples). Exi
 /ws spawn list
 /ws spawn test <rule-id>
 /ws spawn reload
+/ws protect test [player]
+/ws protect reload
 ```
 
 `/ws progress` is intended for external plugins to update a player's region progress. WorldScript does not manage quest definitions or quest steps.

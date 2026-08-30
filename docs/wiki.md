@@ -205,6 +205,8 @@ Only the deepest active region displays particles. A child particle setting over
 /ws spawn list
 /ws spawn test <rule-id>
 /ws spawn reload
+/ws protect test [player]
+/ws protect reload
 ```
 
 `/ws progress` is intended for external plugins. It does not define quests or objectives.
@@ -219,6 +221,7 @@ worldscript-editor.jar
 worldscript-toast.jar
 worldscript-atmosphere.jar
 worldscript-spawn.jar
+worldscript-protect.jar
 worldscript-rpg.jar
 worldscript-placeholder.jar
 ```
@@ -240,6 +243,21 @@ The simplest path is:
 ```
 
 Click `[+ Select Mob]`, choose a MythicMobs mob from the GUI when MythicMobs is installed, then tune amount, interval, max alive, player range, and random spawn behavior from the chat editor.
+
+## Region Protection
+
+The Protect module can block PVP based on region status. By default, `peaceful` regions block PVP and `dangerous` regions allow it.
+
+```yaml
+state:
+  statuses: [peaceful]
+```
+
+Check the current result in game:
+
+```text
+/ws protect test
+```
 
 ## Troubleshooting
 

@@ -19,6 +19,7 @@ import com.worldscript.modules.l2.rpg.PlayerVariableService
 import com.worldscript.modules.l2.atmosphere.RegionParticleService
 import com.worldscript.modules.l3.spawn.SpawnMobSelectorGui
 import com.worldscript.modules.l3.spawn.SpawnService
+import com.worldscript.modules.l3.protect.ProtectService
 import com.worldscript.integration.placeholder.WorldScriptPlaceholderExpansion
 import com.worldscript.integration.taboolib.TabooLibBridge
 import com.worldscript.foundation.MaterialResolver
@@ -49,6 +50,7 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
     private lateinit var moduleManager: WorldScriptModuleManager
     private lateinit var spawnService: SpawnService
     private lateinit var spawnMobSelectorGui: SpawnMobSelectorGui
+    private lateinit var protectService: ProtectService
     private var placeholderExpansion: WorldScriptPlaceholderExpansion? = null
 
     override fun onEnable() {
@@ -82,12 +84,13 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         spawnService = SpawnService(this, regionCore)
         spawnService.start()
         spawnMobSelectorGui = SpawnMobSelectorGui(this, spawnService)
+        protectService = ProtectService(this, regionCore)
         val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards, toasts)
         val events = RegionEventServiceImpl(this, regionCore, playerVariables, conditions, actions::executeConditionFailure, editorTools)
         val gui = RegionGuiService(this, regionCore)
         val selection = SelectionService(this)
         polygons = PolygonEditingService(this, regionCore, editorTools)
-        val command = WsCommand(this, regionCore, selection, polygons, playerVariables, toasts, editorTools, moduleManager, spawnService)
+        val command = WsCommand(this, regionCore, selection, polygons, playerVariables, toasts, editorTools, moduleManager, spawnService, protectService)
         command.guiOpener = { player -> gui.openList(player) }
         command.settingsOpener = { player -> gui.openSettings(player) }
         val presets = ActionPresetCatalog(this)
@@ -104,6 +107,7 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
             SettingsLayout.reload(this)
             moduleManager.reload()
             spawnService.reload()
+            protectService.reload(refreshSettingsLayout = false)
             particles.invalidate()
             events.reset()
             actions.reset()
@@ -122,6 +126,7 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         server.pluginManager.registerEvents(gui, this)
         server.pluginManager.registerEvents(spawnService, this)
         server.pluginManager.registerEvents(spawnMobSelectorGui, this)
+        server.pluginManager.registerEvents(protectService, this)
         server.pluginManager.registerEvents(chatEditor, this)
         server.pluginManager.registerEvents(RegionSelectionListener(this, selection, polygons, editorTools), this)
         registerPlaceholderExpansion()

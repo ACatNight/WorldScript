@@ -16,6 +16,7 @@ WorldScript 是给 Paper 服务器做“区域玩法”的插件。
 - 用聊天栏编辑器改配置，不用一直翻 YAML
 - 给 HUD、计分板、Tab 提供 PlaceholderAPI 变量
 - 在区域里随机刷怪，支持 MythicMobs 怪物库点选
+- 用区域状态控制 PVP，比如主城不能打人、危险区可以打人
 - 用 `modules/` 目录管理后续模块扩展
 
 ## 下载
@@ -37,3 +38,4 @@ WorldScript 是给 Paper 服务器做“区域玩法”的插件。
 4. [编辑器](editor.md)
 5. [Toast 与发现提示](discovery-toast.md)
 6. [Spawn 怪物刷新](spawn.md)
+7. [Protect 区域保护](protect.md)

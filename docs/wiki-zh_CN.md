@@ -220,6 +220,8 @@ particle:
 /ws spawn list
 /ws spawn test <规则ID>
 /ws spawn reload
+/ws protect test [玩家]
+/ws protect reload
 ```
 
 ## 10. 模块系统
@@ -232,6 +234,7 @@ worldscript-editor.jar
 worldscript-toast.jar
 worldscript-atmosphere.jar
 worldscript-spawn.jar
+worldscript-protect.jar
 worldscript-rpg.jar
 worldscript-placeholder.jar
 ```
@@ -278,7 +281,24 @@ plugins/WorldScript/modules/spawn/config.yml
 
 默认规则会绑定当前区域 ID，在区域内随机找安全位置；每次随机生成 1~3 只，硬上限默认为 10。区域内或附近有玩家时才刷新，并默认避免刷在玩家脸上。
 
-## 12. 排错顺序
+## 12. 区域保护
+
+Protect 模块可以按区域状态控制 PVP。默认规则是：`peaceful` 禁止 PVP，`dangerous` 允许 PVP。
+
+主城、安全区可以这样写：
+
+```yaml
+state:
+  statuses: [peaceful]
+```
+
+站在区域里测试：
+
+```text
+/ws protect test
+```
+
+## 13. 排错顺序
 
 1. 先执行 `/ws validate [区域ID]`。
 2. 检查区域文件是否放在 `plugins/WorldScript/regions/`。
@@ -290,7 +310,7 @@ plugins/WorldScript/modules/spawn/config.yml
 8. 如果模块相关功能异常，执行 `/ws modules list` 和 `/ws modules info <模块ID>` 查看状态。
 9. 如果刷怪不出现，先执行 `/ws spawn list` 查看规则，再执行 `/ws spawn test <规则ID>` 检查区域、世界、玩家距离、安全点和 MythicMobs 状态。
 
-## 13. 兼容性和构建
+## 14. 兼容性和构建
 
 目标平台为 Paper 1.12.2 至 1.21.8。不同 Minecraft 版本需要对应 Java：1.12.2-1.16.x 使用 Java 8，1.17-1.20.4 使用 Java 17，1.20.5-1.21.8 使用 Java 21。发布前应在目标服务器版本进行实际冒烟测试。
 
@@ -302,7 +322,7 @@ gradlew.bat clean build
 
 项目使用 MIT License，欢迎提交 Issue、配置示例和 Pull Request。
 
-## 14. 语言文件
+## 15. 语言文件
 
 语言文件位于插件目录的 `lang/`：
 

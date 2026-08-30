@@ -12,6 +12,7 @@ Worth checking in this release:
 - Official built-in modules show up in `/ws modules list`, which makes feature status easier to diagnose.
 - Old official module descriptor JARs are refreshed automatically, so you do not need to delete them by hand after upgrading.
 - The Spawn module can bind mob spawning to regions. With MythicMobs installed, you can pick mobs directly from the GUI.
+- The Protect module adds PVP control through region statuses such as `peaceful` and `dangerous`.
 - The GitBook docs now include Chinese and English pages for installation, regions, polygons, Toasts, variables, and spawning.
 
 After upgrading:
@@ -19,3 +20,4 @@ After upgrading:
 1. Run `/ws validate` to check region files.
 2. Run `/ws modules list` to check module status.
 3. If you use spawning, run `/ws spawn test <rule-id>` once for each important rule.
+4. If you use PVP protection, stand in the region and run `/ws protect test`.

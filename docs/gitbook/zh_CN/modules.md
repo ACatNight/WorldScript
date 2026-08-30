@@ -14,6 +14,7 @@ worldscript-editor.jar
 worldscript-toast.jar
 worldscript-atmosphere.jar
 worldscript-spawn.jar
+worldscript-protect.jar
 worldscript-rpg.jar
 worldscript-placeholder.jar
 ```

@@ -14,6 +14,7 @@ worldscript-editor.jar
 worldscript-toast.jar
 worldscript-atmosphere.jar
 worldscript-spawn.jar
+worldscript-protect.jar
 worldscript-rpg.jar
 worldscript-placeholder.jar
 ```
@@ -36,4 +37,3 @@ External modules are disabled by default. Set `load-external: true` only when yo
 /ws modules list
 /ws modules info spawn
 ```
-

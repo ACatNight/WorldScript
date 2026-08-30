@@ -1,0 +1,15 @@
+enabled: true
+pvp:
+  enabled: true
+  # Used when none of the region statuses below match.
+  default-allow: true
+  # If the attacker or victim is inside a region with one of these statuses,
+  # PVP is blocked.
+  blocked-statuses:
+    - peaceful
+  # These statuses explicitly allow PVP unless another matched status blocks it.
+  allowed-statuses:
+    - dangerous
+  message:
+    enabled: true
+    cooldown-ms: 1500

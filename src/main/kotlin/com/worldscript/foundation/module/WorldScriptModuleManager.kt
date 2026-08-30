@@ -308,7 +308,8 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
             ModuleDescriptor("toast", "WorldScript Toast", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core"), emptyList(), true, true, false),
             ModuleDescriptor("atmosphere", "WorldScript Atmosphere", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core", "rpg"), emptyList(), true, true, false),
             ModuleDescriptor("spawn", "WorldScript Spawn", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core"), listOf("MythicMobs"), true, true, false),
-            ModuleDescriptor("editor", "WorldScript Editor", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core", "rpg", "toast", "atmosphere", "spawn"), emptyList(), true, true, false),
+            ModuleDescriptor("protect", "WorldScript Protect", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core"), emptyList(), true, true, false),
+            ModuleDescriptor("editor", "WorldScript Editor", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core", "rpg", "toast", "atmosphere", "spawn", "protect"), emptyList(), true, true, false),
             ModuleDescriptor("placeholder", "WorldScript PlaceholderAPI", OFFICIAL_MODULE_VERSION, MODULE_API_VERSION, OFFICIAL_WORLD_SCRIPT_REQUIREMENT, "", listOf("core", "rpg"), listOf("PlaceholderAPI"), true, true, false),
         )
         private val officialById = officialModules.associateBy { it.id }
