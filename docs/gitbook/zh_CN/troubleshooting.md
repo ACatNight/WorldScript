@@ -1,33 +1,64 @@
 # 常见问题
 
-## 区域没有触发
+## 区域没触发
 
-1. 执行 `/ws validate <区域ID>`。
-2. 检查世界名和坐标。
-3. 检查事件是否 `enabled: true`。
-4. 检查进入条件是否满足。
-5. 检查父子区域是否覆盖正确。
+先跑：
+
+```text
+/ws validate <区域ID>
+```
+
+然后看这几个：
+
+- 世界名对不对
+- 坐标范围有没有圈住玩家
+- 事件是不是 `enabled: true`
+- 进入条件是不是没达到
+- 子区域是不是被父区域覆盖了
 
 ## Toast 不弹
 
-1. 执行 `/ws toast diagnose <区域ID>`。
-2. 检查 Toast 是否启用。
-3. 检查图标是否是当前版本存在的物品。
-4. 使用 `/ws toast test <区域ID>` 直接预览。
+先跑：
 
-## 怪物不刷新
+```text
+/ws toast diagnose <区域ID>
+```
 
-1. 执行 `/ws spawn list`。
-2. 执行 `/ws spawn test <规则ID>`。
-3. 检查 MythicMobs 是否安装。
-4. 检查 MM 怪物 ID 是否存在。
-5. 检查区域内是否有安全落点。
-6. 检查最大存活数量是否达到上限。
+再看：
+
+- Toast 开关有没有开
+- 图标物品是不是当前版本存在
+- 玩家是不是已经发现过这个区域
+- 你是不是应该用 `/ws toast test <区域ID>` 做预览
+
+## 怪物不刷
+
+先看规则：
+
+```text
+/ws spawn list
+```
+
+再单独测试：
+
+```text
+/ws spawn test <规则ID>
+```
+
+常见原因：
+
+- MythicMobs 没装
+- MM 怪物 ID 写错
+- 区域里没有安全落点
+- 最大存活已经满了
+- 附近没有玩家
 
 ## Placeholder 不显示
 
-1. 确认安装 PlaceholderAPI。
-2. 执行 `/ws reload`。
-3. 用 `/papi parse me %worldscript_region_name%` 单独测试。
-4. 确认计分板、Tab 或 HUD 插件支持 PAPI。
+先测：
 
+```text
+/papi parse me %worldscript_region_name%
+```
+
+如果这里正常，但 HUD/计分板不显示，那就是对应显示插件没解析 PAPI。

@@ -1,12 +1,12 @@
 # 模块系统
 
-WorldScript 1.0.0 会在插件目录生成：
+WorldScript 1.0.0 会生成一个模块目录：
 
 ```text
 plugins/WorldScript/modules/
 ```
 
-默认生成官方基础模块描述 JAR：
+默认会有这些官方模块描述：
 
 ```text
 worldscript-core.jar
@@ -18,7 +18,7 @@ worldscript-rpg.jar
 worldscript-placeholder.jar
 ```
 
-这些官方模块目前仍由主插件内置运行。模块 JAR 主要用于模块识别、状态诊断和后续外置模块扩展。
+先说明白：这些官方模块现在还是由主插件内置运行。这里的 JAR 主要是为了模块识别、状态查看和以后做外置模块。
 
 ## 配置
 
@@ -28,12 +28,19 @@ load-external: false
 disabled: []
 ```
 
-外置模块默认不执行。只有管理员明确设置 `load-external: true` 后，WorldScript 才会加载外置模块入口类。
+`load-external` 默认是 `false`，这是故意的。不要让服务器随便加载未知 JAR。
 
-## 查看状态
+你真的要加载外置模块，再把它改成：
+
+```yaml
+load-external: true
+```
+
+## 看模块状态
 
 ```text
 /ws modules list
 /ws modules info spawn
 ```
 
+如果模块显示失败，先看 `info` 给出的原因。

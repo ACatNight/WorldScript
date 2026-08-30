@@ -1,6 +1,8 @@
 # Spawn Module
 
-The Spawn module binds spawn rules to regions. When players are near a region, WorldScript can randomly find safe positions inside that region and spawn mobs.
+The Spawn module answers one question: what should spawn in this region?
+
+For example, when players approach a wolf cave, WorldScript can spawn wolves inside the cave. If nobody is nearby, it does nothing and saves performance.
 
 ## Simplest Flow
 
@@ -8,17 +10,33 @@ The Spawn module binds spawn rules to regions. When players are near a region, W
 /ws edit <region-id> spawn
 ```
 
-Then:
+Then click:
 
-1. Click `[+ Select Mob]`.
-2. Choose a MythicMobs mob in the GUI.
-3. A rule is created and bound to the current region.
-4. Tune amount, interval, max alive, player range, and random spawning in the chat editor.
-5. Test the rule.
+```text
+[+ Select Mob]
+```
+
+If MythicMobs is installed, the GUI shows your MythicMobs mob library. Click a mob and WorldScript uses that mob ID.
+
+After the rule is created, tune it in the chat editor:
+
+- amount per spawn
+- spawn interval
+- max alive mobs
+- player range
+- random safe positions
 
 ```text
 /ws spawn test <rule-id>
 ```
+
+## Test
+
+```text
+/ws spawn test <rule-id>
+```
+
+This tells you whether the rule is disabled, the region has no safe location, or the MythicMobs ID does not exist.
 
 ## Common Settings
 
@@ -29,7 +47,6 @@ Then:
 - Player range: spawn only when players are nearby.
 - Random spawning: find safe points inside the region.
 
-## MythicMobs
+## Small tip
 
-When MythicMobs is installed, the GUI reads the MythicMobs mob library. Click a mob to create or update a spawn rule.
-
+Do not start with dense spawns in open-world areas. Begin with low amounts, longer intervals, and a max-alive limit. Then increase it after testing.

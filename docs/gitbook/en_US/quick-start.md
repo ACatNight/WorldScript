@@ -1,6 +1,6 @@
 # Quick Start
 
-This page creates your first region with the fewest steps.
+Start with one simple region. Once that works, add events, Toasts, particles, or spawning.
 
 ## 1. Get the Selection Tool
 
@@ -8,7 +8,10 @@ This page creates your first region with the fewest steps.
 /ws wand
 ```
 
-Left-click the first corner and right-click the second corner.
+The tool goes into your hand.
+
+- Left-click: set the first point
+- Right-click: set the second point
 
 ## 2. Create a Region
 
@@ -24,7 +27,7 @@ Left-click the first corner and right-click the second corner.
 /ws edit starter_valley
 ```
 
-The chat editor exposes region info, events, discovery prompts, particles, polygons, and spawn rules.
+Click buttons where you can. You do not need to open YAML for the common edits.
 
 ## 4. Test
 
@@ -32,4 +35,3 @@ The chat editor exposes region info, events, discovery prompts, particles, polyg
 /ws validate starter_valley
 /ws test starter_valley
 ```
-

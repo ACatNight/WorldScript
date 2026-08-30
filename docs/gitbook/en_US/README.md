@@ -1,10 +1,12 @@
 # WorldScript
 
-WorldScript is a region scripting plugin for Paper 1.12.2 through 1.21.8. It helps server owners build regions, discovery prompts, player progress, event actions, and region-bound gameplay.
+WorldScript is a region gameplay plugin for Paper 1.12.2 through 1.21.8.
 
-It works well for RPG servers, open-world servers, story servers, exploration servers, and event maps. Quest plugins can own quest flow; WorldScript owns location state and region triggers.
+Use it to mark places on your map: a forest entrance, a town square, a dungeon gate, a boss room, a hidden cave. When a player enters that place, WorldScript can show prompts, run actions, check entry rules, update progress, or spawn mobs.
 
-## Features
+In short: your quest plugin handles the quest flow; WorldScript handles where the player is and what should happen there.
+
+## What can it do?
 
 - Cuboid and polygon regions
 - Parent-child regions with inherited variables and states
