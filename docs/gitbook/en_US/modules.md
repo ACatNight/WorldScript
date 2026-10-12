@@ -37,3 +37,20 @@ External modules are disabled by default. Set `load-external: true` only when yo
 /ws modules list
 /ws modules info spawn
 ```
+
+## Services for external modules
+
+An external module can request WorldScript's core services from `onLoad(context)`. The nullable lookup lets a module keep working when an optional service is unavailable.
+
+```kotlin
+val regions = context.service(RegionCoreService::class.java)
+val progress = context.service(PlayerRegionProgressService::class.java)
+```
+
+The currently exposed interfaces are:
+
+- `RegionCoreService`: read and save regions, and query regions at a location.
+- `PlayerRegionProgressService`: read and update a player's unlock, entry, and completion state.
+- `ScriptActionService`: execute a list of region actions.
+
+Use these interfaces instead of depending on WorldScript's internal implementation classes.

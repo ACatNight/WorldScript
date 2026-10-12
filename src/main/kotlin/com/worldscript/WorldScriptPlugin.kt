@@ -25,6 +25,8 @@ import com.worldscript.integration.taboolib.TabooLibBridge
 import com.worldscript.foundation.MaterialResolver
 import com.worldscript.foundation.SettingsLayout
 import com.worldscript.foundation.api.PlayerRegionProgressService
+import com.worldscript.foundation.api.RegionCoreService
+import com.worldscript.foundation.api.ScriptActionService
 import com.worldscript.foundation.module.WorldScriptModuleManager
 import org.bukkit.Material
 import org.bukkit.event.EventHandler
@@ -67,7 +69,9 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         saveResource("presets/actions.yml", false)
         SettingsLayout.initialize(this)
         moduleManager = WorldScriptModuleManager(this)
-        moduleManager.initialize()
+        // Prepare module directories first. External modules are loaded only
+        // after the stable core service interfaces have been registered below.
+        moduleManager.initialize(loadModules = false)
         taboolib = TabooLibBridge(this)
         taboolib.report()
         validateMaterialConfig()
@@ -87,6 +91,10 @@ class WorldScriptPlugin : JavaPlugin(), Listener {
         protectService = ProtectService(this, regionCore)
         val actions = ScriptActionServiceImpl(this, regionCore, playerVariables, conditions, rewards, toasts)
         val events = RegionEventServiceImpl(this, regionCore, playerVariables, conditions, actions::executeConditionFailure, editorTools)
+        moduleManager.registerService(RegionCoreService::class.java, regionCore)
+        moduleManager.registerService(PlayerRegionProgressService::class.java, playerProgress)
+        moduleManager.registerService(ScriptActionService::class.java, actions)
+        moduleManager.reload()
         val gui = RegionGuiService(this, regionCore)
         val selection = SelectionService(this)
         polygons = PolygonEditingService(this, regionCore, editorTools)

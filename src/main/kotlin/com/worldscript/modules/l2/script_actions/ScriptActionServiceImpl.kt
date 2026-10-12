@@ -101,8 +101,6 @@ class ScriptActionServiceImpl(
         val script = regions.effective(regionId)?.events?.get(eventType) ?: return
         if (!script.enabled) return
         val firstEntry = eventType == RegionEventType.ENTER && !state.hasEnteredRegion(player, regionId)
-        if (script.firstEntryOnly && !firstEntry) return
-        if (script.repeatEntryOnly && firstEntry) return
         if (eventType == RegionEventType.ENTER && (!plugin.config.getBoolean("conditions.enabled", false) || !script.conditionsEnabled)) {
             // Conditions are an opt-in global feature.
         } else conditions.firstFailure(player, regionId, script.conditions, script.conditionMode)?.let { failed ->
@@ -114,11 +112,14 @@ class ScriptActionServiceImpl(
             )
             return
         }
+        // A successful entry is progress even when this mode skips its actions.
+        if (firstEntry) state.markRegionEntered(player, regionId)
+        if (script.firstEntryOnly && !firstEntry) return
+        if (script.repeatEntryOnly && firstEntry) return
         val key = "${player.uniqueId}:$regionId:${eventType.name}"
         val now = System.currentTimeMillis()
         if (script.cooldownSeconds > 0 && now - (lastExecution[key] ?: 0) < script.cooldownSeconds * 1000) return
         lastExecution[key] = now
-        if (firstEntry) state.markRegionEntered(player, regionId)
         execute(player, regionId, script.actions)
         rewards.grant(player, regionId, script.rewards, key)
     }

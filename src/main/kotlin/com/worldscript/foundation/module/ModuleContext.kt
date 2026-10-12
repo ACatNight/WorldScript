@@ -42,6 +42,19 @@ class ModuleContext(
         config.save(configFile())
     }
 
+    /**
+     * Looks up a WorldScript service exposed to extension modules.
+     * The lookup is intentionally type-safe and nullable so modules can degrade
+     * gracefully when an optional capability is not available.
+     */
+    fun <T : Any> service(type: Class<T>): T? {
+        return services.get(type)
+    }
+
+    fun <T : Any> requireService(type: Class<T>): T {
+        return service(type) ?: error("WorldScript service ${type.name} is not available")
+    }
+
     internal fun unregisterListeners() {
         listeners.forEach { HandlerList.unregisterAll(it) }
         listeners.clear()

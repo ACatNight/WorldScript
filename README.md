@@ -95,3 +95,7 @@ gradlew.bat clean build
 ```
 
 The jar is written to `build/libs/WorldScript-<version>.jar`.
+
+Build verification needs JDK 8 and JDK 21. Plugin bytecode targets Java 8; the modern API adapter check runs on Java 21. The embedded TabooLib artifact is pinned to the published `6.3.0-75b18a2` version.
+
+Item reward overflow is dropped at the player's feet before a once-only reward is marked as claimed. Configure economy commands in `settings/economy.yml` under `economy-command`.

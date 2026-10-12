@@ -29,10 +29,14 @@ class PolygonEditingService(
         val regionId: String,
         val points: MutableList<PolygonPoint>,
         val toolMarker: String,
-        val undoHistory: MutableList<List<PolygonPoint>> = mutableListOf(),
-        val redoHistory: MutableList<List<PolygonPoint>> = mutableListOf(),
+        val undoHistory: MutableList<Snapshot> = mutableListOf(),
+        val redoHistory: MutableList<Snapshot> = mutableListOf(),
         var selectedIndex: Int? = null,
     )
+
+    /** A history entry includes selection as well as vertices, so undo never
+     * leaves the editor pointing at a different vertex than the player saw. */
+    private data class Snapshot(val points: List<PolygonPoint>, val selectedIndex: Int?)
 
     private val sessions = mutableMapOf<UUID, Session>()
     private val previewTasks = mutableMapOf<UUID, BukkitTask>()
@@ -103,6 +107,7 @@ class PolygonEditingService(
         val index = session.selectedIndex ?: return false
         if (index !in session.points.indices) return false
         val point = PolygonPoint(x, z)
+        if (session.points[index] == point) return false
         if (session.points.withIndex().any { it.index != index && it.value == point }) return false
         remember(session)
         session.points[index] = point
@@ -166,10 +171,10 @@ class PolygonEditingService(
             lang.send(player, "polygon-undo-empty")
             return
         }
-        session.redoHistory += session.points.toList()
+        session.redoHistory += snapshot(session)
         session.points.clear()
-        session.points += previous
-        session.selectedIndex = session.selectedIndex?.takeIf { it in session.points.indices }
+        session.points += previous.points
+        session.selectedIndex = previous.selectedIndex?.takeIf { it in session.points.indices }
         refreshHeldTool(player, session)
         saveDraft(player.uniqueId, session)
         lang.send(player, "polygon-undone", "count" to session.points.size)
@@ -184,10 +189,10 @@ class PolygonEditingService(
             lang.send(player, "polygon-redo-empty")
             return false
         }
-        session.undoHistory += session.points.toList()
+        session.undoHistory += snapshot(session)
         session.points.clear()
-        session.points += next
-        session.selectedIndex = session.selectedIndex?.takeIf { it in session.points.indices }
+        session.points += next.points
+        session.selectedIndex = next.selectedIndex?.takeIf { it in session.points.indices }
         refreshHeldTool(player, session)
         saveDraft(player.uniqueId, session)
         lang.send(player, "polygon-redone", "count" to session.points.size)
@@ -506,10 +511,12 @@ class PolygonEditingService(
 
     private fun remember(session: Session) {
         val maximum = plugin.config.getInt("selection.polygon.history-limit", 32).coerceIn(1, 256)
-        session.undoHistory += session.points.toList()
+        session.undoHistory += snapshot(session)
         while (session.undoHistory.size > maximum) session.undoHistory.removeAt(0)
         session.redoHistory.clear()
     }
+
+    private fun snapshot(session: Session): Snapshot = Snapshot(session.points.toList(), session.selectedIndex)
 
     private companion object {
         const val DEFAULT_MAX_POINTS = 128

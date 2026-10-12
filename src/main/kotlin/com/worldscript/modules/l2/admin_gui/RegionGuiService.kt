@@ -105,9 +105,10 @@ class RegionGuiService(
     @EventHandler
     fun onClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
-        val holder = event.view.topInventory.holder as? RegionGuiHolder ?: return
-        if (event.rawSlot !in 0 until event.view.topInventory.size) return
+        val topInventory = BukkitCompatibility.topInventory(event)
+        val holder = topInventory.holder as? RegionGuiHolder ?: return
         event.isCancelled = true
+        if (event.rawSlot !in 0 until topInventory.size) return
         playSound(player, "click")
         if (holder.page == "toast-icons") {
             handleToastIconClick(player, event)
@@ -181,7 +182,7 @@ class RegionGuiService(
             val feet = world.getBlockAt(x, y, z)
             val head = world.getBlockAt(x, y + 1, z)
             val ground = world.getBlockAt(x, y - 1, z)
-            if (ground.type.isSolid && feet.isPassable && head.isPassable) {
+            if (ground.type.isSolid && BukkitCompatibility.isPassable(feet) && BukkitCompatibility.isPassable(head)) {
                 return org.bukkit.Location(world, x + 0.5, y.toDouble(), z + 0.5)
             }
         }

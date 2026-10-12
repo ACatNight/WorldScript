@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 release fixes
+
+- Fixed inventory menus across legacy and modern Bukkit APIs, including Shift-click item loss.
+- Fixed repeat-entry events, cancelled or redirected movement/teleport effects, and inventory overflow for once-only rewards.
+- Region edits now preserve the source filename; deletion also removes duplicate sources so regions cannot reappear after reload.
+- Spawn reload preserves live entity tracking. Disabled/deleted rules clean up owned mobs, including deferred cleanup for unloaded chunks. The global alive limit is now enforced.
+- Fixed split economy command settings, dependency failure propagation for external modules, case-insensitive variable updates, and PvP notice cache cleanup.
+- Pinned the embedded TabooLib runtime to the published `6.3.0-75b18a2` artifact and added release regression checks.
+
 ## 0.1.93
 
 - Extracted editor input parsing and centralized action storage for maintainable region editing.

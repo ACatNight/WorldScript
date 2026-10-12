@@ -13,7 +13,7 @@ repositories {
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT")
-    compileOnly(files("../../../build/libs/WorldScript-0.1.93.jar"))
+    compileOnly(files("../../../build/libs/WorldScript-1.0.0.jar"))
 }
 
 kotlin {

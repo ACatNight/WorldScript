@@ -15,13 +15,18 @@ import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.event.world.ChunkLoadEvent
+import org.bukkit.event.world.ChunkUnloadEvent
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
+import java.io.File
 
 class SpawnService(
     private val plugin: JavaPlugin,
@@ -31,16 +36,30 @@ class SpawnService(
     val mythicMobs = MythicMobLibrary(plugin)
     private val lang = Lang(plugin)
     private val runtime = linkedMapOf<String, SpawnRuntime>()
+    private val unloaded = mutableMapOf<UUID, Triple<UUID, Int, Int>>()
+    private val pendingRemovals = linkedSetOf<UUID>()
+    private val removalFile = File(plugin.dataFolder, "modules/spawn/pending-removals.yml")
     private var task: BukkitTask? = null
 
     fun start() {
         repository.load()
+        pendingRemovals += YamlConfiguration.loadConfiguration(removalFile).getStringList("entities")
+            .mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }
+        pendingRemovals.toList().forEach { uuid ->
+            Bukkit.getEntity(uuid)?.let { it.remove(); pendingRemovals.remove(uuid) }
+        }
+        savePendingRemovals()
         schedule()
     }
 
     fun reload() {
         repository.reload()
-        runtime.clear()
+        val activeRules = repository.all().filter { it.enabled }.associateBy { it.id }
+        runtime.keys.toList().forEach { id ->
+            if (id !in activeRules) removeRuntime(id)
+            else runtime[id]?.nextSpawnAtMillis = nextTime(activeRules.getValue(id))
+        }
+        savePendingRemovals()
         schedule()
     }
 
@@ -53,7 +72,30 @@ class SpawnService(
     fun close() {
         task?.cancel()
         task = null
-        runtime.clear()
+        runtime.keys.toList().forEach(::removeRuntime)
+        savePendingRemovals()
+        unloaded.clear()
+    }
+
+    private fun removeRuntime(ruleId: String) {
+        runtime.remove(ruleId)?.alive?.forEach(::removeOwnedEntity)
+    }
+
+    private fun removeOwnedEntity(uuid: UUID) {
+        val entity = Bukkit.getEntity(uuid)
+        if (entity != null) entity.remove()
+        else if (uuid in unloaded) pendingRemovals += uuid
+        unloaded.remove(uuid)
+    }
+
+    private fun savePendingRemovals() {
+        runCatching {
+            removalFile.parentFile.mkdirs()
+            YamlConfiguration().apply {
+                set("entities", pendingRemovals.map(UUID::toString))
+                save(removalFile)
+            }
+        }.onFailure { plugin.logger.warning("Could not persist pending spawn cleanup: ${it.message}") }
     }
 
     fun rules(): List<SpawnRule> = repository.all()
@@ -66,11 +108,21 @@ class SpawnService(
     fun createRule(regionId: String, ruleId: String, mobId: String, provider: SpawnProvider): SpawnRule =
         repository.createForRegion(regionId, mobId, provider, ruleId).also { runtime.remove(it.id) }
 
-    fun toggle(ruleId: String): Boolean =
-        repository.update(ruleId) { it.copy(enabled = !it.enabled) }.also { runtime.remove(ruleId) }
+    fun toggle(ruleId: String): Boolean {
+        val rule = repository.find(ruleId) ?: return false
+        val updated = repository.update(rule.id) { it.copy(enabled = !it.enabled) }
+        if (updated && rule.enabled) removeRuntime(rule.id)
+        if (updated) savePendingRemovals()
+        return updated
+    }
 
-    fun delete(ruleId: String): Boolean =
-        repository.delete(ruleId).also { runtime.remove(ruleId) }
+    fun delete(ruleId: String): Boolean {
+        val rule = repository.find(ruleId) ?: return false
+        val deleted = repository.delete(rule.id)
+        if (deleted) removeRuntime(rule.id)
+        if (deleted) savePendingRemovals()
+        return deleted
+    }
 
     fun updateAmount(ruleId: String, range: IntRangeValue): Boolean {
         val hardMax = repository.defaults().hardAmountMax
@@ -134,27 +186,33 @@ class SpawnService(
     }
 
     private fun spawn(rule: SpawnRule, state: SpawnRuntime, forcedPlayer: Player?): SpawnResult {
-        state.alive.removeIf { uuid -> Bukkit.getEntity(uuid) == null || Bukkit.getEntity(uuid)?.isDead == true }
+        runtime.values.forEach { pruneDead(it) }
         if (state.alive.size >= rule.limits.maxAlive) return SpawnResult.LIMIT_REACHED
+        val globalRemaining = repository.globalMaxAlive() - runtime.values.sumOf { it.alive.size }
+        if (globalRemaining <= 0) return SpawnResult.LIMIT_REACHED
         val region = regions.effective(rule.regionId) ?: return SpawnResult.REGION_NOT_FOUND
         val world = Bukkit.getWorld(region.worldId) ?: Bukkit.getWorld(region.worldName) ?: return SpawnResult.WORLD_NOT_FOUND
         val players = world.players.filter { player -> shouldConsiderPlayer(player, region, rule) }
         if (forcedPlayer == null && players.isEmpty()) return SpawnResult.NO_PLAYER
-        val amount = random(rule.amount.min, rule.amount.max).coerceAtMost(rule.limits.maxAlive - state.alive.size)
+        val amount = random(rule.amount.min, rule.amount.max)
+            .coerceAtMost(rule.limits.maxAlive - state.alive.size).coerceAtMost(globalRemaining)
         if (amount <= 0) return SpawnResult.LIMIT_REACHED
         val spawned = mutableListOf<UUID>()
         repeat(amount) {
             val location = findSpawnLocation(world, region, rule, forcedPlayer ?: players.randomOrNull())
             if (location != null) {
                 when (val result = spawnEntity(rule, location)) {
-                    is SpawnEntityResult.Spawned -> spawned += result.entity.uniqueId
+                    is SpawnEntityResult.Spawned -> {
+                        spawned += result.entity.uniqueId
+                        // Track each entity immediately even if a later attempt fails.
+                        state.alive += result.entity.uniqueId
+                    }
                     SpawnEntityResult.InvalidMob -> return SpawnResult.INVALID_MOB
                     SpawnEntityResult.ProviderUnavailable -> return SpawnResult.PROVIDER_UNAVAILABLE
                 }
             }
         }
         if (spawned.isEmpty()) return if (providerAvailable(rule)) SpawnResult.NO_SAFE_LOCATION else SpawnResult.PROVIDER_UNAVAILABLE
-        state.alive += spawned
         state.emptySinceMillis = 0
         return SpawnResult.SUCCESS
     }
@@ -266,7 +324,7 @@ class SpawnService(
     }
 
     private fun cleanup(rule: SpawnRule, state: SpawnRuntime) {
-        state.alive.removeIf { uuid -> Bukkit.getEntity(uuid) == null || Bukkit.getEntity(uuid)?.isDead == true }
+        pruneDead(state)
         if (!rule.cleanup.despawnWhenEmpty) return
         val region = regions.effective(rule.regionId) ?: return
         val world = Bukkit.getWorld(region.worldId) ?: Bukkit.getWorld(region.worldName) ?: return
@@ -280,8 +338,17 @@ class SpawnService(
             return
         }
         if (System.currentTimeMillis() - state.emptySinceMillis < rule.cleanup.delaySeconds * 1000) return
-        state.alive.toList().forEach { uuid -> Bukkit.getEntity(uuid)?.remove() }
+        if (state.alive.isEmpty()) return
+        state.alive.toList().forEach(::removeOwnedEntity)
         state.alive.clear()
+        savePendingRemovals()
+    }
+
+    private fun pruneDead(state: SpawnRuntime) {
+        state.alive.removeIf { uuid ->
+            val entity = Bukkit.getEntity(uuid)
+            entity?.isDead == true || (entity == null && uuid !in unloaded)
+        }
     }
 
     private fun resolveProvider(rule: SpawnRule): SpawnProvider {
@@ -310,6 +377,34 @@ class SpawnService(
     @EventHandler
     fun onDeath(event: EntityDeathEvent) {
         runtime.values.forEach { it.alive.remove(event.entity.uniqueId) }
+        unloaded.remove(event.entity.uniqueId)
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onChunkUnload(event: ChunkUnloadEvent) {
+        if (event.isCancelled) return
+        val tracked = runtime.values.flatMap { it.alive }.toSet()
+        val key = Triple(event.world.uid, event.chunk.x, event.chunk.z)
+        event.chunk.entities.filter { it.uniqueId in tracked }.forEach { unloaded[it.uniqueId] = key }
+    }
+
+    @EventHandler
+    fun onChunkLoad(event: ChunkLoadEvent) {
+        val entities = event.chunk.entities
+        var removalsChanged = false
+        entities.forEach { entity ->
+            if (pendingRemovals.remove(entity.uniqueId)) {
+                entity.remove()
+                removalsChanged = true
+            }
+        }
+        val key = Triple(event.world.uid, event.chunk.x, event.chunk.z)
+        val present = entities.map { it.uniqueId }.toSet()
+        unloaded.filterValues { it == key }.keys.toList().forEach { uuid ->
+            unloaded.remove(uuid)
+            if (uuid !in present) runtime.values.forEach { it.alive.remove(uuid) }
+        }
+        if (removalsChanged) savePendingRemovals()
     }
 
     private fun Location.toBlockPosition() = BlockPosition(blockX, blockY, blockZ)

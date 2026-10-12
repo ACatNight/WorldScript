@@ -367,7 +367,7 @@ class ToastService(private val plugin: JavaPlugin) {
 
     /** Converts legacy & colour codes into a JSON chat component for advancement data. */
     private fun legacyComponent(value: String): String =
-        ComponentSerializer.toString(TextComponent.fromLegacyText(legacyText(value)))
+        ComponentSerializer.toString(*TextComponent.fromLegacyText(legacyText(value)))
 
     private fun legacyText(value: String): String =
         TextFormatter.color(value)

@@ -34,6 +34,8 @@ class SpawnRuleRepository(private val plugin: JavaPlugin) {
 
     fun tickInterval(): Long = config.getLong("tick-interval", 20).coerceIn(1, 20 * 60)
 
+    fun globalMaxAlive(): Int = config.getInt("defaults.limits.global-max-alive", 300).coerceAtLeast(1)
+
     fun defaults(): SpawnDefaults {
         return SpawnDefaults(
             amount = range("defaults.amount", 1, 3, 1, hardAmountMax()),

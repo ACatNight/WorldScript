@@ -13,7 +13,10 @@ Worth checking in this release:
 - Old official module descriptor JARs are refreshed automatically, so you do not need to delete them by hand after upgrading.
 - The Spawn module can bind mob spawning to regions. With MythicMobs installed, you can pick mobs directly from the GUI.
 - Towns and safe zones can use `peaceful` to block PVP; wilderness or arenas can use `dangerous` to keep fighting enabled.
+- External modules can now request the region, player progress, and action interfaces during load without depending on internal classes.
 - The GitBook docs now include Chinese and English pages for installation, regions, polygons, Toasts, variables, and spawning.
+
+Release fixes also address repeat-entry events, rewards triggered by cancelled teleports, full-inventory reward loss, and Shift-click item loss in menus. Region edits preserve their source files, spawn reload retains live counts, and external modules require successfully enabled dependencies.
 
 After upgrading:
 

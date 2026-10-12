@@ -35,12 +35,11 @@ language: zh_CN
 
 修改后执行 `/ws reload`。语言文件位于 `plugins/WorldScript/lang/`；自定义语言文件名称只能使用英文、数字、`_` 和 `-`。
 
-区域进入和离开提示默认关闭，避免玩家在区域边界附近反复移动时刷屏。如需开启，在配置中设置：
+区域进入和离开提示默认关闭，避免玩家在区域边界附近反复移动时刷屏。如需开启，在 `plugins/WorldScript/settings/messages.yml` 中设置：
 
 ```yaml
-messages:
-  region-enter-enabled: true
-  region-leave-enabled: true
+region-enter-enabled: true
+region-leave-enabled: true
 ```
 
 ## 管理命令
@@ -86,6 +85,10 @@ gradlew.bat clean build
 ```
 
 构建产物位于 `build/libs/WorldScript-<版本>.jar`。`check` 会自动执行项目内的逻辑检查。
+
+构建验证需要安装 JDK 8 和 JDK 21：插件编译为 Java 8 字节码，Paper 1.21.8 API 适配检查使用 Java 21。TabooLib 固定使用已发布的 `6.3.0-75b18a2`，避免无法解析的裸版本号。
+
+物品奖励放不进背包时，剩余物品会掉落在玩家脚边；一次性奖励在完成投递后记录领取。经济指令在 `settings/economy.yml` 的 `economy-command` 中修改。
 
 兼容目标为 Paper 1.12.2 至 1.21.8。不同 Minecraft 版本需要使用对应 Java：1.12.2-1.16.x 使用 Java 8，1.17-1.20.4 使用 Java 17，1.20.5-1.21.8 使用 Java 21。当前代码已降为 Java 8 字节码并加入旧版材质回退，但发布前仍需要在各版本服务端进行冒烟测试。
 

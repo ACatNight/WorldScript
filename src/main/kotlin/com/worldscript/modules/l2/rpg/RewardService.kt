@@ -32,7 +32,9 @@ class RewardService(
         return when (reward.type) {
             RewardType.ITEM -> {
                 val material = Material.matchMaterial(reward.value) ?: return false
-                player.inventory.addItem(ItemStack(material, reward.amount.toInt().coerceAtLeast(1)))
+                val remaining = player.inventory.addItem(ItemStack(material, reward.amount.toInt().coerceAtLeast(1)))
+                // Complete delivery before marking a once-only reward as claimed.
+                remaining.values.forEach { item -> player.world.dropItemNaturally(player.location, item) }
                 true
             }
             RewardType.EXPERIENCE -> {
@@ -41,12 +43,10 @@ class RewardService(
             }
             RewardType.MONEY -> {
                 val amount = reward.value.toDoubleOrNull() ?: reward.amount
-                dispatch(plugin.config.getString("economy-command", "eco give %player% %amount%") ?: "eco give %player% %amount%", player, regionId, amount)
-                true
+                dispatch(plugin.config.getString("economy.economy-command", "eco give %player% %amount%") ?: "eco give %player% %amount%", player, regionId, amount)
             }
             RewardType.COMMAND -> {
                 dispatch(reward.value, player, regionId, reward.amount)
-                true
             }
             RewardType.UNLOCK_REGION -> {
                 state.unlockRegion(player, reward.value)
@@ -67,7 +67,6 @@ class RewardService(
                 if (parts.size != 2) return false
                 val status = GlobalRegionStatus.parse(parts[1]) ?: return false
                 regions.setStatus(parts[0].trim(), status, true)
-                true
             }
             RewardType.MESSAGE -> {
                 player.sendMessage(ChatColor.translateAlternateColorCodes('&', placeholders(reward.value, player, regionId, reward.amount)))
@@ -76,9 +75,8 @@ class RewardService(
         }
     }
 
-    private fun dispatch(command: String, player: Player, regionId: String, amount: Double) {
+    private fun dispatch(command: String, player: Player, regionId: String, amount: Double): Boolean =
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), placeholders(command.removePrefix("/"), player, regionId, amount))
-    }
 
     private fun placeholders(value: String, player: Player, regionId: String, amount: Double): String = value
         .replace("%player%", player.name)

@@ -43,10 +43,12 @@ This tells you whether the rule is disabled, the region has no safe location, or
 - Region ID: where mobs spawn.
 - Mob ID: MythicMobs ID or vanilla entity type.
 - Amount: default random 1 to 3.
-- Max alive: default max 10.
+- Max alive: default 30 per rule, with 300 across all rules.
 - Player range: spawn only when players are nearby.
 - Random spawning: find safe points inside the region.
 
 ## Small tip
 
 Do not start with dense spawns in open-world areas. Begin with low amounts, longer intervals, and a max-alive limit. Then increase it after testing.
+
+The default alive limit is 30 per rule and 300 across all rules. Reload preserves current live counts. Disabling or deleting a rule, or shutting down the plugin, removes its spawned mobs. Cleanup in unloaded chunks is deferred until those chunks load; `modules/spawn/pending-removals.yml` stores those pending removals.

@@ -12,6 +12,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
@@ -24,6 +25,11 @@ class ProtectService(
     private var messageEnabled = plugin.config.getBoolean("protect.pvp.message.enabled", true)
     private var messageCooldownMs = plugin.config.getLong("protect.pvp.message.cooldown-ms", 1500L).coerceAtLeast(0L)
     private val lastMessage = mutableMapOf<UUID, Long>()
+
+    @EventHandler
+    fun onQuit(event: PlayerQuitEvent) {
+        lastMessage.remove(event.player.uniqueId)
+    }
 
     fun reload(refreshSettingsLayout: Boolean = true) {
         if (refreshSettingsLayout) SettingsLayout.reload(plugin)

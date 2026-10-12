@@ -221,6 +221,10 @@ object WorldScriptTestRunner {
             "Toast payload text must be escaped and explicitly request client display"
         }
         println("[TEST] PASS editor.input-parser: conditions and discovery actions are parsed consistently")
-        println("[TEST] SUMMARY region-core: passed=10 failed=0 total=10")
+        // Keep this count in sync with the individual PASS lines above.  The
+        // runner is intentionally dependency-free, so count the checks by
+        // maintaining the number here rather than reporting a stale constant.
+        val passedSuites = 12
+        println("[TEST] SUMMARY region-core: passed=$passedSuites failed=0 total=$passedSuites")
     }
 }

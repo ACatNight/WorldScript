@@ -2,6 +2,10 @@ name: WorldScript
 version: ${version}
 main: com.worldscript.WorldScriptPlugin
 description: RPG region scripting plugin for Paper 1.12.2 to 1.21.8.
+# 1.13 is the minimum Bukkit API level that understands api-version.
+# Keep this at the compatibility floor; using 1.21 would unnecessarily
+# opt the plugin out of older Paper servers.
+api-version: '1.13'
 softdepend: [PlaceholderAPI, MythicMobs]
 commands:
   ws:

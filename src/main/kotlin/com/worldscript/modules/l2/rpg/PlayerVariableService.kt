@@ -72,7 +72,10 @@ class PlayerVariableService(private val plugin: JavaPlugin) : Listener, PlayerRe
 
     fun setVariable(player: Player, key: String, value: String) {
         if (key.isBlank()) return
-        stateFor(player.uniqueId).variables[key.trim()] = value
+        val variables = stateFor(player.uniqueId).variables
+        val canonicalKey = key.trim()
+        variables.keys.filter { it.equals(canonicalKey, true) }.forEach(variables::remove)
+        variables[canonicalKey] = value
         markDirty(player.uniqueId)
     }
 

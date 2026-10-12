@@ -45,3 +45,20 @@ load-external: true
 ```
 
 如果模块显示失败，先看 `info` 给出的原因。
+
+## 给外置模块用的服务
+
+外置模块在 `onLoad(context)` 里可以按接口拿到 WorldScript 的基础服务。服务不存在时会返回 `null`，需要时也可以用 `requireService` 让它直接报出原因。
+
+```kotlin
+val regions = context.service(RegionCoreService::class.java)
+val progress = context.service(PlayerRegionProgressService::class.java)
+```
+
+目前公开的核心接口包括：
+
+- `RegionCoreService`：读取和保存区域、查询玩家所在区域。
+- `PlayerRegionProgressService`：读取和修改玩家的解锁、进入、完成状态。
+- `ScriptActionService`：执行一组区域动作。
+
+这些接口比直接依赖主插件内部实现稳定，后续模块也应优先使用接口。

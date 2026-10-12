@@ -27,17 +27,22 @@ import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.nio.file.AtomicMoveNotSupportedException
 
 private data class SpatialKey(val world: String, val cellX: Int, val cellZ: Int)
 
 class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService {
     private val regions = linkedMapOf<String, RegionDefinition>()
+    private val sourceFiles = linkedMapOf<String, MutableList<File>>()
     private var spatialIndex: Map<SpatialKey, List<RegionDefinition>>? = null
     private val loadIssues = mutableListOf<String>()
     private val regionDirectory = File(plugin.dataFolder, "regions")
 
     fun load() {
         regions.clear()
+        sourceFiles.clear()
         spatialIndex = null
         loadIssues.clear()
         if (!regionDirectory.exists()) regionDirectory.mkdirs()
@@ -47,6 +52,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             ?.forEach { file ->
                 readRegion(YamlConfiguration.loadConfiguration(file), file.nameWithoutExtension, "regions/${file.name}")?.let { region ->
                     val key = region.id.lowercase()
+                    sourceFiles.getOrPut(key, ::mutableListOf).add(file)
                     if (regions.containsKey(key)) {
                         loadIssue("regions/${file.name}", "id", "duplicate region id '${region.id}'; file was ignored")
                     } else {
@@ -167,13 +173,44 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
             data.set("$eventPath.conditions-enabled", script.conditionsEnabled)
             data.set("$eventPath.rewards", script.rewards.map { rewardMap(it) })
         }
-        data.save(File(regionDirectory, "${region.id}.yml"))
+        val key = region.id.lowercase()
+        val target = sourceFiles[key]?.firstOrNull() ?: newRegionFile(region.id)
+        val temporary = Files.createTempFile(regionDirectory.toPath(), ".worldscript-", ".tmp")
+        try {
+            data.save(temporary.toFile())
+            try {
+                Files.move(temporary, target.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(temporary, target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+            sourceFiles.getOrPut(key, ::mutableListOf).apply { if (target !in this) add(target) }
+        } finally {
+            Files.deleteIfExists(temporary)
+        }
+    }
+
+    private fun newRegionFile(id: String): File {
+        var target = File(regionDirectory, "$id.yml")
+        var suffix = 2
+        // A user-named source file can belong to another region ID.
+        while (target.exists()) target = File(regionDirectory, "${id}_${suffix++}.yml")
+        return target
     }
 
     override fun delete(id: String): Boolean {
-        val removed = regions.remove(id.trim().lowercase()) ?: return false
+        val key = id.trim().lowercase()
+        val removed = regions[key] ?: return false
+        val files = sourceFiles[key].orEmpty()
+        try {
+            // Remove duplicate sources too, otherwise an ignored copy revives the region.
+            files.forEach { Files.deleteIfExists(it.toPath()) }
+        } catch (error: Exception) {
+            plugin.logger.warning("Could not delete region ${removed.id}: ${error.message}")
+            return false
+        }
+        regions.remove(key)
+        sourceFiles.remove(key)
         invalidateSpatialIndex()
-        File(regionDirectory, "${removed.id}.yml").delete()
         regions.values.filter { it.parentId.equals(removed.id, true) }.toList().forEach { child ->
             val detached = child.copy(parentId = null)
             regions[detached.id.lowercase()] = detached
@@ -197,7 +234,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     override fun setVariable(id: String, key: String, value: String): Boolean {
         val region = find(id) ?: return false
         if (key.isBlank()) return false
-        val updated = region.copy(variables = region.variables + (key.trim() to value))
+        val updated = region.copy(variables = region.variables.filterKeys { !it.equals(key.trim(), true) } + (key.trim() to value))
         regions[region.id.lowercase()] = updated
         invalidateSpatialIndex()
         save(updated)
@@ -429,7 +466,7 @@ class RegionCoreServiceImpl(private val plugin: JavaPlugin) : RegionCoreService 
     private fun readRegion(section: ConfigurationSection, fallbackId: String, source: String): RegionDefinition? {
         val id = section.getString("id", fallbackId)?.trim().takeUnless { it.isNullOrBlank() }
             ?: return loadIssue(source, "id", "is required").let { null }
-        if (!isValidId(id)) loadIssue(source, "id", "'$id' is not a valid region id")
+        if (!isValidId(id)) return loadIssue(source, "id", "'$id' is not a valid region id").let { null }
         val worldName = (section.getString("location.world") ?: section.getString("world-name"))?.takeUnless { it.isBlank() }
             ?: return loadIssue(source, "location.world", "is required").let { null }
         val roleValue = section.getString("identity.role") ?: section.getString("role")

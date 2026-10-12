@@ -16,13 +16,18 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
     private val services = ServiceRegistry()
     private val loadedModules = mutableListOf<LoadedModule>()
 
-    fun initialize() {
+    fun initialize(loadModules: Boolean = true) {
         if (!modulesDirectory.exists()) modulesDirectory.mkdirs()
         if (!disabledDirectory.exists()) disabledDirectory.mkdirs()
         if (plugin.config.getBoolean("modules.auto-install-official", true)) {
             installOfficialModules()
         }
-        reload()
+        if (loadModules) reload()
+    }
+
+    /** Exposes a stable, interface-based service to external module contexts. */
+    fun <T : Any> registerService(type: Class<T>, service: T) {
+        services.register(type, service)
     }
 
     fun reload() {
@@ -178,6 +183,13 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
             return
         }
         if (reports.any { it.descriptor.id == descriptor.id && it.state == ModuleState.FAILED }) return
+        val unavailableDependency = descriptor.dependencies.firstOrNull { dependency ->
+            reports.none { it.descriptor.id == dependency && it.state in setOf(ModuleState.BUILTIN, ModuleState.ENABLED) }
+        }
+        if (unavailableDependency != null) {
+            reports += ModuleReport(descriptor, candidate.source, ModuleState.FAILED, "modules-reason-missing-dependency", unavailableDependency)
+            return
+        }
         if (descriptor.builtin) {
             reports += ModuleReport(descriptor, candidate.source, ModuleState.BUILTIN, "modules-reason-builtin")
             return

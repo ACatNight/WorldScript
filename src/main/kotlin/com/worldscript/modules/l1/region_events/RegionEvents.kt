@@ -12,6 +12,7 @@ import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerInteractEvent
@@ -21,6 +22,7 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.scheduler.BukkitTask
 import java.util.UUID
 
 class RegionEnterEvent(val player: Player, val regionId: String) : Event() {
@@ -60,8 +62,14 @@ class RegionEventServiceImpl(
     private val lang = Lang(plugin)
     private val current = mutableMapOf<UUID, Set<String>>()
     private val deniedNoticeAt = mutableMapOf<UUID, Long>()
+    private val pendingUpdates = mutableMapOf<UUID, BukkitTask>()
 
-    fun reset() = current.clear()
+    fun reset() {
+        pendingUpdates.values.forEach { it.cancel() }
+        pendingUpdates.clear()
+        current.clear()
+        deniedNoticeAt.clear()
+    }
 
     /** Re-evaluates a player's location after an external progress update. */
     fun refresh(player: Player) {
@@ -69,9 +77,10 @@ class RegionEventServiceImpl(
         updateRegions(player, player.location)
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onMove(event: PlayerMoveEvent) {
-        val to = event.to
+        if (event.isCancelled) return
+        val to = event.to ?: return
         val sameWorld = event.from.world?.uid == to.world?.uid
         if (sameWorld && event.from.blockX == to.blockX && event.from.blockY == to.blockY && event.from.blockZ == to.blockZ) return
         run {
@@ -100,25 +109,29 @@ class RegionEventServiceImpl(
                 return
             }
         }
-        discoverAt(event.player, to)
-        updateRegions(event.player, to)
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onMoveCommitted(event: PlayerMoveEvent) {
+        if (event.isCancelled) return
+        val to = event.to ?: return
+        if (event.from.world?.uid == to.world?.uid && event.from.blockX == to.blockX &&
+            event.from.blockY == to.blockY && event.from.blockZ == to.blockZ) return
+        queueLocationUpdate(event.player)
     }
 
     @EventHandler
     fun onJoin(event: PlayerJoinEvent) {
-        plugin.server.scheduler.runTask(plugin, Runnable {
-            discoverAt(event.player, event.player.location)
-            updateRegions(event.player, event.player.location)
-        })
+        queueLocationUpdate(event.player)
     }
 
     /** Teleports do not always produce a block-change move event. Re-run the
      * same discovery/entry pipeline after the destination is committed so
      * commands, portals and scripted teleports behave like walking in. */
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onTeleport(event: PlayerTeleportEvent) {
         if (event.isCancelled) return
-        val destination = event.to
+        val destination = event.to ?: return
         val fromIds = regions.regionsAt(event.from) { true }.map { it.id }.toSet()
         val blocked = regions.regionsAt(destination) { true }
             .asReversed()
@@ -135,10 +148,23 @@ class RegionEventServiceImpl(
             }
             return
         }
-        plugin.server.scheduler.runTask(plugin, Runnable {
-            if (!event.player.isOnline) return@Runnable
-            discoverAt(event.player, destination)
-            updateRegions(event.player, destination)
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onTeleportCommitted(event: PlayerTeleportEvent) {
+        if (!event.isCancelled) queueLocationUpdate(event.player)
+    }
+
+    private fun queueLocationUpdate(player: Player) {
+        val id = player.uniqueId
+        if (id in pendingUpdates) return
+        pendingUpdates[id] = plugin.server.scheduler.runTask(plugin, Runnable {
+            pendingUpdates.remove(id)
+            if (!player.isOnline) return@Runnable
+            // Observe the actual committed location, after every plugin has handled the event.
+            val location = player.location
+            discoverAt(player, location)
+            updateRegions(player, location)
         })
     }
 
@@ -179,6 +205,7 @@ class RegionEventServiceImpl(
     fun onQuit(event: PlayerQuitEvent) {
         current.remove(event.player.uniqueId)
         deniedNoticeAt.remove(event.player.uniqueId)
+        pendingUpdates.remove(event.player.uniqueId)?.cancel()
     }
 
     @EventHandler(ignoreCancelled = true)

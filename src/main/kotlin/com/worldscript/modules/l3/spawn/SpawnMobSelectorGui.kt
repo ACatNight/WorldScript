@@ -1,5 +1,7 @@
 package com.worldscript.modules.l3.spawn
 
+import com.worldscript.foundation.BukkitCompatibility
+
 import com.worldscript.foundation.Lang
 import com.worldscript.foundation.MaterialResolver
 import net.md_5.bungee.api.ChatColor
@@ -56,9 +58,10 @@ class SpawnMobSelectorGui(
     @EventHandler
     fun onClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
-        val holder = event.view.topInventory.holder as? SpawnMobSelectorHolder ?: return
-        if (event.rawSlot !in 0 until event.view.topInventory.size) return
+        val topInventory = BukkitCompatibility.topInventory(event)
+        val holder = topInventory.holder as? SpawnMobSelectorHolder ?: return
         event.isCancelled = true
+        if (event.rawSlot !in 0 until topInventory.size) return
         val choices = mobChoices()
         when (event.rawSlot) {
             45 -> open(player, holder.copy(page = (holder.page - 1).coerceAtLeast(0)))
