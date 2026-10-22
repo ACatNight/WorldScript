@@ -14,7 +14,7 @@ WorldScript 用来给 Paper 服务器配置区域。一个区域可以有名称�
 
 TabooLib 和 Kether 已包含在 WorldScript JAR 中，不需要另外安装 TabooLib。PlaceholderAPI 是可选依赖。
 
-本文档按 `1.0.0` 编写。
+本文档按 `1.0.1` 编写。
 
 ## 3. 第一个区域
 
@@ -226,7 +226,7 @@ particle:
 
 ## 10. 模块系统
 
-WorldScript 1.0.0 会在第一次启动时生成 `plugins/WorldScript/modules/`。当前默认生成官方基础模块描述 JAR：
+WorldScript 1.0.1 会在第一次启动时生成 `plugins/WorldScript/modules/`。当前默认生成官方基础模块描述 JAR：
 
 ```text
 worldscript-core.jar
@@ -239,7 +239,7 @@ worldscript-rpg.jar
 worldscript-placeholder.jar
 ```
 
-当前这些基础功能仍由主插件内置运行，模块 JAR 主要用于模块识别、状态诊断和外置模块 API。升级到 1.0.0 时，旧版官方描述 JAR 会自动刷新为当前官方目录，避免版本不匹配。执行 `/ws modules list` 可以查看模块状态，执行 `/ws modules info toast` 可以查看单个模块详情。
+当前这些基础功能仍由主插件内置运行，模块 JAR 主要用于模块识别、状态诊断和外置模块 API。升级到 1.0.1 时，旧版官方描述 JAR 会自动刷新为当前官方目录，避免版本不匹配。执行 `/ws modules list` 可以查看模块状态，执行 `/ws modules info toast` 可以查看单个模块详情。
 
 模块配置位于 `plugins/WorldScript/settings/modules.yml`：
 

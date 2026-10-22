@@ -1,6 +1,6 @@
 # WorldScript
 
-WorldScript 1.0.0 is a region gameplay plugin targeting Paper 1.12.2 through 1.21.8.
+WorldScript 1.0.1 is a region gameplay plugin targeting Paper 1.12.2 through 1.21.8.
 
 Use it to mark places on your map: a forest entrance, a town square, a dungeon gate, a boss room, a hidden cave. When a player enters that place, WorldScript can show prompts, run actions, check entry rules, update progress, or spawn mobs.
 

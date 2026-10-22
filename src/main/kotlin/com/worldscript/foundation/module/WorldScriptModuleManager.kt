@@ -311,7 +311,7 @@ class WorldScriptModuleManager(private val plugin: JavaPlugin) {
 
     companion object {
         const val MODULE_API_VERSION = 1
-        private const val OFFICIAL_MODULE_VERSION = "1.0.0"
+        private const val OFFICIAL_MODULE_VERSION = "1.0.1"
         private const val OFFICIAL_WORLD_SCRIPT_REQUIREMENT = ">=1.0.0"
 
         val officialModules = listOf(

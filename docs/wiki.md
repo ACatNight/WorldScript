@@ -12,7 +12,7 @@ WorldScript adds named regions to a Paper server. A region can have a name, opti
 
 TabooLib and Kether are included in the jar. PlaceholderAPI is optional and is only needed for HUD placeholders.
 
-This page describes WorldScript `1.0.0`.
+This page describes WorldScript `1.0.1`.
 
 ## Create A Region
 
@@ -213,7 +213,7 @@ Only the deepest active region displays particles. A child particle setting over
 
 ## Modules
 
-WorldScript 1.0.0 creates `plugins/WorldScript/modules/` on first startup and installs the official built-in module descriptors:
+WorldScript 1.0.1 creates `plugins/WorldScript/modules/` on first startup and installs the official built-in module descriptors:
 
 ```text
 worldscript-core.jar

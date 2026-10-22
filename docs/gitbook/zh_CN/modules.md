@@ -1,6 +1,6 @@
 # 模块系统
 
-WorldScript 1.0.0 会生成一个模块目录：
+WorldScript 1.0.1 会生成一个模块目录：
 
 ```text
 plugins/WorldScript/modules/

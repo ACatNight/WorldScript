@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.worldscript"
-version = "1.0.0"
+version = "1.0.1"
 val embeddedTabooLibVersion = "6.3.0-75b18a2"
 val modernBukkitTestRuntime by configurations.creating
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Fixed discovery Toast previews freezing the server thread on modern Paper while Bukkit initialized legacy material conversion.
+- Modern Toast icons now use their canonical registry keys directly; explicit legacy icon values fall back safely.
+
 ## 1.0.0 release fixes
 
 - Fixed chunk-unload errors on modern Paper where ChunkUnloadEvent is no longer cancellable, while retaining cancelled-event handling on legacy servers.

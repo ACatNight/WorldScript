@@ -39,6 +39,6 @@ The tool goes into your hand.
 
 Walk out of the region and back in to check the event. `/ws test` reports the region shape, enter-event settings and validation issues, and sends a Toast preview; it does not execute the enter-event actions.
 
-## 5. Try a 1.0.0 Feature
+## 5. Try a 1.0.1 Feature
 
 For an irregular outline, use [polygon editing](regions.md#polygon-regions). For a discovery notification, open `/ws edit starter_valley discovery` and [preview its Toast](discovery-toast.md). The [Spawn Module](spawn.md) and [Protect Module](protect.md) can be added when the basic region works.

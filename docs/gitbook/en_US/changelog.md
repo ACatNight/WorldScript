@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Fixed discovery Toast previews freezing the server thread on modern Paper while Bukkit initialized legacy material conversion.
+- Modern Toast icons now use canonical registry keys directly. Explicit legacy material values use the configured fallback icon.
+
 ## 1.0.0
 
 WorldScript 1.0.0 adds several ways to build exploration and combat areas:

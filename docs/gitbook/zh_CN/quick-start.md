@@ -44,6 +44,6 @@
 
 走出区域再走回来，检查进入事件是否生效。`/ws test` 只显示形状、进入事件设置、配置问题并预览 Toast，不会执行进入事件的动作。
 
-## 5. 试试 1.0.0 新功能
+## 5. 试试 1.0.1 新功能
 
 不规则范围可以用[多边形编辑](regions.md#多边形区域)；发现提示在 `/ws edit starter_valley discovery` 里设置，并可[预览 Toast](discovery-toast.md)。基础区域正常后，再试 [Spawn 刷怪](spawn.md) 和 [Protect 区域保护](protect.md)。

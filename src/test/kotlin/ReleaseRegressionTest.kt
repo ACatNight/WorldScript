@@ -74,7 +74,7 @@ class ReleaseRegressionTest {
             Mockito.`when`(plugin.dataFolder).thenReturn(directory.toFile())
             Mockito.`when`(plugin.config).thenReturn(config)
             Mockito.`when`(plugin.server).thenReturn(server)
-            Mockito.`when`(plugin.description).thenReturn(PluginDescriptionFile("WorldScript", "1.0.0", "com.worldscript.WorldScriptPlugin"))
+            Mockito.`when`(plugin.description).thenReturn(PluginDescriptionFile("WorldScript", "1.0.1", "com.worldscript.WorldScriptPlugin"))
             Mockito.`when`(plugin.logger).thenReturn(Logger.getLogger("WorldScript-tests"))
             Mockito.`when`(server.scheduler).thenReturn(scheduler)
             Mockito.`when`(server.pluginManager).thenReturn(manager)

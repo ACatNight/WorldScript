@@ -1,6 +1,6 @@
 # Modules
 
-WorldScript 1.0.0 creates:
+WorldScript 1.0.1 creates:
 
 ```text
 plugins/WorldScript/modules/
