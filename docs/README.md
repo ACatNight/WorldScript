@@ -16,12 +16,7 @@ User documentation is maintained in [GitBook](gitbook/README.md), with matching 
 ## Developing WorldScript
 
 - [Contribution guide](../CONTRIBUTING.md)
-- [Architecture and planning notes](development/README.md)
-- [Historical release reports](reports/README.md)
 
 ## Repository assets
 
 - [README artwork](assets/readme/README.md): the selected logo and small feature icons.
-- [Publishing notes](publishing/README.md): resource-page copy and local export conventions.
-
-The GitBook directory and existing reference-manual paths remain stable for external links. Development plans and release reports are historical context, not a guarantee that a proposed feature is shipped.

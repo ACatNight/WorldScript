@@ -96,7 +96,7 @@ The default language is `en_US`. Set `language: zh_CN` or `language: zh_TW` in `
 | Integrations and extensions | [Placeholders](docs/gitbook/en_US/placeholders.md) · [Modules](docs/gitbook/en_US/modules.md) · [Module example](examples/modules/hello-worldscript-module/README.md) |
 | Examples and troubleshooting | [Region examples](examples/regions) · [Troubleshooting](docs/gitbook/en_US/troubleshooting.md) |
 
-See the [documentation index](docs/README.md) for reference manuals, developer notes and release reports.
+See the [documentation index](docs/README.md) for reference manuals and integration guides.
 
 ## Development
 
@@ -121,8 +121,6 @@ src/main/           Plugin implementation and default resources
 src/test/           Regression and API compatibility tests
 examples/           Region configurations and an external module example
 docs/gitbook/       English and Chinese user documentation
-docs/development/   Architecture notes and implementation plans
-docs/reports/       Historical release audits and verification reports
 docs/assets/readme/ README logo and icons
 gradle/             Gradle wrapper
 ```

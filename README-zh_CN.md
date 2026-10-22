@@ -113,7 +113,7 @@ WorldScript 是面向 Paper 服务器的区域玩法插件。为主城、森林�
 
 构建包含 JUnit 回归测试、WorldScript 逻辑检查和 Paper 1.21.8 API 兼容测试。产物为 `build/libs/WorldScript-<版本>.jar`。
 
-贡献流程与目录说明见 [CONTRIBUTING.md](CONTRIBUTING.md) 和[开发资料](docs/development/README.md)。
+贡献流程与验证说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 使用统计
 
