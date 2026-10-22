@@ -1,101 +1,138 @@
-# WorldScript
+<p align="center">
+  <img src="docs/assets/readme/logo.png" width="112" height="112" alt="WorldScript logo">
+</p>
 
-WorldScript is a region scripting plugin for Paper 1.12.2 through 1.21.8.
+<h1 align="center">WorldScript</h1>
 
-中文文档：[README-zh_CN.md](README-zh_CN.md)
+<p align="center">Region events, exploration progress and encounters for Minecraft servers.</p>
 
-## License
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-36cbb5" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/platform-Paper-36cbb5" alt="Platform: Paper">
+  <img src="https://img.shields.io/badge/Minecraft-1.12.2–1.21.8-192431" alt="Minecraft compatibility target: 1.12.2–1.21.8">
+  <img src="https://img.shields.io/badge/language-Kotlin-7f52ff" alt="Language: Kotlin">
+</p>
 
-WorldScript is currently fully free and available under the [MIT License](LICENSE).
+<p align="center">
+  <a href="https://www.spigotmc.org/resources/worldscript-rpg-regions.138114/">SpigotMC</a> ·
+  <a href="https://modrinth.com/plugin/worldscript">Modrinth</a> ·
+  <a href="https://ankeryth.gitbook.io/worldscript/english/en_us">Documentation</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="README-zh_CN.md">简体中文</a>
+</p>
+
+## Overview
+
+WorldScript is a region gameplay plugin for Paper servers. Define a town, forest or dungeon entrance, then configure what happens when players enter, leave or interact with it.
+
+Connect regions to your existing quest, NPC, economy and combat plugins through commands, placeholders and Kether scripts. WorldScript tracks regions and player region progress; quest definitions remain in your quest plugin.
 
 ## Features
 
-- Parent and child regions with inherited variables, statuses, and scripts
-- Optional region atmosphere particles with child-region overrides
-- Enter, leave, and block interaction events
-- Per-player unlock, first-entry, completion, and one-time reward state
-- Conditions, actions, rewards, and PlaceholderAPI variables
-- Selection tool, region list, chat editor, and configuration validation
-- Built-in module catalog with guarded external module loading
-- Region-bound spawn rules with optional MythicMobs mob selection
-- Region-status based PVP protection
-- Embedded TabooLib 6.3.0 runtime with Kether script actions
-- Kether context variables for player and region data
-- Anonymous server metrics through bStats (can be disabled in `plugins/bStats/config.yml`)
+| | Capability | What you can configure |
+| --- | --- | --- |
+| <img src="docs/assets/readme/regions.svg" width="28" alt=""> | **Region shapes & hierarchy** | Cuboid and polygon boundaries, priorities, parent/child regions and supported setting inheritance. |
+| <img src="docs/assets/readme/events.svg" width="28" alt=""> | **Events & scripting** | Entry, exit and block interactions; conditions, cooldowns, actions and Kether scripts. |
+| <img src="docs/assets/readme/progress.svg" width="28" alt=""> | **Discovery & progression** | Player unlocks, first visits, completion, one-time rewards and advancement-style Toasts. |
+| <img src="docs/assets/readme/spawn.svg" width="28" alt=""> | **Region encounters** | Vanilla or MythicMobs spawning, nearby-player checks, safe positions and alive limits. |
+| <img src="docs/assets/readme/protect.svg" width="28" alt=""> | **Protection & atmosphere** | Region-based PVP policy, particle effects and PlaceholderAPI data for HUDs. |
+| <img src="docs/assets/readme/editor.svg" width="28" alt=""> | **In-game configuration** | Selection tools, region list GUI, clickable chat editor, YAML files and validation. |
 
-## Install
+English, Simplified Chinese and Traditional Chinese are included. Built-in modules provide status diagnostics; external modules can extend the plugin through its module API.
 
-1. Download the jar from [SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/) and put it in the server `plugins` directory.
-2. Start the server once.
-3. Add region files to `plugins/WorldScript/regions/`.
-4. Run `/ws validate`, then `/ws reload`.
+## Requirements
 
-The starter files use the recommended Schema 2 format: [examples](examples). Existing flat region files remain supported.
+**Compatibility target:** Paper 1.12.2–1.21.8. Use the Java version required by your particular server build.
 
-## Commands
+| Minecraft | Typical Java requirement |
+| --- | --- |
+| 1.12.2–1.16.x | Java 8 |
+| 1.17.x | Java 16 |
+| 1.18–1.20.4 | Java 17 |
+| 1.20.5–1.21.8 | Java 21 |
+
+- **PlaceholderAPI** is optional, for placeholders in compatible HUDs, menus and scoreboards.
+- **MythicMobs** is optional, for spawning mobs from a MythicMobs library.
+- **TabooLib and Kether** are bundled; no separate installation is required.
+
+Automated checks cover core logic and legacy/modern API adapters. They do not replace live-server testing of every supported version or integration.
+
+## Installation
+
+1. Download the plugin JAR from [SpigotMC](https://www.spigotmc.org/resources/worldscript-rpg-regions.138114/) or [Modrinth](https://modrinth.com/plugin/worldscript).
+2. Place it in your server's `plugins/` directory.
+3. Restart the server.
+
+For upgrades, back up your WorldScript configuration and data, stop the server, replace the old JAR and restart. See the [changelog](CHANGELOG.md) for release-specific notes.
+
+## Quick start
+
+Get the selection tool:
 
 ```text
 /ws wand
-/ws create <region-id> [display name]
-/ws delete <name>
-/ws list
-/ws info <name>
-/ws edit <region-id>
-/ws edit <region-id> events
-/ws list
-/ws reload
-/ws validate
-/ws progress <player> <region> <unlock|complete>
-/ws modules list
-/ws modules info <module-id>
-/ws spawn list
-/ws spawn test <rule-id>
-/ws spawn reload
-/ws protect test [player]
-/ws protect reload
 ```
 
-`/ws progress` is intended for external plugins to update a player's region progress. WorldScript does not manage quest definitions or quest steps.
+Left-click one corner and right-click the other, then create and edit a region:
 
-## Placeholders
+```text
+/ws create forest_entrance Forest Entrance
+/ws edit forest_entrance
+```
 
-Install and enable PlaceholderAPI before testing. WorldScript registers its expansion automatically when both plugins start; if PlaceholderAPI is installed or enabled later, run `/ws reload` after enabling it. A consuming plugin must itself support PlaceholderAPI parsing (for example, a PlaceholderAPI-enabled scoreboard or tab plugin).
+Add an enter action, then leave and re-enter the region to test it. Open the region list GUI with `/ws list`. Administration commands require `worldscript.admin`, granted to operators by default.
 
-With PlaceholderAPI: `%worldscript_region_id%`, `%worldscript_region_name%`, `%worldscript_parent_id%`, `%worldscript_parent_name%`, `%worldscript_child_id%`, `%worldscript_child_name%`, and `%worldscript_region_path%` expose configured IDs and display names. Custom variables are automatically available as `%worldscript_<key>%`; readable parent/child forms `%worldscript_parent_<key>%` and `%worldscript_child_<key>%` are also supported, alongside the older `var_`, `region_var_`, and `parent_var_` forms.
+The region is stored in `plugins/WorldScript/regions/forest_entrance.yml`. After editing YAML, run `/ws validate`, then `/ws reload`.
+
+The default language is `en_US`. Set `language: zh_CN` or `language: zh_TW` in `plugins/WorldScript/config.yml` and run `/ws reload`.
 
 ## Documentation
 
-- [SpigotMC download](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
-- [Discord discussion](https://discord.gg/NPSwPHG9R)
-- [Chinese Wiki](docs/wiki-zh_CN.md)
-- [English Wiki](docs/wiki.md)
-- [GitBook source](docs/gitbook/README.md)
-- [Modrinth description](docs/modrinth-description.md)
-- [Spigot description](docs/spigot-description.md)
-- [Chinese configuration reference](docs/config-reference-zh_CN.md)
-- [Chinese integration guide](docs/integration-zh_CN.md)
-- [Chinese README](README-zh_CN.md)
+| Topic | Guide |
+| --- | --- |
+| Installation and configuration | [Installation](docs/gitbook/en_US/install.md) · [Configuration](docs/gitbook/en_US/config.md) |
+| Regions and editing | [Regions](docs/gitbook/en_US/regions.md) · [Editor](docs/gitbook/en_US/editor.md) · [Commands](docs/gitbook/en_US/commands.md) |
+| Gameplay | [Discovery Toasts](docs/gitbook/en_US/discovery-toast.md) · [Spawning](docs/gitbook/en_US/spawn.md) · [PVP protection](docs/gitbook/en_US/protect.md) |
+| Integrations and extensions | [Placeholders](docs/gitbook/en_US/placeholders.md) · [Modules](docs/gitbook/en_US/modules.md) · [Module example](examples/modules/hello-worldscript-module/README.md) |
+| Examples and troubleshooting | [Region examples](examples/regions) · [Troubleshooting](docs/gitbook/en_US/troubleshooting.md) |
 
-## Compatibility
+See the [documentation index](docs/README.md) for reference manuals, developer notes and release reports.
 
-- Paper 1.12.2 through 1.21.8 is the compatibility target. Runtime smoke tests are still required for each server line before production use.
-- Java 8 for 1.12.2-1.16.x, Java 17 for 1.17-1.20.4, and Java 21 for 1.20.5-1.21.8
-- PlaceholderAPI is optional
-- TabooLib and Kether are bundled in the WorldScript jar; no separate installation is required
-- bStats collects anonymous plugin and server statistics. Its opt-out setting is available in `plugins/bStats/config.yml`.
+## Development
 
-The default language is `en_US`. Set `language: zh_CN` or `language: zh_TW` in `plugins/WorldScript/config.yml` and run `/ws reload` to use Chinese messages.
+Install JDK 8 and JDK 21. The plugin targets Java 8 bytecode; the modern API compatibility checks run on Java 21.
 
-For feedback, join the [Discord](https://discord.gg/NPSwPHG9R) or email `acatnight@gmail.com`.
-
-## Build
-
-```text
-gradlew.bat clean build
+```sh
+# Linux / macOS
+./gradlew clean build
 ```
 
-The jar is written to `build/libs/WorldScript-<version>.jar`.
+```powershell
+# Windows
+.\gradlew.bat clean build
+```
 
-Build verification needs JDK 8 and JDK 21. Plugin bytecode targets Java 8; the modern API adapter check runs on Java 21. The embedded TabooLib artifact is pinned to the published `6.3.0-75b18a2` version.
+The build runs JUnit regression tests, the WorldScript logic checks and Paper 1.21.8 API compatibility checks. The output is `build/libs/WorldScript-<version>.jar`.
 
-Item reward overflow is dropped at the player's feet before a once-only reward is marked as claimed. Configure economy commands in `settings/economy.yml` under `economy-command`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and verification guidelines.
+
+```text
+src/main/           Plugin implementation and default resources
+src/test/           Regression and API compatibility tests
+examples/           Region configurations and an external module example
+docs/gitbook/       English and Chinese user documentation
+docs/development/   Architecture notes and implementation plans
+docs/reports/       Historical release audits and verification reports
+docs/assets/readme/ README logo and icons
+gradle/             Gradle wrapper
+```
+
+## Telemetry
+
+WorldScript uses bStats for usage statistics and does not add custom telemetry charts. Server owners can opt out by setting `enabled: false` in `plugins/bStats/config.yml` and restarting the server.
+
+## Support & license
+
+Report reproducible bugs through [GitHub Issues](https://github.com/ACatNight/WorldScript/issues), including the plugin version, server build, Java version, reproduction steps and relevant logs.
+
+WorldScript is free and open source under the [MIT License](LICENSE).

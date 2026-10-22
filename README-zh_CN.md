@@ -1,101 +1,126 @@
-# WorldScript
+<p align="center">
+  <img src="docs/assets/readme/logo.png" width="112" height="112" alt="WorldScript 标志">
+</p>
 
-WorldScript 是一个面向 Paper 1.12.2 至 1.21.8 的区域脚本插件，用于配置地图区域、区域事件和玩家区域进度。
+<h1 align="center">WorldScript</h1>
 
-## 功能
+<p align="center">为 Minecraft 服务器配置区域事件、探索进度与区域遭遇。</p>
 
-- 父区域与子区域，支持变量、状态和事件继承
-- 可选区域氛围粒子，子区域可以覆盖父区域效果
-- 进入、离开、方块交互事件
-- 玩家解锁、首次进入、完成和一次性奖励状态
-- 条件、动作、奖励和 PlaceholderAPI HUD 变量
-- 选区工具、区域列表、聊天编辑器和 `/ws validate` 配置检查
-- 内置模块目录与受保护的外置模块加载
-- 绑定区域的刷怪规则，支持从 MythicMobs 怪物库点选怪物
-- 按区域状态控制 PVP 保护
-- 内置 TabooLib 6.3.0 与 Kether，可在区域事件中执行高级脚本
-- Kether 可读取玩家变量与区域变量
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-36cbb5" alt="MIT 许可证"></a>
+  <img src="https://img.shields.io/badge/platform-Paper-36cbb5" alt="Paper 平台">
+  <img src="https://img.shields.io/badge/Minecraft-1.12.2–1.21.8-192431" alt="Minecraft 兼容目标 1.12.2–1.21.8">
+</p>
+
+<p align="center">
+  <a href="https://www.spigotmc.org/resources/worldscript-rpg-regions.138114/">SpigotMC</a> ·
+  <a href="https://modrinth.com/plugin/worldscript">Modrinth</a> ·
+  <a href="docs/gitbook/zh_CN/README.md">使用文档</a> ·
+  <a href="CHANGELOG.md">更新记录</a> ·
+  <a href="README.md">English</a>
+</p>
+
+## 项目介绍
+
+WorldScript 是面向 Paper 服务器的区域玩法插件。为主城、森林或副本入口定义边界，再配置玩家进入、离开或交互时发生的事件。
+
+通过命令、PlaceholderAPI 和 Kether 脚本，将区域接入已有的任务、NPC、经济与战斗系统。WorldScript 管理区域与玩家区域进度；任务定义与任务步骤由任务插件负责。
+
+## 核心功能
+
+| | 功能 | 可配置内容 |
+| --- | --- | --- |
+| <img src="docs/assets/readme/regions.svg" width="28" alt=""> | **区域与层级** | 长方体和多边形边界、优先级、父子区域及支持的配置继承。 |
+| <img src="docs/assets/readme/events.svg" width="28" alt=""> | **事件与脚本** | 进入、离开和方块交互事件，条件、冷却、动作与 Kether 脚本。 |
+| <img src="docs/assets/readme/progress.svg" width="28" alt=""> | **探索与进度** | 玩家解锁、首次进入、完成、一次性奖励和原生成就样式 Toast。 |
+| <img src="docs/assets/readme/spawn.svg" width="28" alt=""> | **区域遭遇** | 原版或 MythicMobs 刷怪、附近玩家检查、安全位置与存活上限。 |
+| <img src="docs/assets/readme/protect.svg" width="28" alt=""> | **保护与氛围** | 区域 PVP 策略、氛围粒子，以及供 HUD 使用的 PlaceholderAPI 数据。 |
+| <img src="docs/assets/readme/editor.svg" width="28" alt=""> | **游戏内配置** | 选区工具、区域列表 GUI、可点击聊天编辑器、YAML 文件与配置检查。 |
+
+内置英文、简体中文和繁体中文。内置模块提供状态诊断；外置模块可以通过模块 API 扩展功能。
+
+## 环境要求
+
+兼容目标为 **Paper 1.12.2–1.21.8**。请以使用的服务端构建要求为准：
+
+| Minecraft | 常见 Java 要求 |
+| --- | --- |
+| 1.12.2–1.16.x | Java 8 |
+| 1.17.x | Java 16 |
+| 1.18–1.20.4 | Java 17 |
+| 1.20.5–1.21.8 | Java 21 |
+
+- PlaceholderAPI：可选，用于支持占位符的 HUD、菜单和计分板。
+- MythicMobs：可选，用于从 MythicMobs 怪物库生成怪物。
+- TabooLib 与 Kether：已打包，无需另外安装。
+
+自动化检查覆盖核心逻辑与新旧 API 适配，不能替代各版本服务端和第三方整合的实际运行测试。
 
 ## 安装
 
-1. 从 [SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/) 下载 `WorldScript-<版本>.jar`，放入服务器的 `plugins/` 目录。
-2. 启动一次服务器，让插件生成 `plugins/WorldScript/regions/`。
-3. 将 `examples/region-progression-template.yml` 复制到 `regions/` 作为 Schema 2 开放世界示例。
-4. 按服务器实际地图修改世界名、区域边界和外部插件命令。
-5. 先执行 `/ws validate`，确认无错误后再执行 `/ws reload`。
+1. 从 [SpigotMC](https://www.spigotmc.org/resources/worldscript-rpg-regions.138114/) 或 [Modrinth](https://modrinth.com/plugin/worldscript) 下载插件 JAR。
+2. 放入服务器的 `plugins/` 目录。
+3. 重启服务器。
 
-完整的五区域开放世界示例位于 [examples/regions](examples/regions)。
+升级时先备份 WorldScript 配置与数据，停服替换旧 JAR 后重启。版本特定说明见[更新记录](docs/gitbook/zh_CN/changelog.md)。
 
-默认语言为英文。若要切换简体中文或繁体中文，在 `plugins/WorldScript/config.yml` 中设置：
+## 快速开始
 
-```yaml
-language: zh_CN
-# 或：zh_TW
-```
-
-修改后执行 `/ws reload`。语言文件位于 `plugins/WorldScript/lang/`；自定义语言文件名称只能使用英文、数字、`_` 和 `-`。
-
-区域进入和离开提示默认关闭，避免玩家在区域边界附近反复移动时刷屏。如需开启，在 `plugins/WorldScript/settings/messages.yml` 中设置：
-
-```yaml
-region-enter-enabled: true
-region-leave-enabled: true
-```
-
-## 管理命令
+获取选区工具：
 
 ```text
-/ws wand                         获取区域选择工具
-/ws create <名称>                使用选择范围创建区域
-/ws delete <名称>                删除区域
-/ws list                         列出区域
-/ws info <名称>                  查看区域信息
-/ws edit <区域ID>                打开聊天区域编辑器
-/ws edit <区域ID> events         编辑区域事件
-/ws list                         打开主区域编辑器
-/ws reload                       重新加载配置
-/ws validate [区域ID]            检查全部或指定区域的配置错误
-/ws progress <玩家> <区域> <状态> 回写玩家区域状态
-/ws modules list                 查看模块状态
-/ws modules info <模块ID>        查看模块详情
-/ws spawn list                   查看刷怪规则
-/ws spawn test <规则ID>          测试刷怪规则
-/ws spawn reload                 重载刷怪配置
-/ws protect test [玩家]          查看当前位置是否允许 PVP
-/ws protect reload               重载区域保护配置
+/ws wand
 ```
 
-`/ws progress` 供外部插件回写玩家的区域解锁或完成状态。WorldScript 不管理任务定义和任务步骤。
-
-## 文档
-
-- [SpigotMC 下载](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
-- [Discord 讨论](https://discord.gg/NPSwPHG9R)
-- [中文 Wiki](docs/wiki-zh_CN.md)
-- [GitBook 中英文文档源](docs/gitbook/README.md)
-- [配置参考](docs/config-reference-zh_CN.md)
-- [外部整合](docs/integration-zh_CN.md)
-- [开放世界示例](examples/region-progression-template.yml)
-
-## 构建与验证
+左键选择第一个角，右键选择第二个角，然后创建并编辑区域：
 
 ```text
-gradlew.bat runWorldScriptTests
-gradlew.bat clean build
+/ws create forest_entrance Forest Entrance
+/ws edit forest_entrance
 ```
 
-构建产物位于 `build/libs/WorldScript-<版本>.jar`。`check` 会自动执行项目内的逻辑检查。
+添加进入动作，再走出并重新进入区域测试。使用 `/ws list` 打开区域列表 GUI。管理命令需要 `worldscript.admin` 权限，默认授予 OP。
 
-构建验证需要安装 JDK 8 和 JDK 21：插件编译为 Java 8 字节码，Paper 1.21.8 API 适配检查使用 Java 21。TabooLib 固定使用已发布的 `6.3.0-75b18a2`，避免无法解析的裸版本号。
+区域保存到 `plugins/WorldScript/regions/forest_entrance.yml`。手动修改 YAML 后，先执行 `/ws validate`，再执行 `/ws reload`。
 
-物品奖励放不进背包时，剩余物品会掉落在玩家脚边；一次性奖励在完成投递后记录领取。经济指令在 `settings/economy.yml` 的 `economy-command` 中修改。
+默认语言为 `en_US`。在 `plugins/WorldScript/config.yml` 中设置 `language: zh_CN` 或 `language: zh_TW`，然后执行 `/ws reload`。
 
-兼容目标为 Paper 1.12.2 至 1.21.8。不同 Minecraft 版本需要使用对应 Java：1.12.2-1.16.x 使用 Java 8，1.17-1.20.4 使用 Java 17，1.20.5-1.21.8 使用 Java 21。当前代码已降为 Java 8 字节码并加入旧版材质回退，但发布前仍需要在各版本服务端进行冒烟测试。
+## 文档导航
 
-## 许可证
+| 主题 | 文档 |
+| --- | --- |
+| 安装与配置 | [安装](docs/gitbook/zh_CN/install.md) · [配置](docs/gitbook/zh_CN/config.md) |
+| 区域与编辑 | [区域](docs/gitbook/zh_CN/regions.md) · [编辑器](docs/gitbook/zh_CN/editor.md) · [命令](docs/gitbook/zh_CN/commands.md) |
+| 玩法 | [发现 Toast](docs/gitbook/zh_CN/discovery-toast.md) · [刷怪](docs/gitbook/zh_CN/spawn.md) · [PVP 保护](docs/gitbook/zh_CN/protect.md) |
+| 整合与扩展 | [占位符](docs/gitbook/zh_CN/placeholders.md) · [模块](docs/gitbook/zh_CN/modules.md) · [模块示例](examples/modules/hello-worldscript-module/README.md) |
+| 示例与排错 | [区域示例](examples/regions) · [故障排查](docs/gitbook/zh_CN/troubleshooting.md) |
 
-WorldScript 当前完全免费，并使用 [MIT License](LICENSE) 开源发布。
+完整资料分类见[文档索引](docs/README.md)。
 
-TabooLib 与 Kether 已随 WorldScript 打包，不需要服务器另外安装 TabooLib。简单逻辑建议使用原生动作，复杂逻辑再使用 `type: kether`。
+## 开发与构建
 
-如果有反馈或建议，可以加入 [Discord](https://discord.gg/NPSwPHG9R)，或者发邮件到 `acatnight@gmail.com`。
+安装 JDK 8 和 JDK 21。插件编译为 Java 8 字节码，现代 API 兼容测试使用 Java 21。
+
+```powershell
+# Windows
+.\gradlew.bat clean build
+```
+
+```sh
+# Linux / macOS
+./gradlew clean build
+```
+
+构建包含 JUnit 回归测试、WorldScript 逻辑检查和 Paper 1.21.8 API 兼容测试。产物为 `build/libs/WorldScript-<版本>.jar`。
+
+贡献流程与目录说明见 [CONTRIBUTING.md](CONTRIBUTING.md) 和[开发资料](docs/development/README.md)。
+
+## 使用统计
+
+WorldScript 使用 bStats 统计使用情况，没有添加自定义统计图表。服主可在 `plugins/bStats/config.yml` 中设置 `enabled: false` 并重启服务器，关闭统计。
+
+## 支持与许可证
+
+请在 [GitHub Issues](https://github.com/ACatNight/WorldScript/issues) 提交可复现问题，附上插件版本、服务端构建、Java 版本、复现步骤和相关日志。
+
+WorldScript 免费开源，使用 [MIT License](LICENSE)。

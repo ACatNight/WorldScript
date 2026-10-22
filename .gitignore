@@ -1,0 +1,45 @@
+.gradle/
+.kotlin/
+build/
+target/
+out/
+*.iml
+.idea/
+.vscode/
+*.log
+/.claude/
+/AgentSkills/
+/_done_*.md
+/_handoff_*.md
+/_final_report.md
+/Adyeshach-*.jar
+
+# Local/generated design assets. Keep final documentation assets tracked,
+# but do not commit intermediate reference renders.
+/docs/assets/worldscript/generated-references/
+
+# Local editor/agent scratch files.
+*.tmp
+*.bak
+*.swp
+
+# Optional third-party plugins and local working files (never redistributed).
+/local/
+/MythicMobs-*.jar
+__pycache__/
+
+# Publishing exports and design experiments are local working material.
+# Curated repository artwork lives in docs/assets/readme/.
+/docs/assets/worldscript/*
+/docs/assets/worldscript-logo*.svg
+/docs/assets/worldscript-poster.png
+/docs/WorldScript-*.zip
+/docs/*-description-1.*.md
+/docs/*-description-1.*.bbcode
+/docs/*-publishing-1.*.md
+/docs/modrinth-paste-template.md
+/docs/modrinth-preview.html
+/tools/generate_worldscript_*.py
+/tools/build_modrinth_page.py
+/tools/extract_worldscript_logo_references.py
+/tools/prepare_worldscript_portal_logo.py
