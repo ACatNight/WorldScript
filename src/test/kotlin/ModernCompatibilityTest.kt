@@ -4,6 +4,9 @@ import com.worldscript.foundation.BukkitCompatibility
 import com.worldscript.modules.l1.region_core.RegionCoreServiceImpl
 import com.worldscript.modules.l3.spawn.SpawnRuntime
 import com.worldscript.modules.l3.spawn.SpawnService
+import com.worldscript.modules.l2.script_actions.ToastService
+import org.bukkit.Material
+import org.bukkit.Bukkit
 import org.bukkit.Chunk
 import org.bukkit.World
 import org.bukkit.block.Block
@@ -28,8 +31,27 @@ class ModernCompatibilityTest {
         @JvmStatic fun main(args: Array<String>) {
             ModernCompatibilityTest().adaptersWorkWhenInventoryViewIsAnInterfaceAndBlocksHavePassability()
             println("[TEST] PASS compatibility.modern: InventoryView interface and Block passability on Paper 1.21.8")
+            ModernCompatibilityTest().toastIconsDoNotInitializeLegacyConversion()
+            println("[TEST] PASS compatibility.modern.toast: canonical icon keys without legacy conversion")
             ModernCompatibilityTest().chunkUnloadTracksMobsWithoutCancellableOnModernApi()
             println("[TEST] PASS compatibility.modern.chunk-unload: non-cancellable Paper 1.21.8 event preserves mob tracking")
+        }
+    }
+
+    fun toastIconsDoNotInitializeLegacyConversion() {
+        Mockito.mockStatic(Bukkit::class.java).use { bukkit ->
+            val service = ToastService(Mockito.mock(JavaPlugin::class.java))
+            bukkit.clearInvocations()
+            val resolve = ToastService::class.java.getDeclaredMethod("modernMaterialId", Material::class.java)
+                .apply { isAccessible = true }
+            for (name in listOf("PAPER", "STONE", "OAK_LOG", "INK_SAC", "RED_DYE")) {
+                val material = java.lang.Enum.valueOf(Material::class.java, name)
+                assertEquals("minecraft:${name.lowercase(java.util.Locale.ROOT)}", resolve.invoke(service, material))
+            }
+            val legacy = java.lang.Enum.valueOf(Material::class.java, "LEGACY_LOG")
+            assertEquals(null, resolve.invoke(service, legacy), "Legacy icons should use the fallback")
+            // The previous implementation calls Bukkit.getUnsafe() for every icon.
+            bukkit.verifyNoInteractions()
         }
     }
 

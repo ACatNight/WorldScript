@@ -37,9 +37,6 @@ class ToastService(private val plugin: JavaPlugin) {
     private val removeMethod: Method? = runCatching {
         Bukkit.getUnsafe()::class.java.getMethod("removeAdvancement", NamespacedKey::class.java)
     }.getOrNull()
-    private val fromLegacyMaterialMethod: Method? = runCatching {
-        Bukkit.getUnsafe()::class.java.getMethod("fromLegacy", Material::class.java)
-    }.getOrNull()
     private val materialKeyMethod: Method? = runCatching {
         Material::class.java.getMethod("getKey")
     }.getOrNull()
@@ -306,28 +303,15 @@ class ToastService(private val plugin: JavaPlugin) {
     }
 
     private fun modernMaterialId(material: Material): String? {
-        val legacyName = "LEGACY_${material.name.removePrefix("LEGACY_")}"
-        val legacyCandidate = runCatching { java.lang.Enum.valueOf(Material::class.java, legacyName) }.getOrNull()
-            ?: material
-        val converted = runCatching {
-            fromLegacyMaterialMethod?.invoke(Bukkit.getUnsafe(), legacyCandidate) as? Material
-        }.getOrNull() ?: material
-        val key = runCatching { materialKeyMethod?.invoke(converted)?.toString() }.getOrNull()
+        // Never call UnsafeValues.fromLegacy here: its first use initializes
+        // CraftLegacy/DataFixerUpper and can stall the server thread for seconds.
+        // Modern materials already have canonical keys. Explicit legacy values
+        // use the configured fallback rather than triggering a data migration.
+        if (material.name.startsWith("LEGACY_", true)) return null
+        val key = runCatching { materialKeyMethod?.invoke(material)?.toString() }.getOrNull()
             ?: return null
-        val normalized = key.substringAfter(':').lowercase(Locale.ROOT)
-        val legacyAliases = mapOf(
-            "log" to "oak_log",
-            "log_2" to "acacia_log",
-            "leaves" to "oak_leaves",
-            "leaves_2" to "acacia_leaves",
-            "wood" to "oak_planks",
-            "stone" to "stone",
-        )
-        val safeKey = legacyAliases[normalized]?.let { "${key.substringBefore(':')}:$it" } ?: key
-        return safeKey.takeIf {
-            ':' in it &&
-                !converted.name.startsWith("LEGACY_", true) &&
-                !it.substringAfter(':').startsWith("legacy_", true)
+        return key.takeIf {
+            ':' in it && !it.substringAfter(':').startsWith("legacy_", true)
         }
     }
 
