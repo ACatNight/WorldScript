@@ -21,7 +21,8 @@ WorldScript 是给 Paper 服务器做“区域玩法”的插件。
 
 ## 下载
 
-- [SpigotMC 下载 WorldScript](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
+- [SpigotMC 下载 WorldScript](https://www.spigotmc.org/resources/worldscript-rpg-regions.138114/)
+- [Modrinth 下载 WorldScript](https://modrinth.com/plugin/worldscript)
 
 ## 讨论与反馈
 

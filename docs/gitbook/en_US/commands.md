@@ -17,6 +17,11 @@
 /ws list
 /ws info <region-id>
 /ws edit <region-id>
+/ws polygon start <region-id>
+/ws polygon preview
+/ws polygon undo
+/ws polygon redo
+/ws polygon finish
 ```
 
 ## Player Progress
@@ -59,3 +64,5 @@
 ```
 
 `test` tells you whether the player's current region allows PVP.
+
+The management commands require `worldscript.admin`, granted to operators by default. `/ws list` opens the GUI; there is no `/ws gui` command.

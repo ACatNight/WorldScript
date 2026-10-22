@@ -25,6 +25,8 @@ GUI panels are used where clicking is easier than typing:
 - Spawn mob selection
 - Region lists
 
+Open the region list GUI with `/ws list`. Select a region to edit it; `/ws edit <region-id>` opens that region directly in the chat editor.
+
 ## Editing Tips
 
 - Use chat buttons first.

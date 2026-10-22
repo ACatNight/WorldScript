@@ -1,19 +1,19 @@
 # WorldScript
 
-WorldScript is a region gameplay plugin for Paper 1.12.2 through 1.21.8.
+WorldScript 1.0.0 is a region gameplay plugin targeting Paper 1.12.2 through 1.21.8.
 
 Use it to mark places on your map: a forest entrance, a town square, a dungeon gate, a boss room, a hidden cave. When a player enters that place, WorldScript can show prompts, run actions, check entry rules, update progress, or spawn mobs.
 
-In short: your quest plugin handles the quest flow; WorldScript handles where the player is and what should happen there.
+WorldScript tracks locations and region progress. Your quest plugin can use its commands and placeholders to connect those places to a larger quest flow.
 
 ## What can it do?
 
 - Cuboid and polygon regions
-- Parent-child regions with inherited variables and states
+- Parent-child regions with inherited configuration; player progress remains individual
 - Enter, leave, left-click, right-click, and interaction events
 - Conditions, actions, rewards, and Kether scripts
 - Discovery Title, Toast, sound, and first-discovery rewards
-- Chat editor and GUI selection
+- Selection wand, region list GUI, chat editor, and YAML configuration
 - PlaceholderAPI variables
 - Built-in module catalog and guarded external module loading
 - Spawn module with optional MythicMobs selection
@@ -21,7 +21,8 @@ In short: your quest plugin handles the quest flow; WorldScript handles where th
 
 ## Download
 
-- [Download WorldScript on SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/)
+- [Download WorldScript on SpigotMC](https://www.spigotmc.org/resources/worldscript-rpg-regions.138114/)
+- [Download on Modrinth](https://modrinth.com/plugin/worldscript)
 
 ## Discussion & Feedback
 

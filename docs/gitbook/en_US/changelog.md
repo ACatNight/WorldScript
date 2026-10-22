@@ -2,21 +2,18 @@
 
 ## 1.0.0
 
-WorldScript is now ready to be used as a stable release.
+WorldScript 1.0.0 adds several ways to build exploration and combat areas:
 
-If you only use region events, your existing workflow should stay the same. If you want a fuller exploration setup, the editor now gives you a clearer path for discovery prompts, Toasts, entry conditions, and region spawning.
+- Polygon outlines for irregular regions, alongside the existing cuboid selection tool.
+- Advancement-style discovery Toasts, including editor controls and preview/diagnostic commands.
+- Region-bound vanilla and MythicMobs spawning with nearby-player checks and alive limits.
+- PVP protection through `peaceful` and `dangerous` region statuses, checking both players at the boundary.
+- Built-in module status and an optional external module API. External loading is disabled by default.
+- Improved discovery actions, entry conditions, editor feedback and bilingual documentation.
 
-Worth checking in this release:
+This release also fixes repeat-entry behavior, effects from cancelled or redirected movement, full-inventory reward loss, and Shift-click item loss in menus. Region edits preserve their source filenames; deleting a region removes duplicate definitions. Spawn reload retains live counts and disabled rules clean up their mobs, including deferred cleanup for unloaded chunks. External modules require enabled dependencies.
 
-- The `modules/` directory is created automatically, giving future extensions a cleaner home.
-- Official built-in modules show up in `/ws modules list`, which makes feature status easier to diagnose.
-- Old official module descriptor JARs are refreshed automatically, so you do not need to delete them by hand after upgrading.
-- The Spawn module can bind mob spawning to regions. With MythicMobs installed, you can pick mobs directly from the GUI.
-- Towns and safe zones can use `peaceful` to block PVP; wilderness or arenas can use `dangerous` to keep fighting enabled.
-- External modules can now request the region, player progress, and action interfaces during load without depending on internal classes.
-- The GitBook docs now include Chinese and English pages for installation, regions, polygons, Toasts, variables, and spawning.
-
-Release fixes also address repeat-entry events, rewards triggered by cancelled teleports, full-inventory reward loss, and Shift-click item loss in menus. Region edits preserve their source files, spawn reload retains live counts, and external modules require successfully enabled dependencies.
+The latest 1.0.0 JAR also fixes repeated `ChunkUnloadEvent` errors on Paper 1.21.8.
 
 After upgrading:
 

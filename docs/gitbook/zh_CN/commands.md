@@ -17,6 +17,11 @@
 /ws list
 /ws info <区域ID>
 /ws edit <区域ID>
+/ws polygon start <区域ID>
+/ws polygon preview
+/ws polygon undo
+/ws polygon redo
+/ws polygon finish
 ```
 
 ## 玩家进度
@@ -61,3 +66,5 @@
 ```
 
 `test` 会告诉你玩家当前区域是否允许 PVP。
+
+管理指令需要 `worldscript.admin` 权限，默认授予 OP。区域 GUI 用 `/ws list` 打开；没有 `/ws gui` 指令。

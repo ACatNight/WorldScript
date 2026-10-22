@@ -2,11 +2,12 @@
 
 ## Install
 
-1. Download `WorldScript-1.0.0.jar` from [SpigotMC](https://www.spigotmc.org/resources/worldscript-1-12-2-1-21-8-%EF%B8%8Frpg-region-framework-%E2%9A%A1dynamic-events-player-progression%E2%9A%A1.138114/).
+1. Download the latest WorldScript JAR from [SpigotMC](https://www.spigotmc.org/resources/worldscript-rpg-regions.138114/) or [Modrinth](https://modrinth.com/plugin/worldscript).
 2. Drop it into the server `plugins/` directory.
 3. Start the server once so it creates `plugins/WorldScript/`.
-4. Run `/ws validate`.
-5. After editing files, run `/ws reload`.
+4. Run `/ws wand` and select two corners, then `/ws create forest_entrance`.
+5. Open the region list with `/ws list` or edit the region with `/ws edit forest_entrance`.
+6. After editing files, run `/ws validate`, then `/ws reload`.
 
 TabooLib and Kether are bundled inside WorldScript. You do not need to install TabooLib separately.
 
@@ -19,10 +20,11 @@ TabooLib and Kether are bundled inside WorldScript. You do not need to install T
 
 WorldScript targets Paper 1.12.2 through 1.21.8.
 
-Recommended Java versions:
+Use the Java version required by your server build. Typical requirements are:
 
 - 1.12.2 - 1.16.x: Java 8
-- 1.17 - 1.20.4: Java 17
+- 1.17.x: Java 16
+- 1.18 - 1.20.4: Java 17
 - 1.20.5 - 1.21.8: Java 21
 
 Before using it on a live server, test your exact server version. Toast, particles, and MythicMobs integration are the parts most worth checking.

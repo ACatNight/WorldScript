@@ -22,14 +22,15 @@ Polygon regions are better for diagonal roads, irregular entrances, walls, and t
 
 ```text
 /ws polygon start <region-id>
+/ws polygon preview
 /ws polygon finish
 ```
 
-Use the polygon tool to place points. The region uses the polygon outline plus its height range for detection.
+Start with an existing region, then use the polygon tool to place its outline points. Preview them before finishing. `/ws polygon undo` and `/ws polygon redo` are available while editing. The region uses the outline plus its height range for detection.
 
 ## Parent-Child Regions
 
-Use parent regions for shared ambience, variables, and global state. Use child regions for precise triggers.
+Use parent regions for shared ambience, variables, and statuses. Use child regions for precise triggers. A child must be in the same world and inside its parent's bounds.
 
 ```yaml
 identity:
@@ -37,6 +38,8 @@ identity:
 state:
   inherit: true
 ```
+
+Child settings can override inherited values. Event-level `inherit: false` lets a child define its own actions. Unlock and completion progress is stored separately for each player; inheriting region configuration does not merge their progress.
 
 ## Entry Conditions
 

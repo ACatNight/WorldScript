@@ -29,10 +29,11 @@
 ## 3. 打开编辑器
 
 ```text
+/ws list
 /ws edit starter_valley
 ```
 
-能点的地方尽量直接点。先别急着写 YAML，聊天栏编辑器已经能改大部分内容。
+`/ws list` 打开区域列表 GUI，`/ws edit` 直接进入指定区域的聊天栏编辑器。可以先加入进入事件或发现提示，大部分常见设置不用手写 YAML。
 
 ## 4. 测一下
 
@@ -41,4 +42,8 @@
 /ws test starter_valley
 ```
 
-没有报错的话，就进区域走一圈，看进入事件、Toast、粒子、刷怪是不是正常。
+走出区域再走回来，检查进入事件是否生效。`/ws test` 只显示形状、进入事件设置、配置问题并预览 Toast，不会执行进入事件的动作。
+
+## 5. 试试 1.0.0 新功能
+
+不规则范围可以用[多边形编辑](regions.md#多边形区域)；发现提示在 `/ws edit starter_valley discovery` 里设置，并可[预览 Toast](discovery-toast.md)。基础区域正常后，再试 [Spawn 刷怪](spawn.md) 和 [Protect 区域保护](protect.md)。
