@@ -2,6 +2,7 @@
 
 ## 1.0.0 release fixes
 
+- Fixed chunk-unload errors on modern Paper where ChunkUnloadEvent is no longer cancellable, while retaining cancelled-event handling on legacy servers.
 - Fixed inventory menus across legacy and modern Bukkit APIs, including Shift-click item loss.
 - Fixed repeat-entry events, cancelled or redirected movement/teleport effects, and inventory overflow for once-only rewards.
 - Region edits now preserve the source filename; deletion also removes duplicate sources so regions cannot reappear after reload.

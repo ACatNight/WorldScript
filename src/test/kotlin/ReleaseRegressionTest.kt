@@ -286,6 +286,18 @@ class ReleaseRegressionTest {
         manager.close()
     }
 
+    @Test fun cancelledLegacyChunkUnloadDoesNotChangeSpawnTracking() {
+        val fixture = Fixture(directory)
+        val service = SpawnService(fixture.plugin, Mockito.mock(RegionCoreServiceImpl::class.java))
+        val chunk = Mockito.mock(Chunk::class.java)
+        val event = ChunkUnloadEvent(chunk)
+        event.isCancelled = true
+        Mockito.clearInvocations(chunk)
+        service.onChunkUnload(event)
+        // Cancellation must return before querying the world or entities.
+        Mockito.verifyNoInteractions(chunk)
+    }
+
     @Test fun spawnReloadKeepsAliveTrackingAndDisableRemovesOwnedEntities() {
         val fixture = Fixture(directory)
         val core = Mockito.mock(RegionCoreServiceImpl::class.java)

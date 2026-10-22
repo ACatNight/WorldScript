@@ -15,6 +15,7 @@ import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.Cancellable
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDeathEvent
@@ -382,7 +383,9 @@ class SpawnService(
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onChunkUnload(event: ChunkUnloadEvent) {
-        if (event.isCancelled) return
+        // Modern Bukkit no longer makes ChunkUnloadEvent cancellable.
+        // Call through the optional interface to retain legacy cancellation support.
+        if ((event as? Cancellable)?.isCancelled == true) return
         val tracked = runtime.values.flatMap { it.alive }.toSet()
         val key = Triple(event.world.uid, event.chunk.x, event.chunk.z)
         event.chunk.entities.filter { it.uniqueId in tracked }.forEach { unloaded[it.uniqueId] = key }

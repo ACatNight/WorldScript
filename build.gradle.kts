@@ -39,6 +39,9 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testImplementation("org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT")
     testImplementation("org.mockito:mockito-inline:4.11.0")
+    // Keep Mockito 4's Java 8 support while allowing modern API mocks on Java 21.
+    testImplementation("net.bytebuddy:byte-buddy:1.14.19")
+    testImplementation("net.bytebuddy:byte-buddy-agent:1.14.19")
     modernBukkitTestRuntime("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
 }
 
